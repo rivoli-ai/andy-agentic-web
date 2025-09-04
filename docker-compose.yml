@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  agentic-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentic-app
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - agentic-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a reverse proxy for production
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: agentic-nginx-proxy
+    ports:
+      - "8090:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - agentic-app
+    networks:
+      - agentic-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+networks:
+  agentic-network:
+    driver: bridge
+
+volumes:
+  nginx-ssl:
+    driver: local
