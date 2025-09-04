@@ -1,0 +1,271 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Configure your application preferences and behavior
+      </p>
+    </div>
+  </div>
+
+  <!-- Settings Sections -->
+  <div class="space-y-6">
+    <!-- Appearance Settings -->
+    <div class="card">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h2>
+      <div class="space-y-4">
+        <!-- Theme Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Theme
+          </label>
+          <div class="flex space-x-3">
+            <button
+              (click)="onThemeChange('light')"
+              class="flex items-center px-4 py-2 rounded-lg border-2 transition-all duration-200"
+              [class.border-primary-500]="currentTheme === 'light'"
+              [class.border-gray-300]="currentTheme !== 'light'"
+              [class.bg-primary-50]="currentTheme === 'light'"
+              [class.bg-white]="currentTheme !== 'light'"
+              [class.dark:border-gray-600]="currentTheme !== 'light'"
+              [class.dark:bg-gray-800]="currentTheme !== 'light'"
+            >
+              <span class="text-xl mr-2">{{ getThemeIcon('light') }}</span>
+              Light
+            </button>
+            <button
+              (click)="onThemeChange('dark')"
+              class="flex items-center px-4 py-2 rounded-lg border-2 transition-all duration-200"
+              [class.border-primary-500]="currentTheme === 'dark'"
+              [class.border-gray-300]="currentTheme !== 'dark'"
+              [class.bg-primary-50]="currentTheme === 'dark'"
+              [class.bg-white]="currentTheme !== 'dark'"
+              [class.dark:border-gray-600]="currentTheme !== 'dark'"
+              [class.dark:bg-gray-800]="currentTheme !== 'dark'"
+            >
+              <span class="text-xl mr-2">{{ getThemeIcon('dark') }}</span>
+              Dark
+            </button>
+          </div>
+        </div>
+
+        <!-- Auto Theme -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Auto Theme
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              Automatically switch theme based on system preference
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [checked]="isAutoTheme"
+              (change)="onAutoThemeChange($any($event.target).checked)"
+              class="sr-only peer"
+            >
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="card">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Notifications</h2>
+      <div class="space-y-4">
+        <!-- Enable Notifications -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Enable Notifications
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              Show toast notifications for actions and events
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [checked]="isNotificationsEnabled"
+              (change)="onNotificationsChange($any($event.target).checked)"
+              class="sr-only peer"
+            >
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+          </label>
+        </div>
+
+        <!-- Sound Notifications -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Sound Notifications
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              Play sounds for important notifications
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [checked]="isSoundEnabled"
+              (change)="onSoundChange($any($event.target).checked)"
+              class="sr-only peer"
+            >
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Settings -->
+    <div class="card">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data & Storage</h2>
+      <div class="space-y-4">
+        <!-- Auto Save -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Auto Save
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              Automatically save changes to local storage
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [checked]="isAutoSaveEnabled"
+              (change)="onAutoSaveChange($any($event.target).checked)"
+              class="sr-only peer"
+            >
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+          </label>
+        </div>
+
+        <!-- Auto Save Interval -->
+        <div *ngIf="isAutoSaveEnabled">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Auto Save Interval (minutes)
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="30"
+            [value]="autoSaveInterval"
+            (input)="onAutoSaveIntervalChange(+$any($event.target).value)"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+          >
+          <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>1 min</span>
+            <span>{{ autoSaveInterval }} min</span>
+            <span>30 min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Limits Settings -->
+    <div class="card">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Resource Limits</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Max Agents -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Max Agents
+          </label>
+          <input
+            type="number"
+            [value]="maxAgents"
+            (change)="onMaxAgentsChange(+$any($event.target).value)"
+            min="1"
+            max="1000"
+            class="input-field"
+          >
+        </div>
+
+        <!-- Max Tools -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Max Tools
+          </label>
+          <input
+            type="number"
+            [value]="maxTools"
+            (change)="onMaxToolsChange(+$any($event.target).value)"
+            min="1"
+            max="500"
+            class="input-field"
+          >
+        </div>
+
+        <!-- Max MCP Servers -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Max MCP Servers
+          </label>
+          <input
+            type="number"
+            [value]="maxMCPServers"
+            (change)="onMaxMCPServersChange(+$any($event.target).value)"
+            min="1"
+            max="100"
+            class="input-field"
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
+      <div class="flex flex-wrap gap-3">
+        <button
+          (click)="exportSettings()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Export Settings
+        </button>
+
+        <label class="btn-secondary cursor-pointer">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+          </svg>
+          Import Settings
+          <input
+            type="file"
+            accept=".json"
+            (change)="importSettings($event)"
+            class="hidden"
+          >
+        </label>
+
+        <button
+          (click)="resetToDefaults()"
+          class="btn-warning"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Reset to Defaults
+        </button>
+
+        <button
+          (click)="clearCache()"
+          class="btn-error"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+          Clear Cache
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

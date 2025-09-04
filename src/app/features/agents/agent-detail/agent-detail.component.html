@@ -1,0 +1,386 @@
+<div class="max-w-6xl mx-auto p-6 space-y-6">
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="flex items-center justify-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+  </div>
+
+  <!-- Agent details -->
+  <div *ngIf="!isLoading && agent" class="space-y-6">
+    <!-- Header with actions -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button
+          (click)="goBack()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Back
+        </button>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ agent.name }}</h1>
+          <p class="mt-1 text-gray-600 dark:text-gray-400">{{ agent.description }}</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <button
+          (click)="duplicateAgent()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+          Duplicate
+        </button>
+        <button
+          (click)="editAgent()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+          Edit
+        </button>
+        <button
+          (click)="executeAgent()"
+          [disabled]="isExecuting || !agent.isActive"
+          class="btn-primary"
+          [class.opacity-50]="isExecuting || !agent.isActive"
+        >
+          <svg *ngIf="!isExecuting" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <svg *ngIf="isExecuting" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          {{ isExecuting ? 'Executing...' : 'Execute' }}
+        </button>
+        <button
+          (click)="deleteAgent()"
+          class="btn-danger"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Main information -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Basic information -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Status and metadata -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Status and information</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-primary-600">{{ agent.executionCount }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Executions</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-600">{{ agent.prompts.length }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Prompts</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-green-600">{{ agent.tools.length }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Tools</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-purple-600">{{ agent.mcpServers.length }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">MCP Servers</div>
+            </div>
+          </div>
+          
+          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Type:</span>
+              <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {{ agent.type | titlecase }}
+              </span>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+              <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [ngClass]="agent.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'">
+                {{ agent.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Created on:</span>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.createdAt | date:'medium' }}</span>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Modified on:</span>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.updatedAt | date:'medium' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LLM Configuration -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">LLM Configuration</h2>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Name:</span>
+                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.name }}</span>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Provider:</span>
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                  {{ agent.llmConfig.provider | titlecase }}
+                </span>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Model:</span>
+                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.model }}</span>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">LLM Status:</span>
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [ngClass]="agent.llmConfig.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'">
+                  {{ agent.llmConfig.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Base URL:</span>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400 font-mono">{{ agent.llmConfig.baseUrl }}</span>
+            </div>
+
+            <!-- Advanced parameters -->
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Advanced parameters</h3>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Max Tokens:</span>
+                  <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.maxTokens }}</span>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Temperature:</span>
+                  <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.temperature }}</span>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Top P:</span>
+                  <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.topP }}</span>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Freq. Penalty:</span>
+                  <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.frequencyPenalty }}</span>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Pres. Penalty:</span>
+                  <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ agent.llmConfig.presencePenalty }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="card" *ngIf="agent.agentTags.length > 0">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Tags and categories</h2>
+          <div class="flex flex-wrap gap-2">
+            <span
+              *ngFor="let tag of agent.agentTags"
+              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
+            >
+              {{ tag }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Prompts -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Prompts and instructions</h2>
+          <div class="space-y-4">
+            <div
+              *ngFor="let prompt of agent.prompts; let i = index"
+              class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Prompt {{ i + 1 }}</h3>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [class]="getStatusClasses(prompt.isActive)">
+                  {{ prompt.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+              <p class="text-gray-700 dark:text-gray-300 mb-3">{{ prompt.content }}</p>
+              
+              <!-- Prompt variables -->
+              <div *ngIf="prompt.variables && prompt.variables.length > 0">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Variables:</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div
+                    *ngFor="let variable of prompt.variables"
+                    class="text-xs bg-gray-100 dark:bg-gray-700 rounded px-2 py-1"
+                  >
+                    <span class="font-medium">{{ variable.name }}</span>
+                    <span class="text-gray-500">: {{ variable.type }}</span>
+                    <span *ngIf="variable.required" class="text-error-600 ml-1">*</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tools -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Tools and integrations</h2>
+          <div class="space-y-3">
+            <div
+              *ngFor="let tool of agent.tools; let i = index"
+              class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+            >
+              <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center">
+                  <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900 dark:text-white">{{ tool.name }}</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">{{ tool.type }}</div>
+                </div>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [class]="getStatusClasses(tool.isActive)">
+                {{ tool.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MCP Servers -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">MCP servers</h2>
+          <div class="space-y-3">
+            <div
+              *ngFor="let server of agent.mcpServers; let i = index"
+              class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+            >
+              <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900 dark:text-white">{{ server.name }}</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">
+                    {{ server.capabilities && server.capabilities.length > 0 ? server.capabilities.join(', ') : 'No capabilities' }}
+                  </div>
+                </div>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [class]="getStatusClasses(server.isActive)">
+                {{ server.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar with recent executions -->
+      <div class="space-y-6">
+        <!-- Recent executions -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Recent executions</h2>
+          <div class="space-y-3">
+            <div
+              *ngFor="let execution of executions.slice(0, 5)"
+              class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ execution.timestamp | date:'HH:mm' }}
+                </span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                      [class]="getExecutionStatusClasses(execution.status)">
+                  {{ execution.status | titlecase }}
+                </span>
+              </div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                {{ formatExecutionTime(execution.executionTime) }}
+              </div>
+              <div *ngIf="execution.result" class="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">
+                {{ execution.result }}
+              </div>
+            </div>
+            
+            <div *ngIf="executions.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+              <p class="text-sm">No executions</p>
+            </div>
+          </div>
+          
+          <div *ngIf="executions.length > 5" class="mt-4 text-center">
+            <button class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200">
+              View all executions
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="card">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Quick actions</h2>
+          <div class="space-y-3">
+            <button
+              (click)="executeAgent()"
+              [disabled]="isExecuting || !agent.isActive"
+              class="w-full btn-primary"
+              [class.opacity-50]="isExecuting || !agent.isActive"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              {{ isExecuting ? 'Executing...' : 'Execute now' }}
+            </button>
+            
+            <button
+              (click)="editAgent()"
+              class="w-full btn-secondary"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              Edit agent
+            </button>
+            
+            <button
+              (click)="duplicateAgent()"
+              class="w-full btn-secondary"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              Duplicate
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="!isLoading && !agent" class="text-center py-12">
+    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+    </svg>
+    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Agent not found</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-4">The agent you are looking for does not exist or has been deleted.</p>
+    <button
+      (click)="goBack()"
+      class="btn-primary"
+    >
+      Back to agents
+    </button>
+  </div>
+</div>

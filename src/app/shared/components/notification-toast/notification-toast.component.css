@@ -1,0 +1,103 @@
+.notification-toast {
+  @apply w-full bg-white dark:bg-gray-800 shadow-xl rounded-xl pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden;
+  min-width: 320px;
+  max-width: 480px;
+}
+
+/* Styles spécifiques par type */
+.notification-toast.success {
+  @apply border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20;
+}
+
+.notification-toast.error {
+  @apply border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20;
+}
+
+.notification-toast.warning {
+  @apply border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20;
+}
+
+.notification-toast.info {
+  @apply border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20;
+}
+
+/* Padding et espacement */
+.notification-toast > div:first-child {
+  @apply p-5;
+}
+
+/* Icônes plus grandes */
+.notification-toast svg {
+  @apply flex-shrink-0;
+}
+
+/* Titre plus grand et lisible */
+.notification-toast h4 {
+  @apply text-lg font-semibold leading-tight;
+}
+
+/* Message avec meilleur espacement */
+.notification-toast p {
+  @apply text-base leading-relaxed;
+}
+
+/* Bouton de fermeture */
+.notification-toast button {
+  @apply hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-all duration-200;
+}
+
+/* Barre de progression */
+.notification-toast .progress-bar {
+  @apply transition-all duration-100 ease-linear;
+}
+
+/* Animation d'entrée */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.notification-toast.entering {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.notification-toast.leaving {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .notification-toast {
+    min-width: 280px;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .notification-toast > div:first-child {
+    @apply p-4;
+  }
+  
+  .notification-toast h4 {
+    @apply text-base;
+  }
+  
+  .notification-toast p {
+    @apply text-sm;
+  }
+}

@@ -1,0 +1,95 @@
+/* Styles spécifiques au formulaire LLM */
+.card {
+  @apply bg-white dark:bg-gray-800 shadow rounded-lg p-6;
+}
+
+.card h2 {
+  @apply text-xl font-semibold text-gray-900 dark:text-white mb-6;
+}
+
+.card label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.input-field {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+}
+
+.input-field:focus {
+  @apply ring-2 ring-primary-500 border-primary-500;
+}
+
+.input-field.border-error-500 {
+  @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+}
+
+/* Checkbox styling */
+.card input[type="checkbox"] {
+  @apply w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600;
+}
+
+/* Special input types */
+.card input[type="password"] {
+  @apply font-mono;
+}
+
+.card input[type="number"] {
+  @apply text-right;
+}
+
+/* Error states */
+.text-error-600 {
+  @apply text-red-600 dark:text-red-400;
+}
+
+/* Custom model input */
+#customModel.hidden {
+  display: none;
+}
+
+/* Loading spinner */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .card {
+    @apply p-4;
+  }
+  
+  .card h2 {
+    @apply text-lg;
+  }
+}
+
+/* Button styles */
+.btn-primary {
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
+}
+
+/* Form validation visual feedback */
+.card input.ng-invalid.ng-touched,
+.card select.ng-invalid.ng-touched,
+.input-field.ng-invalid.ng-touched {
+  @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+}
+
+.card input.ng-valid.ng-touched,
+.card select.ng-valid.ng-touched,
+.input-field.ng-valid.ng-touched {
+  @apply border-green-500 focus:ring-green-500 focus:border-green-500;
+}

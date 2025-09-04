@@ -1,0 +1,113 @@
+/* App component specific styles */
+.translate-x-0 {
+  transform: translateX(0);
+}
+
+.-translate-x-full {
+  transform: translateX(-100%);
+}
+
+/* Height management for full-height layout */
+.h-full {
+  height: 100%;
+}
+
+/* Ensure smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Sidebar height consistency */
+aside {
+  height: 100%;
+}
+
+/* Main content height */
+main {
+  height: 100%;
+  /* Prevent main from scrolling - only content area scrolls */
+  overflow: hidden;
+}
+
+/* Ensure content doesn't overflow horizontally */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Content area scrolling */
+.content-area {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+}
+
+/* Ensure sidebar content doesn't scroll */
+aside .flex-1 {
+  overflow: hidden;
+}
+
+/* Sidebar navigation items */
+.sidebar-item {
+  @apply flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md transition-colors duration-200;
+}
+
+.sidebar-item:hover {
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white;
+}
+
+.sidebar-item.active {
+  @apply bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300;
+}
+
+/* Ensure sidebar stays visible on desktop */
+@media (min-width: 768px) {
+  aside {
+    position: relative !important;
+    transform: none !important;
+  }
+  
+  aside.translate-x-0 {
+    transform: none !important;
+  }
+  
+  aside.-translate-x-full {
+    transform: none !important;
+  }
+}
+
+/* Custom scrollbar for content area */
+.content-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.content-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+/* Dark mode scrollbar for content area */
+.dark .content-area::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.3);
+}
+
+.dark .content-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.6);
+}
+
+/* Chatbot route specific styling */
+.chatbot-route {
+  height: 100%;
+  overflow: hidden;
+}

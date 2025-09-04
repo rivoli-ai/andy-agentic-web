@@ -1,0 +1,233 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">MCP Servers</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Manage Model Context Protocol servers for enhanced agent capabilities
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0">
+      <button
+        (click)="createNewMCPServer()"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+      >
+        <!-- Background glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+        
+        <!-- Icon with animation -->
+        <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        
+        <!-- Text -->
+        <span class="relative">New MCP Server</span>
+        
+        <!-- Subtle arrow indicator -->
+        <svg class="w-4 h-4 ml-2 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Search -->
+      <div>
+        <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Search Servers
+        </label>
+        <input
+          id="search"
+          type="text"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search by name, description, or host..."
+          class="input-field"
+        />
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label for="statusFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Status
+        </label>
+        <select
+          id="statusFilter"
+          [(ngModel)]="selectedStatus"
+          (ngModelChange)="onStatusFilterChange()"
+          class="input-field"
+        >
+          <option value="">All Status</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- MCP Servers Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      *ngFor="let server of filteredServers"
+      class="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      (click)="viewMCPServer(server.id)"
+    >
+      <!-- Server Header -->
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+            {{ server.name }}
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+            {{ server.description }}
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getStatusClasses(server.isActive)"
+          >
+            {{ server.isActive ? 'Active' : 'Inactive' }}
+          </span>
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getConnectionStatusClasses(server)"
+          >
+            {{ getConnectionStatus(server) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Server Details -->
+      <div class="mb-4 space-y-2">
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          <span class="font-medium">Host:</span> 
+          <span class="font-mono text-xs">{{ server.host }}:{{ server.port }}</span>
+        </div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          <span class="font-medium">Auth:</span> 
+          <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+                [ngClass]="getAuthTypeClasses(server.authentication.type)">
+            {{ server.authentication.type | titlecase }}
+          </span>
+        </div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          <span class="font-medium">Capabilities:</span> 
+          <div class="flex flex-wrap gap-1 mt-1">
+            <span
+              *ngFor="let capability of server.capabilities.slice(0, 3)"
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+            >
+              {{ capability }}
+            </span>
+            <span
+              *ngIf="server.capabilities.length > 3"
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+            >
+              +{{ server.capabilities.length - 3 }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Last: {{ server.lastConnected | date:'short' }}
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            (click)="connectToServer(server.id, $event)"
+            class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
+            [disabled]="!server.isActive"
+            [class.opacity-50]="!server.isActive"
+            [class.cursor-not-allowed]="!server.isActive"
+            title="Connect to Server"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="testConnection(server.id, $event)"
+            class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
+            title="Test Connection"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="toggleServerStatus(server.id, $event)"
+            class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
+            [title]="server.isActive ? 'Deactivate' : 'Activate'"
+          >
+            <svg *ngIf="server.isActive" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636"></path>
+            </svg>
+            <svg *ngIf="!server.isActive" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
+          <button
+            (click)="editMCPServer(server.id, $event)"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="Edit Server"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="deleteMCPServer(server.id, $event)"
+            class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
+            title="Delete Server"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    *ngIf="filteredServers.length === 0"
+    class="text-center py-12"
+  >
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No MCP servers found</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      {{ searchQuery || selectedStatus ? 'Try adjusting your search or filters.' : 'Get started by creating your first MCP server.' }}
+    </p>
+    <div class="mt-6">
+      <button
+        (click)="createNewMCPServer()"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+      >
+        <!-- Background glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+        
+        <!-- Icon with animation -->
+        <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        
+        <!-- Text -->
+        <span class="relative">New MCP Server</span>
+        
+        <!-- Subtle arrow indicator -->
+        <svg class="w-4 h-4 ml-2 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

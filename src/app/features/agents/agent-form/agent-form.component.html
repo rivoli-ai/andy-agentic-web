@@ -1,0 +1,544 @@
+<div class="max-w-4xl mx-auto p-6 space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+         {{ isEditMode ? 'Edit Agent' : 'Create New Agent' }}
+       </h1>
+       <p class="mt-2 text-gray-600 dark:text-gray-400">
+         {{ isEditMode ? 'Modify your agent properties' : 'Configure a new intelligent agent' }}
+       </p>
+    </div>
+    <div class="flex space-x-3">
+      <button
+        (click)="onCancel()"
+        class="btn-secondary"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+                 Cancel
+      </button>
+      <button
+        (click)="onSubmit()"
+        [disabled]="agentForm.invalid"
+        class="btn-primary"
+        [class.opacity-50]="agentForm.invalid"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+                 {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </div>
+
+     <!-- Form -->
+  <form [formGroup]="agentForm" (ngSubmit)="onSubmit()" class="space-y-8">
+             <!-- Basic Information -->
+    <div class="card">
+             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <!-- Name -->
+        <div>
+                     <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+             Agent Name *
+           </label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="input-field"
+            [class.error]="isFieldInvalid('name')"
+            placeholder="Ex: Assistant Client Support"
+          />
+          <div *ngIf="isFieldInvalid('name')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('name') }}
+          </div>
+        </div>
+
+        <!-- Type -->
+        <div>
+                     <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+             Agent Type *
+           </label>
+          <select
+            id="type"
+            formControlName="type"
+            class="input-field"
+          >
+            <option *ngFor="let type of agentTypes" [value]="type">
+              {{ type | titlecase }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="md:col-span-2">
+          <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Description *
+          </label>
+          <textarea
+            id="description"
+            formControlName="description"
+            rows="3"
+            class="input-field"
+            [class.error]="isFieldInvalid('description')"
+                             placeholder="Describe the role and capabilities of your agent..."
+          ></textarea>
+          <div *ngIf="isFieldInvalid('description')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('description') }}
+          </div>
+        </div>
+
+                 <!-- Status -->
+        <div class="md:col-span-2">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              formControlName="isActive"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Agent
+             </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- LLM Configuration -->
+    <div class="card">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">LLM Configuration</h2>
+      <div class="space-y-4">
+        <!-- LLM Config Selection -->
+        <div>
+          <label for="llmConfigId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select LLM Configuration *
+          </label>
+          <select
+            id="llmConfigId"
+            formControlName="llmConfigId"
+            class="input-field"
+            [class.error]="isFieldInvalid('llmConfigId')"
+          >
+            <option value="">Select an LLM configuration...</option>
+            <option *ngFor="let config of availableLLMConfigs" [value]="config.id">
+              {{ config.name }} ({{ config.provider }} - {{ config.model }})
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('llmConfigId')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('llmConfigId') }}
+          </div>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Choose an existing LLM configuration for this agent. You can manage configurations in the LLM Configurations section.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Tags and Categories</h2>
+        <button
+          type="button"
+          (click)="refreshTags()"
+          class="btn-secondary text-sm"
+          title="Refresh tags from API"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Refresh
+        </button>
+      </div>
+      <div class="space-y-4">
+        <!-- Existing Tags -->
+        <div *ngIf="agentForm.get('tags')?.value?.length > 0" class="flex flex-wrap gap-2">
+          <span
+            *ngFor="let agentTag of agentForm.get('tags')?.value"
+            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+            [style.background-color]="agentTag?.tag?.color + '20'"
+            [style.color]="agentTag?.tag?.color"
+            [style.border]="'1px solid ' + agentTag?.tag?.color + '40'"
+          >
+            {{ agentTag?.tag?.name }}
+            <button
+              type="button"
+              (click)="removeTag(agentTag?.tag?.name)"
+              class="ml-2 hover:opacity-70"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </span>
+        </div>
+
+        <!-- Add a tag -->
+        <div class="space-y-3">
+          <div class="flex space-x-2">
+            <select
+              #tagSelect
+              class="input-field flex-1"
+              (change)="addTag(tagSelect.value); tagSelect.value = ''"
+            >
+              <option value="">Select a tag...</option>
+              <option *ngFor="let tag of availableTags" [value]="tag.name">
+                {{ tag.name | titlecase }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Custom tag creation -->
+          <div class="flex space-x-2">
+            <input
+              #customTagInput
+              type="text"
+              placeholder="Or create a custom tag..."
+              class="input-field flex-1"
+              (keyup.enter)="createCustomTag(customTagInput.value); customTagInput.value = ''"
+            />
+            <button
+              type="button"
+              (click)="createCustomTag(customTagInput.value); customTagInput.value = ''"
+              class="btn-primary text-sm"
+            >
+              Create
+            </button>
+          </div>
+        </div>
+
+        <!-- Message if no tags available -->
+        <div *ngIf="availableTags.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+          <p>No tags available. Please refresh or check your connection.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompts -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Prompts and Instructions</h2>
+        <button
+          type="button"
+          (click)="addPrompt()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+                     Add a prompt
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div
+          *ngFor="let promptGroup of promptsArray.controls; let i = index"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Prompt {{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removePrompt(i)"
+              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Prompt Content -->
+            <div>
+                           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+               Prompt Content *
+             </label>
+              <textarea
+                [formControl]="getPromptContent(i)"
+                rows="3"
+                class="input-field w-full"
+                                 placeholder="Enter instructions for your agent..."
+              ></textarea>
+            </div>
+
+                         <!-- Prompt Variables -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                   Prompt Variables
+                 </label>
+                <button
+                  type="button"
+                  (click)="addPromptVariable(getPromptGroup(i))"
+                  class="btn-primary text-sm"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  Variable
+                </button>
+              </div>
+
+              <div class="space-y-2">
+                <div
+                  *ngFor="let variableGroup of getPromptVariables(i).controls; let j = index"
+                  class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end"
+                >
+                  <input
+                    [formControl]="getPromptVariableName(i, j)"
+                    placeholder="Name"
+                    class="input-field"
+                  />
+                  <select
+                    [formControl]="getPromptVariableType(i, j)"
+                    class="input-field"
+                  >
+                    <option value="string">String</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="object">Object</option>
+                    <option value="array">Array</option>
+                  </select>
+                  <input
+                    [formControl]="getPromptVariableDefault(i, j)"
+                    placeholder="Default Value"
+                    class="input-field"
+                  />
+                  <button
+                    type="button"
+                    (click)="removePromptVariable(getPromptGroup(i), j)"
+                    class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+                         <!-- Prompt Status -->
+            <div>
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  [formControl]="getPromptIsActive(i)"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Prompt
+             </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+                 <!-- Message if no prompt -->
+        <div *ngIf="promptsArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+                     <p>No prompt configured. Add your first prompt to define your agent's behavior.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outils -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Tools and Integrations</h2>
+        <button
+          type="button"
+          (click)="addTool()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+                     Add a tool
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div
+          *ngFor="let toolGroup of toolsArray.controls; let i = index"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Tool {{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removeTool(i)"
+              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Tool Selection -->
+            <div>
+                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                 Select an existing tool *
+               </label>
+              <select
+              [formControl]="getToolToolId(i)"
+              (change)="onToolSelectChange($event, i)"
+              class="input-field"
+              [class.border-red-300]="getToolToolId(i).invalid && getToolToolId(i).touched"
+            >
+                               <option 
+                   *ngFor="let tool of availableTools; trackBy: trackByToolId" 
+                   [value]="tool.id"
+                   [selected]="getToolToolId(i).value === tool.id"
+                 >
+                   {{ tool.name }} ({{ tool.category || 'General' }})
+                 </option>
+            </select>
+            
+            <!-- Debug info (remove in production) -->
+            <small class="text-gray-500 text-xs mt-1">
+              Current value {{i}}: {{ getToolToolId(i).value }}
+            </small>
+            </div>
+            
+            <!-- Tool Name -->
+            <div>
+                           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+               Tool Name *
+             </label>
+              <input
+                [formControl]="getToolName(i)"
+                                 placeholder="Ex: Knowledge Base"
+                class="input-field"
+              />
+            </div>
+          </div>
+
+          <!-- Tool Description -->
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description
+            </label>
+            <textarea
+              [formControl]="getToolDescription(i)"
+              rows="2"
+                               placeholder="Tool description..."
+              class="input-field"
+            ></textarea>
+          </div>
+
+          <!-- Tool Status -->
+          <div class="mt-4">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [formControl]="getToolIsActive(i)"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+                           <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Tool
+             </span>
+            </label>
+          </div>
+        </div>
+
+                 <!-- Message if no tool -->
+        <div *ngIf="toolsArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+                     <p>No tool configured. Add tools to extend your agent's capabilities.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Serveurs MCP -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">MCP Servers</h2>
+        <button
+          type="button"
+          (click)="addMCPServer()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+                     Add an MCP Server
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div
+          *ngFor="let serverGroup of mcpServersArray.controls; let i = index"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">MCP Server {{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removeMCPServer(i)"
+              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                 Server Name *
+               </label>
+              <input
+                [formControl]="getMCPServerName(i)"
+                                 placeholder="Ex: Claude MCP Server"
+                class="input-field"
+              />
+            </div>
+            <div>
+                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                 Capabilities
+               </label>
+              <input
+                [formControl]="getMCPServerCapabilities(i)"
+                placeholder="text-generation, file-access"
+                class="input-field"
+              />
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [formControl]="getMCPServerIsActive(i)"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+                           <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Server
+             </span>
+            </label>
+          </div>
+        </div>
+
+                 <!-- Message if no MCP server -->
+        <div *ngIf="mcpServersArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+          </svg>
+                     <p>No MCP server configured. Add MCP servers to extend your agent's capabilities.</p>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

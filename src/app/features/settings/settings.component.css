@@ -1,0 +1,38 @@
+/* Settings component specific styles */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background-color: #2563eb;
+}
+
+/* Dark mode styles */
+.dark input[type="range"]::-webkit-slider-track {
+  background: #374151;
+}
+
+.dark input[type="range"]::-webkit-slider-thumb {
+  background-color: #60a5fa;
+  border-color: #1f2937;
+}

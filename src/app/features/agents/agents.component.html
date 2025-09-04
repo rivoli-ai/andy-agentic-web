@@ -1,0 +1,296 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">AI Agents</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Manage your intelligent agents and automate your tasks
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0">
+      <button
+        routerLink="/agents/new"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+      >
+        <!-- Background glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+        
+        <!-- Icon with animation -->
+        <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        
+        <!-- Text -->
+        <span class="relative">Create New Agent</span>
+        
+        <!-- Subtle arrow indicator -->
+        <svg class="w-4 h-4 ml-2 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Search -->
+      <div>
+        <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Search agents
+        </label>
+        <input
+          id="search"
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearch()"
+          placeholder="Search by name, description or type..."
+          class="input-field"
+        />
+      </div>
+
+      <!-- Type Filter -->
+      <div>
+        <label for="typeFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Type
+        </label>
+        <select
+          id="typeFilter"
+          [(ngModel)]="selectedType"
+          (change)="onTypeFilterChange()"
+          class="input-field"
+        >
+          <option value="">All types</option>
+          <option *ngFor="let type of agentTypes" [value]="type">{{ type | titlecase }}</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label for="statusFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Status
+        </label>
+        <select
+          id="statusFilter"
+          [(ngModel)]="selectedStatus"
+          (change)="onStatusFilterChange()"
+          class="input-field"
+        >
+          <option value="">All statuses</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agents Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      *ngFor="let agent of filteredAgents"
+      class="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      (click)="viewAgent(agent.id)"
+    >
+      <!-- Agent Header -->
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+            {{ agent.name }}
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+            {{ agent.description }}
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getTypeClasses(agent.type)"
+          >
+            {{ agent.type | titlecase }}
+          </span>
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getStatusClasses(agent.isActive)"
+          >
+            {{ agent.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Agent Details -->
+      <div class="mb-4">
+        <!-- LLM Configuration -->
+        <div class="mb-3">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+              {{ agent.llmConfig?.provider | titlecase }}
+            </span>
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+              {{ agent.llmConfig?.model }}
+            </span>
+            <span
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+              [ngClass]="agent.llmConfig?.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+            >
+              {{ agent.llmConfig?.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Prompts</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.prompts.length }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Tools</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.tools.length }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">MCP</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.mcpServers.length }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Executions</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.executionCount }}</span>
+          </div>
+        </div>
+        
+        <!-- Tags -->
+        <div *ngIf="agent.agentTags.length > 0" class="mb-3">
+          <div class="flex flex-wrap gap-1">
+            <span
+              *ngFor="let tag of agent.agentTags.slice(0, 3)"
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+            >
+              {{ tag }}
+            </span>
+            <span
+              *ngIf="agent.agentTags.length > 3"
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+            >
+              +{{ agent.agentTags.length - 3 }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Last modified: {{ agent.updatedAt | date:'short' }}
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            (click)="executeAgent(agent.id, $event)"
+            class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
+            [disabled]="!agent.isActive"
+            [class.opacity-50]="!agent.isActive"
+            [class.cursor-not-allowed]="!agent.isActive"
+            title="Execute agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+          </button>
+          <button
+            [routerLink]="['/chatbot']"
+            [queryParams]="{agentId: agent.id}"
+            (click)="$event.stopPropagation()"
+            class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
+            title="Chat with this agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+          </button>
+          <button
+            [routerLink]="['/agents', agent.id]"
+            (click)="$event.stopPropagation()"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="View agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+          <button
+            [routerLink]="['/agents', agent.id, 'edit']"
+            (click)="$event.stopPropagation()"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="Edit agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="duplicateAgent(agent.id, $event)"
+            class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
+            title="Duplicate agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="deleteAgent(agent.id, $event)"
+            class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
+            title="Delete agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    *ngIf="filteredAgents.length === 0"
+    class="text-center py-12"
+  >
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+      {{ searchQuery || selectedType || selectedStatus ? 'No agents found' : 'No agents configured' }}
+    </h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      {{ searchQuery || selectedType || selectedStatus ? 'Try modifying your search criteria.' : 'Get started by creating your first intelligent agent.' }}
+    </p>
+    <div class="mt-6">
+      <button
+        routerLink="/agents/new"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+      >
+        <!-- Background glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+        
+        <!-- Icon with animation -->
+        <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        
+        <!-- Text -->
+        <span class="relative">Create an agent</span>
+        
+        <!-- Subtle arrow indicator -->
+        <svg class="w-4 h-4 ml-2 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

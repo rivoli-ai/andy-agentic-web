@@ -1,0 +1,59 @@
+<div class="fixed top-4 right-4 z-50 space-y-3 max-w-md">
+  <div
+    *ngFor="let notification of notifications"
+    class="notification-toast"
+    [class]="getNotificationClasses(notification.type)"
+    [@slideInOut]
+  >
+    <!-- Header avec icône et titre -->
+    <div class="flex items-start space-x-3">
+      <!-- Icône -->
+      <div class="flex-shrink-0 mt-0.5">
+        <svg *ngIf="notification.type === 'success'" class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <svg *ngIf="notification.type === 'error'" class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <svg *ngIf="notification.type === 'warning'" class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        <svg *ngIf="notification.type === 'info'" class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+
+      <!-- Contenu -->
+      <div class="flex-1 min-w-0">
+        <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+          {{ notification.title }}
+        </h4>
+        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+          {{ notification.message }}
+        </p>
+      </div>
+
+      <!-- Bouton de fermeture -->
+      <button
+        (click)="hideNotification(notification.id)"
+        class="flex-shrink-0 ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+        title="Fermer"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Barre de progression (si durée définie) -->
+    <div *ngIf="notification.options && notification.options.duration && notification.options.duration > 0" class="mt-3">
+      <div class="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+        <div 
+          class="h-1.5 rounded-full transition-all duration-100 ease-linear"
+          [class]="getProgressBarClasses(notification.type)"
+          [style.width.%]="getProgressPercentage(notification.id)"
+        ></div>
+      </div>
+    </div>
+  </div>
+</div>
