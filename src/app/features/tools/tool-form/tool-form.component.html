@@ -61,6 +61,7 @@
           <select
             id="type"
             formControlName="type"
+            (change)="onToolTypeChange()"
             class="input-field"
           >
             <option *ngFor="let type of toolTypes" [value]="type">
@@ -97,24 +98,82 @@
           />
         </div>
 
-        <!-- Configuration -->
-        <div class="md:col-span-2">
-          <label for="configuration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Configuration (JSON)
+        <!-- Endpoint -->
+        <div>
+          <label for="endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Endpoint *
           </label>
-          <textarea
-            id="configuration"
-            formControlName="configuration"
-            rows="4"
-            class="input-field font-mono text-sm"
-            [class.error]="isFieldInvalid('configuration')"
-            placeholder='{"endpoint": "https://api.example.com", "timeout": 30000, "maxRetries": 3, "headers": {"Content-Type": "application/json"}}'
-          ></textarea>
-          <div *ngIf="isFieldInvalid('configuration')" class="mt-1 text-sm text-error-600">
-            {{ getFieldError('configuration') }}
+          <input
+            id="endpoint"
+            type="url"
+            formControlName="endpoint"
+            class="input-field"
+            [class.error]="isFieldInvalid('endpoint')"
+            placeholder="https://api.example.com/endpoint"
+          />
+          <div *ngIf="isFieldInvalid('endpoint')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('endpoint') }}
+          </div>
+        </div>
+
+        <!-- Method (for API type) -->
+        <div *ngIf="showMethodField()">
+          <label for="method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            HTTP Method *
+          </label>
+          <select
+            id="method"
+            formControlName="method"
+            class="input-field"
+            [class.error]="isFieldInvalid('method')"
+          >
+            <option *ngFor="let method of httpMethods" [value]="method">
+              {{ method }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('method')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('method') }}
+          </div>
+        </div>
+
+        <!-- MCP Type (for MCP type) -->
+        <div *ngIf="showMcpTypeField()">
+          <label for="mcpType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            MCP Type *
+          </label>
+          <select
+            id="mcpType"
+            formControlName="mcpType"
+            class="input-field"
+            [class.error]="isFieldInvalid('mcpType')"
+          >
+            <option *ngFor="let mcpType of mcpTypes" [value]="mcpType">
+              {{ mcpType }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('mcpType')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('mcpType') }}
+          </div>
+        </div>
+
+        <!-- MCP Name (for MCP type) -->
+        <div *ngIf="showMcpTypeField()">
+          <label for="mcpName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            MCP Name
+          </label>
+          <input
+            id="mcpName"
+            type="text"
+            formControlName="mcpName"
+            class="input-field"
+            [class.error]="isFieldInvalid('mcpName')"
+            placeholder="Optional name for the MCP connection"
+          />
+          <div *ngIf="isFieldInvalid('mcpName')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('mcpName') }}
           </div>
           <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            💡 Examples: endpoint, timeout, maxRetries, headers, rateLimit, cacheTTL
+            💡 Optional identifier for the MCP connection
           </div>
         </div>
 
@@ -209,6 +268,97 @@
               placeholder="Enter password"
             />
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Headers -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Headers</h2>
+        <button
+          type="button"
+          (click)="addHeader()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Add Header
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div
+          *ngFor="let headerGroup of headersArray.controls; let i = index"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Header {{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removeHeader(i)"
+              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Header Name *
+              </label>
+              <input
+                [formControl]="getHeaderName(i)"
+                placeholder="Ex: Content-Type"
+                class="input-field"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Header Value *
+              </label>
+              <input
+                [formControl]="getHeaderValue(i)"
+                placeholder="Ex: application/json"
+                class="input-field"
+              />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Description
+              </label>
+              <input
+                [formControl]="getHeaderDescription(i)"
+                placeholder="Header description"
+                class="input-field"
+              />
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [formControl]="getHeaderRequired(i)"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                Required Header
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Message if no headers -->
+        <div *ngIf="headersArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p>No headers configured. Add headers to configure HTTP request headers for your tool.</p>
         </div>
       </div>
     </div>

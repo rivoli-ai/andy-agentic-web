@@ -1,0 +1,157 @@
+<div *ngIf="toolExecutions.length > 0" class="tool-execution-summary">
+  <!-- Compact Summary Header -->
+  <div class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 shadow-sm">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center space-x-2">
+        <div class="w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+          <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+            Tools ({{ getTotalExecutions() }})
+          </h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">
+            {{ getSuccessfulExecutions() }} success, {{ getFailedExecutions() }} failed
+          </p>
+        </div>
+      </div>
+      <button
+        (click)="toggleExpanded()"
+        class="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+        [title]="isExpanded ? 'Collapse' : 'Expand'"
+      >
+        <svg class="w-4 h-4 text-slate-500" [class.rotate-180]="isExpanded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Compact Stats Row -->
+    <div class="flex items-center justify-between text-xs">
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-1">
+          <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span class="text-slate-600 dark:text-slate-400">{{ getSuccessRate() }}%</span>
+        </div>
+        <div class="flex items-center space-x-1">
+          <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <span class="text-slate-600 dark:text-slate-400">{{ getAverageExecutionTime() }}ms</span>
+        </div>
+      </div>
+      <div class="text-slate-500 dark:text-slate-400">
+        {{ getUniqueTools().length }} tool{{ getUniqueTools().length !== 1 ? 's' : '' }}
+      </div>
+    </div>
+
+    <!-- Tool Usage (Compact) -->
+    <div *ngIf="!isExpanded && getUniqueTools().length > 0" class="mt-3">
+      <div class="space-y-1">
+        <div *ngFor="let tool of getUniqueTools().slice(0, 3)" class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm">{{ getToolIcon(tool) }}</span>
+            <span class="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{{ tool }}</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ getToolUsageCount(tool) }}</span>
+            <div class="w-8 bg-slate-200 dark:bg-slate-700 rounded-full h-1">
+              <div 
+                class="bg-gradient-to-r from-indigo-500 to-purple-600 h-1 rounded-full transition-all duration-300"
+                [style.width.%]="(getToolUsageCount(tool) / getTotalExecutions()) * 100"
+              ></div>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="getUniqueTools().length > 3" class="text-xs text-slate-500 dark:text-slate-400 text-center pt-1">
+          +{{ getUniqueTools().length - 3 }} more tools
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded View -->
+  <div *ngIf="isExpanded" class="expanded-view mt-3 space-y-3 animate-fade-in">
+    <!-- Detailed Stats -->
+    <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+      <h4 class="font-medium text-slate-700 dark:text-slate-300 text-xs mb-2">Detailed Stats</h4>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-600 dark:text-slate-400">Success Rate:</span>
+          <span class="font-medium text-green-600 dark:text-green-400">{{ getSuccessRate() }}%</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-600 dark:text-slate-400">Avg Time:</span>
+          <span class="font-medium text-blue-600 dark:text-blue-400">{{ getAverageExecutionTime() }}ms</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-600 dark:text-slate-400">Total Time:</span>
+          <span class="font-medium text-purple-600 dark:text-purple-400">{{ getTotalExecutionTime() }}ms</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-600 dark:text-slate-400">Unique Tools:</span>
+          <span class="font-medium text-indigo-600 dark:text-indigo-400">{{ getUniqueTools().length }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tool Usage Breakdown -->
+    <div>
+      <h4 class="font-medium text-slate-700 dark:text-slate-300 text-xs mb-2">Tool Usage</h4>
+      <div class="space-y-1">
+        <div *ngFor="let tool of getUniqueTools()" class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded p-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm">{{ getToolIcon(tool) }}</span>
+            <span class="font-medium text-slate-700 dark:text-slate-300 text-xs">{{ tool }}</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ getToolUsageCount(tool) }}x</span>
+            <div class="w-12 bg-slate-200 dark:bg-slate-700 rounded-full h-1">
+              <div 
+                class="bg-gradient-to-r from-indigo-500 to-purple-600 h-1 rounded-full transition-all duration-300"
+                [style.width.%]="(getToolUsageCount(tool) / getTotalExecutions()) * 100"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Most Used Tool -->
+    <div *ngIf="getMostUsedTool()" class="p-2 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+      <div class="flex items-center space-x-2">
+        <span class="text-sm">🏆</span>
+        <span class="font-medium text-slate-700 dark:text-slate-300 text-xs">Most Used:</span>
+        <span class="font-semibold text-slate-800 dark:text-slate-200 text-xs">{{ getMostUsedTool() }}</span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">({{ getToolUsageCount(getMostUsedTool()!) }}x)</span>
+      </div>
+    </div>
+
+    <!-- Recent Executions -->
+    <div>
+      <h4 class="font-medium text-slate-700 dark:text-slate-300 text-xs mb-2">Recent Executions</h4>
+      <div class="space-y-1 max-h-32 overflow-y-auto">
+        <div *ngFor="let execution of getRecentExecutions(5)" class="bg-slate-50 dark:bg-slate-800/50 rounded p-2 border border-slate-200 dark:border-slate-700">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm">{{ getToolIcon(execution.toolName) }}</span>
+              <div>
+                <div class="font-medium text-slate-700 dark:text-slate-300 text-xs">{{ execution.toolName }}</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">
+                  {{ execution.executedAt | date:'HH:mm:ss' }}
+                  <span *ngIf="execution.executionTime"> • {{ execution.executionTime }}ms</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-1">
+              <span [class]="execution.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" class="text-xs">
+                {{ execution.success ? '✅' : '❌' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

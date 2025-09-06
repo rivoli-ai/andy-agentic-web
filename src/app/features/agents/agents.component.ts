@@ -223,21 +223,16 @@ export class AgentsComponent implements OnInit, OnDestroy {
         }))
       })),
       tools: agent.tools.map(t => ({
-        name: t.name,
-        type: t.type,
+        name: t.tool?.name || 'Unknown Tool',
+        type: t.tool?.type || 'Unknown Type',
         isActive: t.isActive,
         toolId: t.toolId,
-        category: t.category,
-        configuration: t.configuration,
-        authentication: t.authentication,
-        parameters: JSON.stringify(t.parameters || {}),
-        description: t.description
+        category: t.tool?.category || '',
+        configuration: '',
+        authentication: '',
+        parameters: '{}',
+        description: t.tool?.description || ''
       })),
-      mcpServers: agent.mcpServers.map(m => ({
-        name: m.name,
-        isActive: m.isActive,
-        capabilities: JSON.stringify(m.capabilities || [])
-      }))
     };
   }
 }

@@ -17,6 +17,8 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   toolId: string | null = null;
   toolTypes = Object.values(ToolType);
   authenticationTypes = ['none', 'api_key', 'bearer', 'basic', 'oauth2'];
+  httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+  mcpTypes = ['SSE', 'HTTP Streaming'];
   
   private subscription = new Subscription();
 
@@ -35,6 +37,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     this.toolId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.toolId;
     
+    // Set initial validation based on default tool type
+    this.onToolTypeChange();
+    
     if (this.isEditMode) {
       this.loadToolForEdit();
     }
@@ -48,17 +53,21 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     return this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
-      type: [ToolType.INTERNAL, Validators.required],
+      type: [ToolType.MCP, Validators.required],
       category: [''],
       isActive: [true],
-      configuration: ['', [this.jsonValidator()]],
+      endpoint: ['', [Validators.required]],
+      method: ['GET'],
+      mcpType: ['SSE'],
+      mcpName: [''],
       // Simplification de l'authentification - on utilise des champs simples
       authType: ['none', Validators.required],
       authRequired: [false],
       authApiKey: [''],
       authUsername: [''],
       authPassword: [''],
-      parameters: this.fb.array([])
+      parameters: this.fb.array([]),
+      headers: this.fb.array([])
     });
   }
 
@@ -84,6 +93,25 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     // Vider les FormArrays existants
     this.clearFormArrays();
     
+    // Parse configuration to extract endpoint, method, mcpType, and mcpName
+    let endpoint = '';
+    let method = 'GET';
+    let mcpType = 'SSE';
+    let mcpName = '';
+    
+    if (tool.configuration) {
+      try {
+        const config = JSON.parse(tool.configuration);
+        endpoint = config.endpoint || '';
+        method = config.method || 'GET';
+        mcpType = config.mcpType || 'SSE';
+        mcpName = config.name || '';
+      } catch (e) {
+        // If configuration is not valid JSON, keep defaults
+        console.warn('Invalid configuration JSON:', tool.configuration);
+      }
+    }
+    
     // Remplir le formulaire principal
     this.toolForm.patchValue({
       name: tool.name,
@@ -91,36 +119,91 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       type: tool.type,
       category: tool.category || '',
       isActive: tool.isActive,
-      configuration: tool.configuration || ''
+      endpoint: endpoint,
+      method: method,
+      mcpType: mcpType,
+      mcpName: mcpName
     });
 
-         // Remplir l'authentification
+         // Remplir l'authentification - parse JSON string if needed
+     let authData: any = {};
      if (tool.authentication) {
+       if (typeof tool.authentication === 'string') {
+         try {
+           authData = JSON.parse(tool.authentication);
+         } catch (e) {
+           console.warn('Invalid authentication JSON:', tool.authentication);
+           authData = {};
+         }
+       } else {
+         authData = tool.authentication;
+       }
+       
        this.toolForm.patchValue({
-         authType: tool.authentication.type || 'none',
-         authRequired: tool.authentication.required || false,
-         authApiKey: tool.authentication.apiKey || '',
-         authUsername: tool.authentication.username || '',
-         authPassword: tool.authentication.password || ''
+         authType: authData.type || 'none',
+         authRequired: authData.required || false,
+         authApiKey: authData.apiKey || '',
+         authUsername: authData.username || '',
+         authPassword: authData.password || ''
        });
      }
 
-    // Ajouter les paramètres
-    if (tool.parameters && tool.parameters.length > 0) {
-      tool.parameters.forEach(parameter => {
+    // Ajouter les paramètres - parse JSON string if needed
+    let parametersArray: any[] = [];
+    if (tool.parameters) {
+      if (typeof tool.parameters === 'string') {
+        try {
+          parametersArray = JSON.parse(tool.parameters);
+        } catch (e) {
+          console.warn('Invalid parameters JSON:', tool.parameters);
+        }
+      } else if (Array.isArray(tool.parameters)) {
+        parametersArray = tool.parameters;
+      }
+    }
+    
+    if (parametersArray.length > 0) {
+      parametersArray.forEach(parameter => {
         this.addParameter(parameter);
       });
     }
+
+    // Ajouter les headers - parse JSON string if needed
+    let headersArray: any[] = [];
+    if (tool.headers) {
+      if (typeof tool.headers === 'string') {
+        try {
+          headersArray = JSON.parse(tool.headers);
+        } catch (e) {
+          console.warn('Invalid headers JSON:', tool.headers);
+        }
+      } else if (Array.isArray(tool.headers)) {
+        headersArray = tool.headers;
+      }
+    }
+    
+    if (headersArray.length > 0) {
+      headersArray.forEach(header => {
+        this.addHeader(header);
+      });
+    }
+    
+    // Set validation based on the loaded tool type
+    this.onToolTypeChange();
   }
 
   private clearFormArrays(): void {
     while (this.parametersArray.length !== 0) {
       this.parametersArray.removeAt(0);
     }
+    while (this.headersArray.length !== 0) {
+      this.headersArray.removeAt(0);
+    }
   }
 
   // Getters pour les FormArrays
   get parametersArray(): FormArray { return this.toolForm.get('parameters') as FormArray; }
+  get headersArray(): FormArray { return this.toolForm.get('headers') as FormArray; }
 
   getParameterGroup(index: number): FormGroup { return this.parametersArray.at(index) as FormGroup; }
   getParameterName(index: number): FormControl { 
@@ -161,6 +244,58 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
   removeParameter(index: number): void {
     this.parametersArray.removeAt(index);
+  }
+
+  // Méthodes pour les Headers
+  addHeader(header?: any): void {
+    const headerGroup = this.fb.group({
+      name: [header?.name || '', [Validators.required]],
+      value: [header?.value || '', [Validators.required]],
+      required: [header?.required ?? false],
+      description: [header?.description || '']
+    });
+
+    this.headersArray.push(headerGroup);
+  }
+
+  removeHeader(index: number): void {
+    this.headersArray.removeAt(index);
+  }
+
+  getHeaderGroup(index: number): FormGroup { return this.headersArray.at(index) as FormGroup; }
+  getHeaderName(index: number): FormControl { 
+    const control = this.getHeaderGroup(index)?.get('name');
+    return control instanceof FormControl ? control : new FormControl('');
+  }
+  getHeaderValue(index: number): FormControl { 
+    const control = this.getHeaderGroup(index)?.get('value');
+    return control instanceof FormControl ? control : new FormControl('');
+  }
+  getHeaderDescription(index: number): FormControl { 
+    const control = this.getHeaderGroup(index)?.get('description');
+    return control instanceof FormControl ? control : new FormControl('');
+  }
+  getHeaderRequired(index: number): FormControl { 
+    const control = this.getHeaderGroup(index)?.get('required');
+    return control instanceof FormControl ? control : new FormControl(false);
+  }
+
+  // Gestion du changement de type d'outil
+  onToolTypeChange(): void {
+    const toolType = this.toolForm.get('type')?.value;
+    const methodControl = this.toolForm.get('method');
+    const mcpTypeControl = this.toolForm.get('mcpType');
+    
+    if (toolType === ToolType.API) {
+      methodControl?.setValidators([Validators.required]);
+      mcpTypeControl?.clearValidators();
+    } else if (toolType === ToolType.MCP) {
+      methodControl?.clearValidators();
+      mcpTypeControl?.setValidators([Validators.required]);
+    }
+    
+    methodControl?.updateValueAndValidity();
+    mcpTypeControl?.updateValueAndValidity();
   }
 
   // Gestion de l'authentification
@@ -213,8 +348,21 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
        console.log('onSubmit - authentication object:', authentication);
 
-             // Nettoyer la configuration pour éviter les caractères d'échappement multiples
-       const configurationValue = this.cleanConfiguration(formValue.configuration);
+       // Generate configuration JSON based on tool type
+       let configuration: any = {
+         endpoint: formValue.endpoint
+       };
+       
+       if (formValue.type === ToolType.API) {
+         configuration.method = formValue.method;
+       } else if (formValue.type === ToolType.MCP) {
+         configuration.mcpType = formValue.mcpType;
+         if (formValue.mcpName) {
+           configuration.name = formValue.mcpName;
+         }
+       }
+       
+       const configurationValue = JSON.stringify(configuration);
 
        const toolData = {
          name: formValue.name,
@@ -225,7 +373,8 @@ export class ToolFormComponent implements OnInit, OnDestroy {
          isActive: formValue.isActive,
          configuration: configurationValue,
          authentication: JSON.stringify(authentication),
-         parameters: JSON.stringify(formValue.parameters)
+         parameters: JSON.stringify(formValue.parameters),
+         headers: JSON.stringify(formValue.headers)
        };
 
       if (this.isEditMode && this.toolId) {
@@ -295,7 +444,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       if (field.errors['required']) return 'Ce champ est requis';
       if (field.errors['minlength']) return `Minimum ${field.errors['minlength'].requiredLength} caractères`;
       if (field.errors['maxlength']) return `Maximum ${field.errors['maxlength'].requiredLength} caractères`;
-      if (field.errors['invalidJson']) return 'Format JSON invalide';
     }
     return '';
   }
@@ -323,44 +471,14 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     return shouldShow;
   }
 
-  // Validation JSON
-  validateJson(value: string): boolean {
-    if (!value) return true;
-    try {
-      JSON.parse(value);
-      return true;
-    } catch {
-      return false;
-    }
+  showMethodField(): boolean {
+    const toolType = this.toolForm.get('type')?.value;
+    return toolType === ToolType.API;
   }
 
-  // Validateur personnalisé pour JSON
-  private jsonValidator() {
-    return (control: AbstractControl): {[key: string]: any} | null => {
-      const value = control.value;
-      if (!value) return null;
-      
-      try {
-        JSON.parse(value);
-        return null;
-      } catch {
-        return {'invalidJson': {value: control.value}};
-      }
-    };
+  showMcpTypeField(): boolean {
+    const toolType = this.toolForm.get('type')?.value;
+    return toolType === ToolType.MCP;
   }
 
-  // Méthode utilitaire pour nettoyer la configuration JSON
-  private cleanConfiguration(config: string | undefined): string | undefined {
-    if (!config) return undefined;
-    
-    try {
-      // Essayer de parser le JSON pour vérifier qu'il est valide
-      const parsed = JSON.parse(config);
-      // Re-stringifier avec un formatage propre (sans espaces)
-      return JSON.stringify(parsed);
-    } catch {
-      // Si ce n'est pas du JSON valide, retourner undefined
-      return undefined;
-    }
-  }
 }

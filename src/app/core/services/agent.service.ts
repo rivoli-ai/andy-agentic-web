@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
-import { Agent, AgentType, AgentTool, AgentMCPServer, Prompt, PromptVariable, AgentExecutionResult, LLMConfig, AgentTag } from '../../models/agent.model';
+import { Agent, AgentType, AgentTool, Prompt, PromptVariable, AgentExecutionResult, LLMConfig, AgentTag } from '../../models/agent.model';
 import { ApiService } from './api.service';
 
 // Backend DTOs
@@ -34,18 +34,22 @@ interface AgentDto {
   }[] | null;
   tools?: {
     id: string;
-    name: string;
-    type: string;
     isActive: boolean;
     toolId: string;
-    description: string;
-    parameters?: string;
-  }[] | null;
-  mcpServers?: {
-    id: string;
-    name: string;
-    isActive: boolean;
-    capabilities?: string;
+    tool?: {
+      id: string;
+      name: string;
+      description: string;
+      type: string;
+      category?: string | null;
+      isActive: boolean;
+      configuration?: string;
+      authentication?: string;
+      parameters?: string;
+      headers?: string;
+      createdAt: string;
+      updatedAt: string;
+    };
   }[] | null;
 }
 
@@ -85,11 +89,6 @@ interface CreateAgentDto {
     isActive: boolean;
     parameters?: string;
   }[];
-  mcpServers: {
-    name: string;
-    isActive: boolean;
-    capabilities?: string;
-  }[];
 }
 
 interface UpdateAgentDto extends CreateAgentDto {}
@@ -113,9 +112,40 @@ export class AgentService {
       updatedAt: new Date(dto.updatedAt),
       agentTags: dto.agentTags,
       llmConfig: dto.llmConfig,
-      prompts: [],
-      tools: [],
-      mcpServers: []
+      prompts: dto.prompts ? dto.prompts.map(p => ({
+        id: p.id,
+        content: p.content,
+        isActive: p.isActive,
+        agentId: p.agentId,
+        createdAt: new Date(p.createdAt),
+        updatedAt: new Date(p.updatedAt),
+        variables: p.variables ? p.variables.map(v => ({
+          name: v.name,
+          type: this.mapPromptVariableType(v.type),
+          required: v.required,
+          default: v.defaultValue,
+          description: v.description
+        })) : []
+      })) : [],
+      tools: dto.tools ? dto.tools.map(t => ({
+        id: t.id,
+        isActive: t.isActive,
+        toolId: t.toolId,
+        tool: t.tool ? {
+          id: t.tool.id,
+          name: t.tool.name,
+          description: t.tool.description,
+          type: t.tool.type,
+          category: t.tool.category,
+          isActive: t.tool.isActive,
+          configuration: t.tool.configuration,
+          authentication: t.tool.authentication,
+          parameters: t.tool.parameters,
+          headers: t.tool.headers,
+          createdAt: t.tool.createdAt,
+          updatedAt: t.tool.updatedAt
+        } : undefined
+      })) : [],
     };
   }
 
@@ -178,19 +208,23 @@ export class AgentService {
       })) : [],
       tools: dto.tools ? dto.tools.map(t => ({
         id: t.id,
-        name: t.name,
-        type: this.mapToolType(t.type),
         isActive: t.isActive,
-        description : t.description,
-        toolId : t.toolId,
-        parameters: t.parameters ? JSON.parse(t.parameters) : {}
+        toolId: t.toolId,
+        tool: t.tool ? {
+          id: t.tool.id,
+          name: t.tool.name,
+          description: t.tool.description,
+          type: t.tool.type,
+          category: t.tool.category,
+          isActive: t.tool.isActive,
+          configuration: t.tool.configuration,
+          authentication: t.tool.authentication,
+          parameters: t.tool.parameters,
+          headers: t.tool.headers,
+          createdAt: t.tool.createdAt,
+          updatedAt: t.tool.updatedAt
+        } : undefined
       })) : [],
-      mcpServers: dto.mcpServers ? dto.mcpServers.map(m => ({
-        id: m.id,
-        name: m.name,
-        isActive: m.isActive,
-        capabilities: m.capabilities ? JSON.parse(m.capabilities) : []
-      })) : []
     };
   }
 
@@ -248,11 +282,11 @@ export class AgentService {
     }
   }
 
-  private mapToolType(type: string | null | undefined): 'api' | 'internal' {
+  private mapToolType(type: string | null | undefined): string {
     if (!type) {
       return 'internal';
     }
-    return type.toLowerCase() === 'api' ? 'api' : 'internal';
+    return type.toLowerCase();
   }
 
   // API Methods

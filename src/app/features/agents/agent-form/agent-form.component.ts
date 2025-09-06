@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, AbstractControl, FormControl } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin, of } from 'rxjs';
-import { Agent, AgentType, Prompt, PromptVariable, AgentTool, AgentMCPServer, LLMConfig, AgentTag, TagDto } from '../../../models/agent.model';
+import { Agent, AgentType, Prompt, PromptVariable, AgentTool, LLMConfig, AgentTag, TagDto } from '../../../models/agent.model';
 import { AgentService } from '../../../core/services/agent.service';
 import { LLMService } from '../../../core/services/llm.service';
 import { LLMProvider } from '../../../models/agent.model';
@@ -174,7 +174,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       llmConfigId: ['', Validators.required],
       prompts: this.fb.array([]),
       tools: this.fb.array([]),
-      mcpServers: this.fb.array([])
     });
   }
 
@@ -376,10 +375,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       });
     }, 100);
 
-    // Add MCP servers
-    agent.mcpServers.forEach((server: AgentMCPServer) => {
-      this.addMCPServer(server);
-    });
   }
 
   private clearFormArrays(): void {
@@ -388,9 +383,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     }
     while (this.toolsArray.length !== 0) {
       this.toolsArray.removeAt(0);
-    }
-    while (this.mcpServersArray.length !== 0) {
-      this.mcpServersArray.removeAt(0);
     }
   }
 
@@ -403,9 +395,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     return this.agentForm.get('tools') as FormArray;
   }
 
-  get mcpServersArray(): FormArray {
-    return this.agentForm.get('mcpServers') as FormArray;
-  }
 
   // Getters typés pour les FormGroups
   getPromptGroup(index: number): FormGroup {
@@ -416,9 +405,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     return this.toolsArray.at(index) as FormGroup;
   }
 
-  getMCPServerGroup(index: number): FormGroup {
-    return this.mcpServersArray.at(index) as FormGroup;
-  }
 
   // Getters pour les FormControls spécifiques
   getPromptContent(index: number): FormControl { 
@@ -440,35 +426,12 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     return (this.toolsArray.at(index) as FormGroup).get('toolId') as FormControl;
   }
 
-  getToolName(index: number): FormControl { 
-    const control = this.getToolGroup(index)?.get('name');
-    return control instanceof FormControl ? control : new FormControl('');
-  }
-
-  getToolDescription(index: number): FormControl { 
-    const control = this.getToolGroup(index)?.get('description');
-    return control instanceof FormControl ? control : new FormControl('');
-  }
 
   getToolIsActive(index: number): FormControl { 
     const control = this.getToolGroup(index)?.get('isActive');
     return control instanceof FormControl ? control : new FormControl(false);
   }
 
-  getMCPServerName(index: number): FormControl { 
-    const control = this.getMCPServerGroup(index)?.get('name');
-    return control instanceof FormControl ? control : new FormControl('');
-  }
-
-  getMCPServerCapabilities(index: number): FormControl { 
-    const control = this.getMCPServerGroup(index)?.get('capabilities');
-    return control instanceof FormControl ? control : new FormControl([]);
-  }
-
-  getMCPServerIsActive(index: number): FormControl { 
-    const control = this.getMCPServerGroup(index)?.get('isActive');
-    return control instanceof FormControl ? control : new FormControl(false);
-  }
 
   getPromptVariableName(promptIndex: number, variableIndex: number): FormControl { 
     const promptGroup = this.getPromptGroup(promptIndex);
@@ -539,10 +502,9 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   addTool(tool?: AgentTool): void {
     const toolGroup = this.fb.group({
       id: [tool?.id || this.generateId()],
-      name: [tool?.name || '', [Validators.required]],
       isActive: [tool?.isActive ?? true],
       toolId: [tool?.toolId || '', [Validators.required]],
-      description: [tool?.description || '']
+      tool: [tool?.tool || null]
     });
 
     this.toolsArray.push(toolGroup);
@@ -565,11 +527,23 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     if (selectedTool) {
       const toolGroup = this.toolsArray.at(toolIndex);
       
-      // Update fields when a tool is selected
+      // Update toolId and tool object when a tool is selected
       toolGroup.patchValue({
         toolId: selectedTool.id,
-        name: selectedTool.name,
-        description: selectedTool.description
+        tool: {
+          id: selectedTool.id,
+          name: selectedTool.name,
+          description: selectedTool.description,
+          type: selectedTool.type,
+          category: selectedTool.category || null,
+          isActive: selectedTool.isActive || true,
+          configuration: selectedTool.configuration || '',
+          authentication: selectedTool.authentication || '',
+          parameters: selectedTool.parameters || '[]',
+          headers: selectedTool.headers || '[]',
+          createdAt: selectedTool.createdAt || new Date().toISOString(),
+          updatedAt: selectedTool.updatedAt || new Date().toISOString()
+        }
       });
       
       this.cdr.detectChanges();
@@ -588,8 +562,8 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   private resetToolFields(toolIndex: number): void {
     const toolGroup = this.toolsArray.at(toolIndex);
     toolGroup.patchValue({
-      name: '',
-      description: ''
+      toolId: '',
+      tool: null
     });
     this.cdr.detectChanges();
   }
@@ -609,21 +583,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     this.toolsArray.removeAt(index);
   }
 
-  // Méthodes pour les Serveurs MCP
-  addMCPServer(server?: AgentMCPServer): void {
-    const serverGroup = this.fb.group({
-      id: [server?.id || this.generateId()],
-      name: [server?.name || '', [Validators.required]],
-      isActive: [server?.isActive ?? true],
-      capabilities: [server?.capabilities || []]
-    });
-
-    this.mcpServersArray.push(serverGroup);
-  }
-
-  removeMCPServer(index: number): void {
-    this.mcpServersArray.removeAt(index);
-  }
 
   // Gestion des tags
   addTag(tagName: string): void {
@@ -686,16 +645,17 @@ export class AgentFormComponent implements OnInit, OnDestroy {
           })) : []
         })),
         tools: formValue.tools.map((tool: any) => ({
-          name: tool.name,
+          name: tool.tool?.name || '',
           isActive: tool.isActive,
           toolId: tool.toolId || null,
-          description: tool.description || null
+          description: tool.tool?.description || '',
+          type: tool.tool?.type || '',
+          category: tool.tool?.category || null,
+          configuration: tool.tool?.configuration || '',
+          authentication: tool.tool?.authentication || '',
+          parameters: tool.tool?.parameters || '[]',
+          headers: tool.tool?.headers || '[]'
         })),
-        mcpServers: formValue.mcpServers.map((server: any) => ({
-          name: server.name,
-          isActive: server.isActive,
-          capabilities: server.capabilities ? JSON.stringify(server.capabilities) : '[]'
-        }))
       };
 
       if (this.isEditMode && this.agentId) {

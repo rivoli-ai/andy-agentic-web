@@ -4,7 +4,6 @@ import { AgentFormComponent } from './features/agents/agent-form/agent-form.comp
 import { AgentDetailComponent } from './features/agents/agent-detail/agent-detail.component';
 import { ToolsComponent } from './features/tools/tools.component';
 import { ToolFormComponent } from './features/tools/tool-form/tool-form.component';
-import { MCPComponent } from './features/mcp/mcp.component';
 import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { SettingsComponent } from './features/settings/settings.component';
@@ -19,7 +18,6 @@ const routes: Routes = [
   { path: 'tools', component: ToolsComponent },
   { path: 'tools/new', component: ToolFormComponent },
   { path: 'tools/:id/edit', component: ToolFormComponent },
-  { path: 'mcp', component: MCPComponent },
   { path: 'llm', component: LLMComponent },
   { path: 'llm/new', component: LLMFormComponent },
   { path: 'llm/:id/edit', component: LLMFormComponent },

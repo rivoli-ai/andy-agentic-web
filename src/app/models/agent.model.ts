@@ -26,15 +26,22 @@ export interface Prompt {
 
 export interface AgentTool {
   id: string;
-  name: string;
-  type: 'api' | 'internal';
   isActive: boolean;
-  toolId?: string; 
-  category?: string;
-  configuration?: string; 
-  authentication?: string; 
-  parameters?: Record<string, any>;
-  description?: string;
+  toolId: string;
+  tool?: {
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    category?: string | null;
+    isActive: boolean;
+    configuration?: string;
+    authentication?: string;
+    parameters?: string;
+    headers?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 export interface AgentTag {
   id: string;
@@ -47,12 +54,6 @@ export interface TagDto{
   id: string;
   name: string;
   color: string;
-}
-export interface AgentMCPServer {
-  id: string;
-  name: string;
-  isActive: boolean;
-  capabilities: string[];
 }
 
 export interface LLMProvider {
@@ -89,7 +90,6 @@ export interface Agent {
   llmConfig: LLMConfig;
   prompts: Prompt[];
   tools: AgentTool[];
-  mcpServers: AgentMCPServer[];
   agentTags: AgentTag[];
   executionCount: number;
   createdAt: Date;

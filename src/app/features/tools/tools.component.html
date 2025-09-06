@@ -122,9 +122,15 @@
       <!-- Tool Details -->
       <div class="mb-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          <span class="font-medium">Parameters:</span> {{ tool.parameters.length || 0 }}
+          <span class="font-medium">Parameters:</span> {{ (tool.parameters || []).length }}
         </div>
-                <div *ngIf="tool.category" class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <span class="font-medium">Headers:</span> {{ (tool.headers || []).length }}
+          <span *ngIf="(tool.headers || []).length > 0" class="text-xs text-gray-500 dark:text-gray-500 ml-1">
+            ({{ getRequiredHeadersCount(tool) }} required)
+          </span>
+        </div>
+        <div *ngIf="tool.category" class="text-sm text-gray-600 dark:text-gray-400 mb-2">
           <span class="font-medium">Category:</span>
           <span class="font-mono text-xs">{{ tool.category }}</span>
         </div>

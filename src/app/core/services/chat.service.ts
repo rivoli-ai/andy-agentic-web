@@ -41,6 +41,27 @@ export interface ChatSessionDto {
   isActive: boolean;
 }
 
+export interface ToolExecutionLogDto {
+  id: string;
+  toolId: string;
+  toolName: string;
+  tool?: {
+    id: string;
+    name: string;
+    type: string;
+    description: string;
+  };
+  agentId?: string;
+  sessionId?: string;
+  parameters: Record<string, any>;
+  result: any;
+  success: boolean;
+  errorMessage?: string;
+  executedAt: Date;
+  executionTime: number;
+  usedParameters?: Record<string, any>;
+}
+
 export interface ChatHistoryDto {
   id: string;
   content: string;
@@ -53,6 +74,7 @@ export interface ChatHistoryDto {
   isToolExecution: boolean;
   toolName?: string;
   toolResult?: string;
+  toolResults: ToolExecutionLogDto[];
 }
 
 @Injectable({

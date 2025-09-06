@@ -1,14 +1,16 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Agent } from '../../models/agent.model';
 import { AgentService } from '../../core/services/agent.service';
-import { ChatService, ChatMessage as ChatMessageInterface, ChatResponse, ChatSessionDto, ChatHistoryDto } from '../../core/services/chat.service';
+import { ChatService, ChatMessage as ChatMessageInterface, ChatResponse, ChatSessionDto, ChatHistoryDto, ToolExecutionLogDto } from '../../core/services/chat.service';
 import { MarkdownService } from '../../core/services/markdown.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { MermaidAPI } from 'ngx-markdown';
 import { ThemeService } from 'src/app/core/services/theme.service';
+import { ToolExecutionDisplayComponent } from '../../shared/components/tool-execution-display/tool-execution-display.component';
+import { ToolExecutionSummaryComponent } from '../../shared/components/tool-execution-summary/tool-execution-summary.component';
 
 interface ChatMessage {
   id: string;
@@ -18,6 +20,28 @@ interface ChatMessage {
   agentId?: string;
   agentName?: string;
   isStreaming?: boolean;
+  toolExecutions?: ToolExecution[];
+}
+
+interface ToolExecution {
+  id: string;
+  toolId: string;
+  toolName: string;
+  tool?: {
+    id: string;
+    name: string;
+    type: string;
+    description: string;
+  };
+  agentId?: string;
+  sessionId?: string;
+  parameters: Record<string, any>;
+  result: any;
+  success: boolean;
+  errorMessage?: string;
+  executedAt: Date;
+  executionTime: number;
+  usedParameters?: Record<string, any>;
 }
 
 @Component({
@@ -40,6 +64,11 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   isSessionPanelOpen = false;
   isLoadingSessions = false;
   
+  // Tool execution tracking
+  allToolExecutions: ToolExecution[] = [];
+  isToolSummaryExpanded = false;
+  showToolExecutions = true;
+  
   private subscription = new Subscription();
 
   public options: MermaidAPI.Config = {
@@ -53,7 +82,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     private markdownService: MarkdownService,
     private notificationService: NotificationService,
     private route: ActivatedRoute,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private cdr: ChangeDetectorRef
   ) {
     this.chatForm = this.fb.group({
       message: ['', [Validators.required, Validators.minLength(1)]],
@@ -141,22 +171,44 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private loadChatSession(sessionId: string): void {
     this.currentSessionId = sessionId;
     this.messages = []; // Clear current messages
+    this.clearToolExecutions(); // Clear previous tool executions
     
     // Load chat history for this session
     this.subscription.add(
       this.chatService.getChatHistoryBySession(sessionId).subscribe({
         next: (history: ChatHistoryDto[]) => {
+          // Process tool executions from chat history
+          this.processChatHistoryForToolExecutions(history);
+          
           // Convert ChatHistoryDto to ChatMessage format
           this.messages = history
             .filter(msg => msg.role !== 'system') // Exclude system messages
-            .map(msg => ({
-              id: msg.id,
-              content: msg.content,
-              isUser: msg.role === 'user',
-              timestamp: new Date(msg.timestamp),
-              agentId: msg.agentId,
-              agentName: msg.agentName
-            }));
+            .map(msg => {
+              const chatMessage: ChatMessage = {
+                id: msg.id,
+                content: msg.content,
+                isUser: msg.role === 'user',
+                timestamp: new Date(msg.timestamp),
+                agentId: msg.agentId,
+                agentName: msg.agentName
+              };
+              
+              // Add tool execution data from ToolResults array (new format)
+              if (msg.toolResults && Array.isArray(msg.toolResults) && msg.toolResults.length > 0) {
+                chatMessage.toolExecutions = msg.toolResults.map((toolLog: ToolExecutionLogDto) => 
+                  this.convertToolExecutionLogToToolExecution(toolLog)
+                );
+              }
+              // Fallback to legacy single tool execution format
+              else if (msg.isToolExecution && msg.toolName) {
+                const toolExecution = this.convertChatHistoryToToolExecution(msg);
+                if (toolExecution) {
+                  chatMessage.toolExecutions = [toolExecution];
+                }
+              }
+              
+              return chatMessage;
+            });
           
           this.scrollToBottom();
         },
@@ -359,6 +411,14 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           // Streaming completed
           streamingMessage.isStreaming = false;
           this.isExecuting = false;
+          
+          // Wait a moment for backend to process tool executions, then reload
+          if (this.currentSessionId) {
+            setTimeout(() => {
+              this.reloadChatHistory();
+            }, 1000); // Wait 1 second for backend processing
+          }
+          
           this.scrollToBottom();
         },
         error: (error: any) => {
@@ -394,6 +454,94 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   }
 
+  private reloadChatHistory(): void {
+    if (!this.currentSessionId) return;
+    
+    this.subscription.add(
+      this.chatService.getChatHistoryBySession(this.currentSessionId).subscribe({
+        next: (history: ChatHistoryDto[]) => {
+          // Process tool executions from chat history for summary
+          this.processChatHistoryForToolExecutions(history);
+          
+          // Find the most recent agent message and update it with tool executions
+          this.updateLatestAgentMessageWithToolExecutions(history);
+          
+          this.scrollToBottom();
+        },
+        error: (error: any) => {
+          console.error('Error reloading chat history:', error);
+        }
+      })
+    );
+  }
+
+  private updateLatestAgentMessageWithToolExecutions(history: ChatHistoryDto[]): void {
+    console.log('Updating latest agent message with tool executions...');
+    console.log('Current messages:', this.messages);
+    console.log('History from backend:', history);
+    
+    // Find the most recent agent message in the UI
+    const latestAgentMessage = this.messages
+      .filter(msg => !msg.isUser && msg.agentId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+    
+    console.log('Latest agent message:', latestAgentMessage);
+    
+    if (!latestAgentMessage) {
+      console.log('No latest agent message found');
+      return;
+    }
+    
+    // Find the corresponding history entry for this message
+    // Try multiple matching strategies
+    let historyEntry = history.find(h => 
+      h.role === 'assistant' && 
+      h.agentId === latestAgentMessage.agentId &&
+      Math.abs(new Date(h.timestamp).getTime() - latestAgentMessage.timestamp.getTime()) < 30000 // Within 30 seconds
+    );
+    
+    // If no exact match, try to find by content similarity
+    if (!historyEntry) {
+      historyEntry = history.find(h => 
+        h.role === 'assistant' && 
+        h.agentId === latestAgentMessage.agentId &&
+        h.content && latestAgentMessage.content &&
+        h.content.includes(latestAgentMessage.content.substring(0, 50)) // Match first 50 characters
+      );
+    }
+    
+    // If still no match, try to find the most recent assistant message
+    if (!historyEntry) {
+      historyEntry = history
+        .filter(h => h.role === 'assistant' && h.agentId === latestAgentMessage.agentId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    }
+    
+    console.log('Found history entry:', historyEntry);
+    
+    if (historyEntry && historyEntry.toolResults && historyEntry.toolResults.length > 0) {
+      console.log('Tool results found:', historyEntry.toolResults);
+      
+      // Update the message with tool executions
+      latestAgentMessage.toolExecutions = historyEntry.toolResults.map((toolLog: ToolExecutionLogDto) => 
+        this.convertToolExecutionLogToToolExecution(toolLog)
+      );
+      
+      console.log('Updated message with tool executions:', latestAgentMessage);
+      
+      // Trigger change detection for this specific message
+      this.triggerChangeDetection();
+    } else {
+      console.log('No tool results found for this message');
+    }
+  }
+
+  private triggerChangeDetection(): void {
+    // Force Angular change detection to update the UI
+    // This is a lightweight way to update the specific message without refreshing the entire component
+    this.cdr.detectChanges();
+  }
+
   clearChat(): void {
     this.messages = [];
     if (this.selectedAgent) {
@@ -407,6 +555,10 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     console.log('Toggle clicked! Current state:', this.isSessionPanelOpen);
     this.isSessionPanelOpen = !this.isSessionPanelOpen;
     console.log('New state:', this.isSessionPanelOpen);
+  }
+
+  toggleToolExecutions(): void {
+    this.showToolExecutions = !this.showToolExecutions;
   }
 
   getAgentAvatar(agent: Agent): string {
@@ -468,6 +620,91 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       this.notificationService.success('Copied!', 'Content copied to clipboard');
     }).catch(() => {
       this.notificationService.error('Error', 'Unable to copy content');
+    });
+  }
+
+  // Tool execution methods
+  addToolExecution(toolExecution: ToolExecution): void {
+    this.allToolExecutions.push(toolExecution);
+  }
+
+  getToolExecutionsForSession(): ToolExecution[] {
+    return this.allToolExecutions;
+  }
+
+  toggleToolSummary(): void {
+    this.isToolSummaryExpanded = !this.isToolSummaryExpanded;
+  }
+
+  clearToolExecutions(): void {
+    this.allToolExecutions = [];
+  }
+
+  // Convert ToolExecutionLogDto to ToolExecution
+  convertToolExecutionLogToToolExecution(toolLog: ToolExecutionLogDto): ToolExecution {
+    return {
+      id: toolLog.id,
+      toolId: toolLog.toolId,
+      toolName: toolLog.toolName,
+      tool: toolLog.tool ? {
+        id: toolLog.tool.id,
+        name: toolLog.tool.name,
+        type: toolLog.tool.type,
+        description: toolLog.tool.description
+      } : undefined,
+      agentId: toolLog.agentId,
+      sessionId: toolLog.sessionId,
+      parameters: toolLog.parameters || {},
+      result: toolLog.result,
+      success: toolLog.success,
+      errorMessage: toolLog.errorMessage,
+      executedAt: new Date(toolLog.executedAt),
+      executionTime: toolLog.executionTime || 0,
+      usedParameters: toolLog.usedParameters
+    };
+  }
+
+  // Convert ChatHistoryDto to ToolExecution (legacy method for backward compatibility)
+  convertChatHistoryToToolExecution(chatHistory: any): ToolExecution | null {
+    if (!chatHistory.isToolExecution || !chatHistory.toolName) {
+      return null;
+    }
+
+    return {
+      id: chatHistory.id,
+      toolId: chatHistory.id, // Use chat history ID as fallback
+      toolName: chatHistory.toolName,
+      agentId: chatHistory.agentId,
+      sessionId: chatHistory.sessionId,
+      parameters: {}, // We don't have parameters in legacy format
+      result: chatHistory.toolResult || chatHistory.content,
+      success: !chatHistory.toolResult?.includes('Error') && !chatHistory.content.includes('Error'),
+      errorMessage: chatHistory.toolResult?.includes('Error') ? chatHistory.toolResult : undefined,
+      executedAt: new Date(chatHistory.timestamp),
+      executionTime: 0, // We don't have execution time in legacy format
+      usedParameters: {}
+    };
+  }
+
+  // Process chat history to extract tool executions
+  processChatHistoryForToolExecutions(chatHistory: ChatHistoryDto[]): void {
+    this.allToolExecutions = [];
+    
+    chatHistory.forEach(history => {
+      // Process ToolResults array if available (new format)
+      if (history.toolResults && Array.isArray(history.toolResults)) {
+        history.toolResults.forEach((toolLog: ToolExecutionLogDto) => {
+          const toolExecution = this.convertToolExecutionLogToToolExecution(toolLog);
+          this.allToolExecutions.push(toolExecution);
+        });
+      }
+      // Fallback to legacy single tool execution format
+      else if (history.isToolExecution && history.toolName) {
+        const toolExecution = this.convertChatHistoryToToolExecution(history);
+        if (toolExecution) {
+          this.allToolExecutions.push(toolExecution);
+        }
+      }
     });
   }
 

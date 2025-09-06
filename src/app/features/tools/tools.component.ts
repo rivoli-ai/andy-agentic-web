@@ -133,6 +133,10 @@ export class ToolsComponent implements OnInit, OnDestroy {
     }
   }
 
+  getRequiredHeadersCount(tool: any): number {
+    return (tool.headers || []).filter((h: any) => h.required).length;
+  }
+
   toggleToolStatus(id: string, event: Event): void {
     event.stopPropagation();
     const tool = this.tools.find(t => t.id === id);
@@ -192,7 +196,7 @@ export class ToolsComponent implements OnInit, OnDestroy {
     switch (type) {
       case ToolType.API:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case ToolType.INTERNAL:
+      case ToolType.MCP:
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';

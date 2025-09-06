@@ -17,6 +17,52 @@
   width: 100%;
 }
 
+/* Chat message container constraints */
+.chat-message-container {
+  @apply w-full max-w-full;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure chat message content doesn't overflow */
+.chat-message-container * {
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  box-sizing: border-box;
+}
+
+/* Tool execution section in chat messages */
+.tool-executions-section {
+  @apply w-full max-w-full;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure tool executions don't overflow chat message container */
+.tool-executions-section .tool-execution-item {
+  @apply w-full max-w-full;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Force all text content to wrap within chat message bounds */
+.tool-executions-section * {
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  box-sizing: border-box;
+}
+
 /* Smooth scrolling */
 .scroll-smooth {
   scroll-behavior: smooth;
@@ -768,4 +814,165 @@ button:disabled {
 .bg-clip-text {
   -webkit-background-clip: text;
   background-clip: text;
+}
+
+/* Tool execution display styles */
+.tool-execution-item {
+  @apply transition-all duration-200;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Remove tool execution item hover effects - no hover effects needed */
+
+/* Ensure tool executions fit within chat message container */
+.tool-execution-item .tool-execution-container {
+  @apply w-full max-w-full;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Prevent tool execution overflow in chat messages */
+.tool-execution-item .expanded-view {
+  @apply max-w-full;
+  width: 100% !important;
+  max-width: 100% !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden !important;
+}
+
+/* Compact tool execution styling for chat messages */
+.tool-execution-item .compact-view {
+  @apply w-full;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Ensure proper text wrapping in tool execution content */
+.tool-execution-item pre {
+  @apply break-words;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Tool execution summary in sidebar */
+.tool-execution-summary {
+  @apply transition-all duration-300;
+}
+
+.tool-execution-summary:hover {
+  @apply transform translate-y-[-2px] shadow-lg;
+}
+
+/* Tool execution animations */
+@keyframes toolExecutionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tool-execution-enter {
+  animation: toolExecutionSlideIn 0.3s ease-out;
+}
+
+/* Tool execution status indicators */
+.tool-status-success {
+  @apply text-green-600 dark:text-green-400;
+}
+
+.tool-status-error {
+  @apply text-red-600 dark:text-red-400;
+}
+
+/* Tool execution parameter display */
+.tool-parameters {
+  @apply font-mono text-xs bg-slate-100 dark:bg-slate-800 rounded p-2;
+}
+
+/* Tool execution result display */
+.tool-result {
+  @apply font-mono text-xs bg-slate-100 dark:bg-slate-800 rounded p-2 max-h-32 overflow-y-auto;
+}
+
+/* Tool execution icons */
+.tool-icon {
+  @apply transition-transform duration-200;
+}
+
+.tool-icon:hover {
+  @apply transform scale-110;
+}
+
+/* Toggle button rotation animation */
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Smooth transitions for all interactive elements */
+button {
+  @apply transition-all duration-200;
+}
+
+/* Tool execution summary toggle */
+.tool-summary-toggle {
+  @apply transition-all duration-200;
+}
+
+/* Remove tool summary toggle hover effects - no hover effects needed */
+
+/* Tool executions toggle button */
+.tool-executions-toggle {
+  @apply transition-all duration-200;
+}
+
+.tool-executions-toggle svg {
+  @apply transition-transform duration-200;
+}
+
+.tool-executions-toggle:hover {
+  @apply transform scale-105;
+}
+
+/* Sidebar content overflow handling */
+.sidebar-content {
+  @apply flex flex-col min-h-0 overflow-hidden;
+}
+
+.sidebar-scrollable {
+  @apply flex-1 overflow-y-auto min-h-0;
+}
+
+/* Tool execution summary container */
+.tool-summary-container {
+  @apply max-h-60 overflow-y-auto;
+}
+
+/* Custom scrollbar for sidebar */
+.sidebar-scrollable::-webkit-scrollbar,
+.tool-summary-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-track,
+.tool-summary-container::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-800 rounded-full;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb,
+.tool-summary-container::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb:hover,
+.tool-summary-container::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-500;
 }

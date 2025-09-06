@@ -11,6 +11,8 @@ import { AppComponent } from './app.component';
 
 // Shared components
 import { NotificationToastComponent } from './shared/components/notification-toast/notification-toast.component';
+import { ToolExecutionDisplayComponent } from './shared/components/tool-execution-display/tool-execution-display.component';
+import { ToolExecutionSummaryComponent } from './shared/components/tool-execution-summary/tool-execution-summary.component';
 
 // Feature components
 import { AgentsComponent } from './features/agents/agents.component';
@@ -18,7 +20,6 @@ import { AgentFormComponent } from './features/agents/agent-form/agent-form.comp
 import { AgentDetailComponent } from './features/agents/agent-detail/agent-detail.component';
 import { ToolsComponent } from './features/tools/tools.component';
 import { ToolFormComponent } from './features/tools/tool-form/tool-form.component';
-import { MCPComponent } from './features/mcp/mcp.component';
 import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { SettingsComponent } from './features/settings/settings.component';
@@ -34,11 +35,13 @@ import { highlight } from 'prismjs';
     AgentDetailComponent,
     ToolsComponent,
     ToolFormComponent,
-    MCPComponent,
     LLMComponent,
     LLMFormComponent,
     SettingsComponent,
-    ChatbotComponent
+    ChatbotComponent,
+    ToolExecutionDisplayComponent,
+    ToolExecutionSummaryComponent
+    
   ],
   imports: [
     BrowserModule,

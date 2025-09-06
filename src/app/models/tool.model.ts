@@ -1,6 +1,6 @@
 export enum ToolType {
   API = 'api',
-  INTERNAL = 'internal'
+  MCP = 'mcp'
 }
 
 export interface ToolParameter {
@@ -8,6 +8,13 @@ export interface ToolParameter {
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
   required: boolean;
   default?: any;
+  description?: string;
+}
+
+export interface ToolHeader {
+  name: string;
+  value: string;
+  required: boolean;
   description?: string;
 }
 
@@ -29,7 +36,8 @@ export interface Tool {
   isActive: boolean;
   configuration?: string;
   authentication: ToolAuthentication;
-  parameters: ToolParameter[];
+  parameters?: ToolParameter[];
+  headers?: ToolHeader[];
   createdAt: Date;
   updatedAt: Date;
 }

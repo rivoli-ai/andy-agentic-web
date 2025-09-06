@@ -15,6 +15,7 @@ interface ToolDto {
   configuration?: string;
   authentication?: string;
   parameters?: string;
+  headers?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +29,7 @@ interface CreateToolDto {
   configuration?: string;
   authentication?: string;
   parameters?: string;
+  headers?: string;
 }
 
 interface UpdateToolDto extends CreateToolDto {}
@@ -50,6 +52,7 @@ export class ToolService {
       configuration: dto.configuration,
       authentication: this.parseAuthentication(dto.authentication),
       parameters: dto.parameters ? JSON.parse(dto.parameters) : [],
+      headers: dto.headers ? JSON.parse(dto.headers) : [],
       createdAt: new Date(dto.createdAt),
       updatedAt: new Date(dto.updatedAt)
     };
@@ -86,7 +89,7 @@ export class ToolService {
   }
 
   private mapToolType(type: string): ToolType {
-    return type.toLowerCase() === 'api' ? ToolType.API : ToolType.INTERNAL;
+    return type.toLowerCase() === 'api' ? ToolType.API : ToolType.MCP;
   }
 
   // API Methods
@@ -115,7 +118,8 @@ export class ToolService {
       ...tool,
       configuration: tool.configuration || undefined,
       authentication: tool.authentication || undefined,
-      parameters: tool.parameters || undefined
+      parameters: tool.parameters || undefined,
+      headers: tool.headers || undefined
     };
 
     return this.apiService.post<ToolDto>('/tools', dto).pipe(
@@ -132,7 +136,8 @@ export class ToolService {
       ...tool,
       configuration: tool.configuration || undefined,
       authentication: tool.authentication || undefined,
-      parameters: tool.parameters || undefined
+      parameters: tool.parameters || undefined,
+      headers: tool.headers || undefined
     };
 
     return this.apiService.put<ToolDto>(`/tools/${id}`, dto).pipe(
