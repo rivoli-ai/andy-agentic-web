@@ -165,6 +165,7 @@ export class LLMComponent implements OnInit, OnDestroy {
       model: config.model,
       provider: config.provider,
       isActive: config.isActive,
+      isPublic: config.isPublic,
       maxTokens: config.maxTokens,
       temperature: config.temperature,
       topP: config.topP,

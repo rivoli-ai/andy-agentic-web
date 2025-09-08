@@ -18,6 +18,8 @@ interface ToolDto {
   headers?: string;
   createdAt: string;
   updatedAt: string;
+  createdByUserId?: string;
+  isPublic: boolean;
 }
 
 interface CreateToolDto {
@@ -54,7 +56,9 @@ export class ToolService {
       parameters: dto.parameters ? JSON.parse(dto.parameters) : [],
       headers: dto.headers ? JSON.parse(dto.headers) : [],
       createdAt: new Date(dto.createdAt),
-      updatedAt: new Date(dto.updatedAt)
+      updatedAt: new Date(dto.updatedAt),
+      createdByUserId: dto.createdByUserId,
+      isPublic: dto.isPublic
     };
   }
 

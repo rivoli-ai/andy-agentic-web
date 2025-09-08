@@ -11,9 +11,11 @@ interface AgentDto {
   description: string;
   type: string;
   isActive: boolean;
+  isPublic: boolean;
   executionCount: number;
   createdAt: string;
   updatedAt: string;
+  createdByUserId?: string;
   agentTags: AgentTag[];
   llmConfig:  LLMConfig;
   prompts?: {
@@ -36,20 +38,22 @@ interface AgentDto {
     id: string;
     isActive: boolean;
     toolId: string;
-    tool?: {
-      id: string;
-      name: string;
-      description: string;
-      type: string;
-      category?: string | null;
-      isActive: boolean;
-      configuration?: string;
-      authentication?: string;
-      parameters?: string;
-      headers?: string;
-      createdAt: string;
-      updatedAt: string;
-    };
+      tool?: {
+        id: string;
+        name: string;
+        description: string;
+        type: string;
+        category?: string | null;
+        isActive: boolean;
+        configuration?: string;
+        authentication?: string;
+        parameters?: string;
+        headers?: string;
+        createdAt: string;
+        updatedAt: string;
+        createdByUserId?: string;
+        isPublic: boolean;
+      };
   }[] | null;
 }
 
@@ -58,6 +62,7 @@ interface CreateAgentDto {
   description: string;
   type: string;
   isActive: boolean;
+  isPublic: boolean;
   tags: string[];
   llmConfig: {
     name: string;
@@ -107,9 +112,11 @@ export class AgentService {
       description: dto.description,
       type: this.mapAgentType(dto.type),
       isActive: dto.isActive,
+      isPublic: dto.isPublic,
       executionCount: dto.executionCount,
       createdAt: new Date(dto.createdAt),
       updatedAt: new Date(dto.updatedAt),
+      createdByUserId: dto.createdByUserId,
       agentTags: dto.agentTags,
       llmConfig: dto.llmConfig,
       prompts: dto.prompts ? dto.prompts.map(p => ({
@@ -143,7 +150,9 @@ export class AgentService {
           parameters: t.tool.parameters,
           headers: t.tool.headers,
           createdAt: t.tool.createdAt,
-          updatedAt: t.tool.updatedAt
+          updatedAt: t.tool.updatedAt,
+          createdByUserId: t.tool.createdByUserId,
+          isPublic: t.tool.isPublic
         } : undefined
       })) : [],
     };
@@ -156,9 +165,11 @@ export class AgentService {
       description: dto.description,
       type: this.mapAgentType(dto.type),
       isActive: dto.isActive,
+      isPublic: dto.isPublic,
       executionCount: dto.executionCount,
       createdAt: new Date(dto.createdAt),
       updatedAt: new Date(dto.updatedAt),
+      createdByUserId: dto.createdByUserId,
       agentTags: dto.agentTags,
       llmConfig: dto.llmConfig ? {
         id: dto.llmConfig.id,
@@ -174,7 +185,9 @@ export class AgentService {
         frequencyPenalty: dto.llmConfig.frequencyPenalty,
         presencePenalty: dto.llmConfig.presencePenalty,
         createdAt: new Date(dto.llmConfig.createdAt),
-        updatedAt: new Date(dto.llmConfig.updatedAt)
+        updatedAt: new Date(dto.llmConfig.updatedAt),
+        createdByUserId: dto.llmConfig.createdByUserId,
+        isPublic: dto.llmConfig.isPublic
       } : {
         id: 'default-llm',
         name: 'Default LLM',
@@ -189,7 +202,9 @@ export class AgentService {
         frequencyPenalty: 0,
         presencePenalty: 0,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdByUserId: undefined,
+        isPublic: false
       },
       prompts: dto.prompts ? dto.prompts.map(p => ({
         id: p.id,
@@ -222,7 +237,9 @@ export class AgentService {
           parameters: t.tool.parameters,
           headers: t.tool.headers,
           createdAt: t.tool.createdAt,
-          updatedAt: t.tool.updatedAt
+          updatedAt: t.tool.updatedAt,
+          createdByUserId: t.tool.createdByUserId,
+          isPublic: t.tool.isPublic
         } : undefined
       })) : [],
     };

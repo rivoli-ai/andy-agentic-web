@@ -104,6 +104,23 @@
              </span>
           </label>
         </div>
+
+        <!-- Public/Private -->
+        <div class="md:col-span-2">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              formControlName="isPublic"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              Public Agent (visible to all users)
+            </span>
+          </label>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            If checked, this agent will be visible to all users. If unchecked, only you can see it.
+          </p>
+        </div>
       </div>
     </div>
 

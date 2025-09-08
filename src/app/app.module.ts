@@ -2,17 +2,23 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ClipboardButtonComponent, ClipboardOptions, MarkdownModule } from 'ngx-markdown';
 import { MarkedOptions } from 'ngx-markdown';
+import { marked } from 'marked';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { AuthModule } from './core/auth/auth.module';
+import { ThemeService } from './core/services/theme.service';
+import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 
 // Shared components
 import { NotificationToastComponent } from './shared/components/notification-toast/notification-toast.component';
 import { ToolExecutionDisplayComponent } from './shared/components/tool-execution-display/tool-execution-display.component';
 import { ToolExecutionSummaryComponent } from './shared/components/tool-execution-summary/tool-execution-summary.component';
+import { ThemeToggleComponent } from './shared/components/theme-toggle/theme-toggle.component';
+import { LoadingOverlayComponent } from './shared/components/loading-overlay/loading-overlay.component';
 
 // Feature components
 import { AgentsComponent } from './features/agents/agents.component';
@@ -24,6 +30,7 @@ import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
+import { MaintenanceComponent } from './features/maintenance/maintenance.component';
 import { highlight } from 'prismjs';
 
 @NgModule({
@@ -39,9 +46,11 @@ import { highlight } from 'prismjs';
     LLMFormComponent,
     SettingsComponent,
     ChatbotComponent,
+    MaintenanceComponent,
     ToolExecutionDisplayComponent,
-    ToolExecutionSummaryComponent
-    
+    ToolExecutionSummaryComponent,
+    ThemeToggleComponent,
+    LoadingOverlayComponent
   ],
   imports: [
     BrowserModule,
@@ -50,6 +59,7 @@ import { highlight } from 'prismjs';
     ReactiveFormsModule,
     HttpClientModule,
     AppRoutingModule,
+    AuthModule,
     MarkdownModule.forRoot({
       clipboardOptions: {
         provide: ClipboardOptions,
@@ -59,7 +69,14 @@ import { highlight } from 'prismjs';
       },
     })
   ],
-  providers: [],
+  providers: [
+    ThemeService,
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

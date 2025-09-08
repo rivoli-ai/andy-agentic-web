@@ -2,6 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { MsalService } from '@azure/msal-angular';
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +13,7 @@ export interface ChatMessage {
   timestamp: Date;
   agentId?: string;
   agentName?: string;
+  userId?: string;
 }
 
 export interface ChatResponse {
@@ -81,7 +85,37 @@ export interface ChatHistoryDto {
   providedIn: 'root'
 })
 export class ChatService {
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private http: HttpClient, private msalService: MsalService) {}
+
+  // Get access token for API requests
+  private async getAccessToken(): Promise<string | null> {
+    try {
+      await this.msalService.initialize();
+      
+      let account = this.msalService.instance.getActiveAccount();
+      if (!account) {
+        const allAccounts = this.msalService.instance.getAllAccounts();
+        if (allAccounts.length > 0) {
+          account = allAccounts[0];
+        }
+      }
+      
+      if (!account) {
+        return null;
+      }
+
+      const tokenRequest = {
+        scopes: ['api://andy-back/Api.Access'],
+        account: account
+      };
+
+      const response = await this.msalService.acquireTokenSilent(tokenRequest).toPromise();
+      return response?.accessToken || null;
+    } catch (error) {
+      console.error('Failed to get access token:', error);
+      return null;
+    }
+  }
 
   // Send message with optional session ID
   sendMessage(content: string, agentId: string, sessionId?: string): Observable<ChatResponse> {
@@ -103,80 +137,83 @@ export class ChatService {
     };
 
     return new Observable<string>(observer => {
-      fetch(`${this.apiService.baseUrl}/chat/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message)
-      }).then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No response body');
+      this.getAccessToken().then(token => {
+        if (!token) {
+          observer.error(new Error('No access token available'));
+          return;
         }
 
-        const decoder = new TextDecoder();
-        
-        const readChunk = () => {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              observer.complete();
-              return;
-            }
+        // Use fetch with proper authentication headers
+        fetch(`${environment.apiUrl}/chat/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(message)
+        }).then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('No response body');
+          }
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            
-            lines.forEach(line => {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6).trim(); // Remove "data: " prefix
-                if (data === '[DONE]') {
-                  observer.complete();
-                  return;
-                }
-                if (data) {
-                  try {
-                    // Parse OpenAI-compatible streaming response
-                    const parsed = JSON.parse(data);
-                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
-                      const content = parsed.choices[0].delta.content;
-                      if (content) {
-                        observer.next(content);
+          const decoder = new TextDecoder();
+          
+          const readChunk = () => {
+            reader.read().then(({ done, value }) => {
+              if (done) {
+                observer.complete();
+                return;
+              }
+
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
+              
+              lines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                  const data = line.substring(6).trim();
+                  if (data === '[DONE]') {
+                    observer.complete();
+                    return;
+                  }
+                  if (data) {
+                    try {
+                      const parsed = JSON.parse(data);
+                      if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                        const content = parsed.choices[0].delta.content;
+                        if (content) {
+                          observer.next(content);
+                        }
                       }
+                      if (parsed.choices && parsed.choices[0] && parsed.choices[0].finish_reason === 'stop') {
+                        observer.complete();
+                        return;
+                      }
+                    } catch (error) {
+                      console.warn('Failed to parse streaming response as JSON, treating as plain text:', error);
+                      observer.next(data);
                     }
-                    // Handle finish_reason
-                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].finish_reason === 'stop') {
-                      observer.complete();
-                      return;
-                    }
-                  } catch (error) {
-                    // If parsing fails, treat as plain text (fallback for backwards compatibility)
-                    console.warn('Failed to parse streaming response as JSON, treating as plain text:', error);
-                    observer.next(data);
                   }
                 }
-              }
+              });
+
+              readChunk();
+            }).catch(error => {
+              observer.error(error);
             });
+          };
 
-            readChunk(); // Continue reading
-          }).catch(error => {
-            observer.error(error);
-          });
-        };
-
-        readChunk();
+          readChunk();
+        }).catch(error => {
+          observer.error(error);
+        });
       }).catch(error => {
         observer.error(error);
       });
-
-      // Return cleanup function
-      return () => {
-        // Cleanup will be handled by the fetch promise
-      };
     });
   }
 

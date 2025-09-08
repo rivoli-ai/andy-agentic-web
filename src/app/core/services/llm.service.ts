@@ -20,6 +20,8 @@ interface LLMConfigDto {
   presencePenalty?: number;
   createdAt: string;
   updatedAt: string;
+  createdByUserId?: string;
+  isPublic: boolean;
 }
 
 interface LLMProviderDto {
@@ -81,7 +83,9 @@ export class LLMService {
       frequencyPenalty: dto.frequencyPenalty,
       presencePenalty: dto.presencePenalty,
       createdAt: new Date(dto.createdAt),
-      updatedAt: new Date(dto.updatedAt)
+      updatedAt: new Date(dto.updatedAt),
+      createdByUserId: dto.createdByUserId,
+      isPublic: dto.isPublic
     };
   }
 

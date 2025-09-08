@@ -79,6 +79,8 @@ export interface LLMConfig {
   presencePenalty?: number;
   createdAt: Date;
   updatedAt: Date;
+  createdByUserId?: string;
+  isPublic: boolean;
 }
 
 export interface Agent {
@@ -94,6 +96,8 @@ export interface Agent {
   executionCount: number;
   createdAt: Date;
   updatedAt: Date;
+  createdByUserId?: string;
+  isPublic: boolean;
 }
 
 export interface AgentExecutionResult {

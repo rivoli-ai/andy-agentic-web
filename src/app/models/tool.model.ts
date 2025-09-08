@@ -40,4 +40,6 @@ export interface Tool {
   headers?: ToolHeader[];
   createdAt: Date;
   updatedAt: Date;
+  createdByUserId?: string;
+  isPublic: boolean;
 }

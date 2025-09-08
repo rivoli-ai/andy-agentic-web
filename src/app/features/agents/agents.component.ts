@@ -209,6 +209,7 @@ export class AgentsComponent implements OnInit, OnDestroy {
       description: agent.description,
       type: agent.type,
       isActive: agent.isActive,
+      isPublic: agent.isPublic,
       tags: agent.agentTags,
       llmConfigId: agent.llmConfig?.id,
       prompts: agent.prompts.map(p => ({

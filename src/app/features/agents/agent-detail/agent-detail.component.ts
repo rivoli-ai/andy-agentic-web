@@ -187,6 +187,7 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
       description: agent.description,
       type: agent.type,
       isActive: agent.isActive,
+      isPublic: agent.isPublic,
       tags: agent.agentTags,
       llmConfig: {
         name: agent.llmConfig.name,

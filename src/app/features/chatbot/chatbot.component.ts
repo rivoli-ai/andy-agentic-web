@@ -20,6 +20,7 @@ interface ChatMessage {
   agentId?: string;
   agentName?: string;
   isStreaming?: boolean;
+  userId?: string;
   toolExecutions?: ToolExecution[];
 }
 
@@ -93,7 +94,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscription.add(
-      this.themeService.currentTheme$.subscribe(theme => {
+      this.themeService.currentTheme$.subscribe((theme: any) => {
         this.updateMermaidOptions(theme);
       })
     );

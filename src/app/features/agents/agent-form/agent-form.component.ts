@@ -170,6 +170,7 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
       type: [AgentType.ASSISTANT, Validators.required],
       isActive: [true],
+      isPublic: [false],
       tags: [[]],
       llmConfigId: ['', Validators.required],
       prompts: this.fb.array([]),
@@ -349,6 +350,7 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       description: agent.description,
       type: agent.type,
       isActive: agent.isActive,
+      isPublic: agent.isPublic,
       tags: [...agent.agentTags],
       llmConfigId: agent.llmConfig?.id
     });
@@ -625,9 +627,10 @@ export class AgentFormComponent implements OnInit, OnDestroy {
         description: formValue.description,
         type: formValue.type,
         isActive: formValue.isActive,
+        isPublic: formValue.isPublic,
         agentTags: formValue.tags?.map((tag: AgentTag) => ({
           id: tag.id,
-          agentId: tag.agentId,
+          agentId: this.agentId,
           tagId: tag.tagId,
         })),
         llmConfigId: formValue.llmConfigId,
@@ -635,7 +638,7 @@ export class AgentFormComponent implements OnInit, OnDestroy {
           content: prompt.content,
           isActive: prompt.isActive,
           id : prompt.id,
-          agentId : prompt.agentId,
+          agentId : this.agentId,
           variables: prompt.variables ? prompt.variables.map((variable: any) => ({
             name: variable.name,
             type: variable.type,

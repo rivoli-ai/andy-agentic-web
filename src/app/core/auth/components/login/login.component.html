@@ -1,0 +1,128 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
+  <!-- Animated Background Elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+  </div>
+  
+  <!-- Grid Pattern -->
+  <div class="absolute inset-0 opacity-10 bg-grid-pattern"></div>
+  
+  <!-- Main Content -->
+  <div class="relative z-10 w-full max-w-md transform transition-all duration-500 ease-out">
+    <!-- Logo and Brand -->
+    <div class="text-center mb-10">
+      <div class="mx-auto w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl mb-6 relative group">
+        <!-- Glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 rounded-3xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
+        
+        <!-- Icon -->
+        <svg class="w-12 h-12 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+        </svg>
+      </div>
+      <h1 class="text-5xl font-bold text-white mb-3 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+        Andy Agentic
+      </h1>
+      <p class="text-slate-300 text-xl font-medium">AI Agent Platform</p>
+      <div class="mt-2 w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto"></div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-10 relative overflow-hidden">
+      <!-- Card glow effect -->
+      <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl"></div>
+      
+      <div class="relative z-10">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-bold text-white mb-3">Welcome Back</h2>
+          <p class="text-slate-300 text-lg">Sign in to access your AI agents and continue your work</p>
+        </div>
+        
+        <!-- Error Message -->
+        <div *ngIf="errorMessage" class="mb-8 bg-red-500/20 border border-red-500/40 text-red-200 px-6 py-4 rounded-2xl backdrop-blur-sm transform transition-all duration-300 ease-out">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <div class="ml-3 flex-1">
+              <p class="text-sm font-medium">{{ errorMessage }}</p>
+              <div *ngIf="retryCount > 0" class="mt-2 text-xs text-red-300">
+                Attempt {{ retryCount }} of {{ maxRetries }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div *ngIf="errorMessage" class="mt-4 flex space-x-3">
+            <button
+              *ngIf="canRetry"
+              (click)="onRetry()"
+              class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-200 text-sm font-medium rounded-lg transition-colors duration-200"
+            >
+              Try Again
+            </button>
+            <button
+              *ngIf="showRetryMessage"
+              (click)="onRefresh()"
+              class="px-4 py-2 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/40 text-gray-200 text-sm font-medium rounded-lg transition-colors duration-200"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+        
+        <!-- Login Button -->
+        <button
+          (click)="onLogin()"
+          [disabled]="isLoading"
+          class="w-full group relative flex justify-center items-center py-5 px-8 border border-transparent text-lg font-semibold rounded-2xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <!-- Button glow effect -->
+          <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+          
+          <span *ngIf="!isLoading" class="flex items-center relative z-10">
+            <svg class="w-6 h-6 mr-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+            </svg>
+            Sign in with Microsoft
+            <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </span>
+          
+          <span *ngIf="isLoading" class="flex items-center relative z-10">
+            <svg class="animate-spin h-6 w-6 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Signing in...
+          </span>
+        </button>
+        
+        <!-- Additional Info -->
+        <div class="mt-8 text-center space-y-3">
+          <p class="text-sm text-slate-400">
+            You'll be redirected to Microsoft to complete the sign-in process
+          </p>
+          <div class="flex items-center justify-center space-x-2 text-xs text-slate-500">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+            </svg>
+            <span>Secure authentication with Microsoft Entra ID</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="text-center mt-10">
+      <p class="text-slate-400 text-sm">
+        © 2024 Andy Agentic. All rights reserved.
+      </p>
+    </div>
+  </div>
+</div>
