@@ -33,6 +33,7 @@ Agentic est une plateforme moderne de gestion d'agents IA construite avec Angula
 
 ### 5. 🔔 Système de Notifications
 - **Toast notifications** : Succès, erreur, avertissement, info
+
 - **Auto-dismiss** : Disparition automatique configurable
 - **Actions** : Possibilité de fermer manuellement
 

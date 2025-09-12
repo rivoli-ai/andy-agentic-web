@@ -160,9 +160,9 @@ export class ToolExecutionDisplayComponent implements OnInit {
     // Return appropriate icon based on tool name
     const toolLower = toolName.toLowerCase();
     
-    if (toolLower.includes('api') || toolLower.includes('http')) {
+    if (toolLower.includes('apitool') || toolLower.includes('http')) {
       return '🌐';
-    } else if (toolLower.includes('mcp')) {
+    } else if (toolLower.includes('mcptool')) {
       return '🔗';
     } else if (toolLower.includes('file') || toolLower.includes('document')) {
       return '📄';
@@ -195,9 +195,9 @@ export class ToolExecutionDisplayComponent implements OnInit {
     const type = toolType.toLowerCase();
     
     switch (type) {
-      case 'mcp':
+      case 'mcptool':
         return 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30';
-      case 'api':
+      case 'apitool':
         return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30';
       case 'function':
         return 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30';

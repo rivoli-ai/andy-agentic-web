@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
-import { LLMConfig, LLMProvider } from '../../models/agent.model';
+import { LLMConfig, LLMProvider, LLMProviderType } from '../../models/agent.model';
 import { ApiService } from './api.service';
 
 // Backend DTOs
@@ -11,7 +11,7 @@ interface LLMConfigDto {
   baseUrl: string;
   apiKey: string;
   model: string;
-  provider: string;
+  provider: LLMProviderType;
   isActive: boolean;
   maxTokens?: number;
   temperature?: number;
@@ -37,7 +37,7 @@ interface CreateLLMConfigDto {
   baseUrl: string;
   apiKey: string;
   model: string;
-  provider: string;
+  provider: LLMProviderType;
   isActive: boolean;
   maxTokens?: number;
   temperature?: number;
@@ -52,7 +52,7 @@ interface TestConnectionDto {
   baseUrl: string;
   apiKey: string;
   model: string;
-  provider: string;
+  provider: LLMProviderType;
 }
 
 interface TestConnectionResultDto {
@@ -75,7 +75,7 @@ export class LLMService {
       baseUrl: dto.baseUrl,
       apiKey: dto.apiKey,
       model: dto.model,
-      provider: this.mapLLMProvider(dto.provider),
+      provider: dto.provider, // Direct assignment since both are LLMProviderType
       isActive: dto.isActive,
       maxTokens: dto.maxTokens,
       temperature: dto.temperature,
@@ -89,21 +89,49 @@ export class LLMService {
     };
   }
 
-  private mapLLMProvider(provider: string | null | undefined): 'openai' | 'anthropic' | 'google' | 'custom' | 'ollama' {
-    if (!provider) {
-      return 'custom';
+  private mapLLMProvider(provider: number | string | null | undefined): LLMProviderType {
+    if (provider === null || provider === undefined) {
+      return LLMProviderType.CUSTOM;
     }
+    
+    // If it's already a number (enum value from backend), convert it
+    if (typeof provider === 'number') {
+      return this.mapNumberToProviderType(provider);
+    }
+    
+    // If it's a string, convert it (for backward compatibility)
     switch (provider.toLowerCase()) {
       case 'openai':
-        return 'openai';
+        return LLMProviderType.OPENAI;
       case 'anthropic':
-        return 'anthropic';
+        return LLMProviderType.ANTHROPIC;
       case 'google':
-        return 'google';
+        return LLMProviderType.GOOGLE;
       case 'ollama':
-        return 'ollama';
+        return LLMProviderType.OLLAMA;
+      case 'azureopenai':
+        return LLMProviderType.AZURE_OPENAI;
       default:
-        return 'custom';
+        return LLMProviderType.CUSTOM;
+    }
+  }
+
+  private mapNumberToProviderType(providerNumber: number): LLMProviderType {
+    switch (providerNumber) {
+      case 0:
+        return LLMProviderType.OPENAI;
+      case 1:
+        return LLMProviderType.ANTHROPIC;
+      case 2:
+        return LLMProviderType.GOOGLE;
+      case 3:
+        return LLMProviderType.CUSTOM;
+      case 4:
+        return LLMProviderType.OLLAMA;
+      case 5:
+        return LLMProviderType.AZURE_OPENAI;
+      default:
+        return LLMProviderType.CUSTOM;
     }
   }
 

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, AbstractControl, FormControl } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin, of } from 'rxjs';
-import { Agent, AgentType, Prompt, PromptVariable, AgentTool, LLMConfig, AgentTag, TagDto } from '../../../models/agent.model';
+import { Agent, AgentType, Prompt, PromptVariable, AgentTool, LLMConfig, AgentTag, TagDto, LLMProviderType } from '../../../models/agent.model';
 import { AgentService } from '../../../core/services/agent.service';
 import { LLMService } from '../../../core/services/llm.service';
 import { LLMProvider } from '../../../models/agent.model';
@@ -29,6 +29,12 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   availableTools: Tool[] = [];
   toolTypes = Object.values(ToolType);
   availableLLMConfigs: LLMConfig[] = [];
+  
+  // MCP Discovery properties
+  showMcpDiscovery = false;
+  mcpServerUrl = '';
+  isDiscoveringMcpTools = false;
+  mcpDiscoveryError = '';
   
   private subscription = new Subscription();
 
@@ -356,7 +362,8 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     });
 
     // Set selected provider - find provider by ID since that's what's stored
-    const provider = this.llmProviders.find(p => p.id === agent.llmConfig?.provider);
+    const providerId = agent.llmConfig?.provider ? this.getProviderIdFromEnum(agent.llmConfig.provider) : null;
+    const provider = providerId ? this.llmProviders.find(p => p.id === providerId) : null;
     if (provider) {
       this.selectedProvider = provider;
       this.updateApiKeyValidation();
@@ -734,5 +741,45 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       if (field.errors['maxlength']) return `Maximum ${field.errors['maxlength'].requiredLength} caractères`;
     }
     return '';
+  }
+
+  private getProviderIdFromEnum(providerEnum: LLMProviderType | number): string {
+    // Handle numeric values from backend
+    if (typeof providerEnum === 'number') {
+      switch (providerEnum) {
+        case 0:
+          return 'openai';
+        case 1:
+          return 'anthropic';
+        case 2:
+          return 'google';
+        case 3:
+          return 'custom';
+        case 4:
+          return 'ollama';
+        case 5:
+          return 'azureopenai';
+        default:
+          return 'custom';
+      }
+    }
+    
+    // Handle string-based enum values
+    switch (providerEnum) {
+      case LLMProviderType.OPENAI:
+        return 'openai';
+      case LLMProviderType.ANTHROPIC:
+        return 'anthropic';
+      case LLMProviderType.GOOGLE:
+        return 'google';
+      case LLMProviderType.OLLAMA:
+        return 'ollama';
+      case LLMProviderType.CUSTOM:
+        return 'custom';
+      case LLMProviderType.AZURE_OPENAI:
+        return 'azureopenai';
+      default:
+        return 'custom';
+    }
   }
 }

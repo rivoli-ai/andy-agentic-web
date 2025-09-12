@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Agent, AgentExecutionResult } from '../../../models/agent.model';
+import { Agent, AgentExecutionResult, LLMProviderType } from '../../../models/agent.model';
 import { AgentService } from '../../../core/services/agent.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -231,9 +231,9 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
     const type = toolType.toLowerCase();
     
     switch (type) {
-      case 'mcp':
+      case 'mcptool':
         return 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30';
-      case 'api':
+      case 'apitool':
         return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30';
       case 'function':
         return 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30';
@@ -253,6 +253,31 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
         return 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30';
       default:
         return 'text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-600';
+    }
+  }
+
+  getProviderName(provider: LLMProviderType | string): string {
+    // If it's already a string (legacy), use it directly
+    if (typeof provider === 'string') {
+      return provider;
+    }
+    
+    // If it's an enum, convert to readable name
+    switch (provider) {
+      case LLMProviderType.OPENAI:
+        return 'OpenAI';
+      case LLMProviderType.ANTHROPIC:
+        return 'Anthropic';
+      case LLMProviderType.GOOGLE:
+        return 'Google';
+      case LLMProviderType.OLLAMA:
+        return 'Ollama';
+      case LLMProviderType.CUSTOM:
+        return 'Custom';
+      case LLMProviderType.AZURE_OPENAI:
+        return 'Azure OpenAI';
+      default:
+        return 'Custom';
     }
   }
 }

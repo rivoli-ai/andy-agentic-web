@@ -78,9 +78,9 @@ export class ToolExecutionSummaryComponent implements OnInit {
   getToolIcon(toolName: string): string {
     const toolLower = toolName.toLowerCase();
     
-    if (toolLower.includes('api') || toolLower.includes('http')) {
+    if (toolLower.includes('apitool') || toolLower.includes('http')) {
       return '🌐';
-    } else if (toolLower.includes('mcp')) {
+    } else if (toolLower.includes('mcptool')) {
       return '🔗';
     } else if (toolLower.includes('file') || toolLower.includes('document')) {
       return '📄';

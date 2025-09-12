@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
-import { Agent, AgentType, AgentTool, Prompt, PromptVariable, AgentExecutionResult, LLMConfig, AgentTag } from '../../models/agent.model';
+import { Agent, AgentType, AgentTool, Prompt, PromptVariable, AgentExecutionResult, LLMConfig, AgentTag, LLMProviderType } from '../../models/agent.model';
 import { ApiService } from './api.service';
 
 // Backend DTOs
@@ -69,7 +69,7 @@ interface CreateAgentDto {
     baseUrl: string;
     apiKey: string;
     model: string;
-    provider: string;
+    provider: LLMProviderType;
     isActive: boolean;
     maxTokens?: number;
     temperature?: number;
@@ -194,7 +194,7 @@ export class AgentService {
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '',
         model: 'gpt-3.5-turbo',
-        provider: 'openai',
+        provider: LLMProviderType.OPENAI,
         isActive: true,
         maxTokens: 4000,
         temperature: 0.7,
@@ -263,21 +263,49 @@ export class AgentService {
     }
   }
 
-  private mapLLMProvider(provider: string | null | undefined): 'openai' | 'anthropic' | 'google' | 'custom' | 'ollama' {
-    if (!provider) {
-      return 'custom';
+  private mapLLMProvider(provider: number | string | null | undefined): LLMProviderType {
+    if (provider === null || provider === undefined) {
+      return LLMProviderType.CUSTOM;
     }
+    
+    // If it's already a number (enum value from backend), convert it
+    if (typeof provider === 'number') {
+      return this.mapNumberToProviderType(provider);
+    }
+    
+    // If it's a string, convert it (for backward compatibility)
     switch (provider.toLowerCase()) {
       case 'openai':
-        return 'openai';
+        return LLMProviderType.OPENAI;
       case 'anthropic':
-        return 'anthropic';
+        return LLMProviderType.ANTHROPIC;
       case 'google':
-        return 'google';
+        return LLMProviderType.GOOGLE;
       case 'ollama':
-        return 'ollama';
+        return LLMProviderType.OLLAMA;
+      case 'azureopenai':
+        return LLMProviderType.AZURE_OPENAI;
       default:
-        return 'custom';
+        return LLMProviderType.CUSTOM;
+    }
+  }
+
+  private mapNumberToProviderType(providerNumber: number): LLMProviderType {
+    switch (providerNumber) {
+      case 0:
+        return LLMProviderType.OPENAI;
+      case 1:
+        return LLMProviderType.ANTHROPIC;
+      case 2:
+        return LLMProviderType.GOOGLE;
+      case 3:
+        return LLMProviderType.CUSTOM;
+      case 4:
+        return LLMProviderType.OLLAMA;
+      case 5:
+        return LLMProviderType.AZURE_OPENAI;
+      default:
+        return LLMProviderType.CUSTOM;
     }
   }
 

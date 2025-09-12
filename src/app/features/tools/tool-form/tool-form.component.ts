@@ -53,7 +53,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     return this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
-      type: [ToolType.MCP, Validators.required],
+      type: [ToolType.API, Validators.required],
       category: [''],
       isActive: [true],
       endpoint: ['', [Validators.required]],

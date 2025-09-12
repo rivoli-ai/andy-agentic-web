@@ -6,6 +6,15 @@ export enum AgentType {
   CREATIVE = 'creative'
 }
 
+export enum LLMProviderType {
+  OPENAI = 'OpenAi',
+  ANTHROPIC = 'Anthropic',
+  GOOGLE = 'Google',
+  CUSTOM = 'Custom',
+  OLLAMA = 'Ollama',
+  AZURE_OPENAI = 'AzureOpenAi'
+}
+
 export interface PromptVariable {
   name: string;
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
@@ -70,7 +79,7 @@ export interface LLMConfig {
   baseUrl: string;
   apiKey: string;
   model: string;
-  provider: 'openai' | 'anthropic' | 'google' | 'custom' | 'ollama';
+  provider: LLMProviderType;
   isActive: boolean;
   maxTokens?: number;
   temperature?: number;

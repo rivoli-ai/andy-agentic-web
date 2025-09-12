@@ -1,8 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { LLMConfig } from '../../models/agent.model';
+import { LLMConfig, LLMProvider, LLMProviderType } from '../../models/agent.model';
 import { LLMService } from '../../core/services/llm.service';
-import { LLMProvider } from '../../models/agent.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { Router } from '@angular/router';
 
@@ -180,20 +179,73 @@ export class LLMComponent implements OnInit, OnDestroy {
     if (this.searchQuery) {
       filtered = filtered.filter(config =>
         config.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        config.provider.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+        this.getProviderName(config.provider).toLowerCase().includes(this.searchQuery.toLowerCase()) ||
         config.model.toLowerCase().includes(this.searchQuery.toLowerCase())
       );
     }
 
     if (this.selectedProvider) {
-      filtered = filtered.filter(config => config.provider === this.selectedProvider);
+      filtered = filtered.filter(config => {
+        const configProviderId = typeof config.provider === 'string' 
+          ? config.provider 
+          : this.getProviderIdFromEnum(config.provider);
+        return configProviderId === this.selectedProvider;
+      });
     }
 
     return filtered;
   }
 
-  getProviderName(providerId: string): string {
-    const provider = this.providers.find(p => p.id === providerId);
-    return provider ? provider.name : providerId;
+  getProviderName(provider: LLMProviderType | string): string {
+    // If it's already a string (legacy), use it directly
+    if (typeof provider === 'string') {
+      const providerObj = this.providers.find(p => p.id === provider);
+      return providerObj ? providerObj.name : provider;
+    }
+    
+    // If it's an enum, convert to string ID first
+    const providerId = this.getProviderIdFromEnum(provider);
+    const providerObj = this.providers.find(p => p.id === providerId);
+    return providerObj ? providerObj.name : providerId;
+  }
+
+  private getProviderIdFromEnum(providerEnum: LLMProviderType | number): string {
+    // Handle numeric values from backend
+    if (typeof providerEnum === 'number') {
+      switch (providerEnum) {
+        case 0:
+          return 'openai';
+        case 1:
+          return 'anthropic';
+        case 2:
+          return 'google';
+        case 3:
+          return 'custom';
+        case 4:
+          return 'ollama';
+        case 5:
+          return 'azureopenai';
+        default:
+          return 'custom';
+      }
+    }
+    
+    // Handle string-based enum values
+    switch (providerEnum) {
+      case LLMProviderType.OPENAI:
+        return 'openai';
+      case LLMProviderType.ANTHROPIC:
+        return 'anthropic';
+      case LLMProviderType.GOOGLE:
+        return 'google';
+      case LLMProviderType.OLLAMA:
+        return 'ollama';
+      case LLMProviderType.CUSTOM:
+        return 'custom';
+      case LLMProviderType.AZURE_OPENAI:
+        return 'azureopenai';
+      default:
+        return 'custom';
+    }
   }
 }

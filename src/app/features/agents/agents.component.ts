@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Agent, AgentTag, AgentType } from '../../models/agent.model';
+import { Agent, AgentTag, AgentType, LLMProviderType } from '../../models/agent.model';
 import { AgentService } from '../../core/services/agent.service';
 import { NotificationService } from '../../core/services/notification.service';
 
@@ -235,5 +235,34 @@ export class AgentsComponent implements OnInit, OnDestroy {
         description: t.tool?.description || ''
       })),
     };
+  }
+
+  getProviderName(provider: LLMProviderType | string | undefined): string {
+    if (!provider) {
+      return 'Unknown';
+    }
+    
+    // If it's already a string (legacy), use it directly
+    if (typeof provider === 'string') {
+      return provider;
+    }
+    
+    // If it's an enum, convert to readable name
+    const providerValue = provider as number;
+    if (providerValue === 0) { // LLMProviderType.OPENAI
+      return 'OpenAI';
+    } else if (providerValue === 1) { // LLMProviderType.ANTHROPIC
+      return 'Anthropic';
+    } else if (providerValue === 2) { // LLMProviderType.GOOGLE
+      return 'Google';
+    } else if (providerValue === 4) { // LLMProviderType.OLLAMA
+      return 'Ollama';
+    } else if (providerValue === 3) { // LLMProviderType.CUSTOM
+      return 'Custom';
+    } else if (providerValue === 5) { // LLMProviderType.AZURE_OPENAI
+      return 'Azure OpenAI';
+    } else {
+      return 'Custom';
+    }
   }
 }

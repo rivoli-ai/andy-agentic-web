@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin, of } from 'rxjs';
-import { LLMConfig, LLMProvider } from '../../../models/agent.model';
+import { LLMConfig, LLMProvider, LLMProviderType } from '../../../models/agent.model';
 import { LLMService } from '../../../core/services/llm.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -98,12 +98,15 @@ export class LLMFormComponent implements OnInit, OnDestroy {
   }
 
   private populateForm(config: LLMConfig): void {
+    // Convert enum provider to provider ID for form
+    const providerId = this.getProviderIdFromEnum(config.provider);
+    
     this.llmForm.patchValue({
       name: config.name,
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       model: config.model,
-      provider: config.provider,
+      provider: providerId,
       isActive: config.isActive,
       maxTokens: config.maxTokens || 4000,
       temperature: config.temperature || 0.7,
@@ -113,11 +116,71 @@ export class LLMFormComponent implements OnInit, OnDestroy {
     });
 
     // Set selected provider
-    const provider = this.providers.find(p => p.id === config.provider);
+    const provider = this.providers.find(p => p.id === providerId);
     if (provider) {
       this.selectedProvider = provider;
       this.updateApiKeyValidation();
       this.isCustomModel = !provider.models.includes(config.model);
+    }
+  }
+
+  private getProviderIdFromEnum(providerEnum: LLMProviderType | number): string {
+    // Handle numeric values from backend
+    if (typeof providerEnum === 'number') {
+      switch (providerEnum) {
+        case 0:
+          return 'openai';
+        case 1:
+          return 'anthropic';
+        case 2:
+          return 'google';
+        case 3:
+          return 'custom';
+        case 4:
+          return 'ollama';
+        case 5:
+          return 'azureopenai';
+        default:
+          return 'custom';
+      }
+    }
+    
+    // Handle string-based enum values
+    switch (providerEnum) {
+      case LLMProviderType.OPENAI:
+        return 'openai';
+      case LLMProviderType.ANTHROPIC:
+        return 'anthropic';
+      case LLMProviderType.GOOGLE:
+        return 'google';
+      case LLMProviderType.OLLAMA:
+        return 'ollama';
+      case LLMProviderType.CUSTOM:
+        return 'custom';
+      case LLMProviderType.AZURE_OPENAI:
+        return 'azureopenai';
+      default:
+        return 'custom';
+    }
+  }
+
+  private getEnumFromProviderId(providerId: string): LLMProviderType {
+    // Map provider IDs to enum values
+    switch (providerId) {
+      case 'openai':
+        return LLMProviderType.OPENAI;
+      case 'anthropic':
+        return LLMProviderType.ANTHROPIC;
+      case 'google':
+        return LLMProviderType.GOOGLE;
+      case 'ollama':
+        return LLMProviderType.OLLAMA;
+      case 'custom':
+        return LLMProviderType.CUSTOM;
+      case 'azureopenai':
+        return LLMProviderType.AZURE_OPENAI;
+      default:
+        return LLMProviderType.CUSTOM;
     }
   }
 
@@ -221,7 +284,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
       baseUrl: formValue.baseUrl,
       apiKey: formValue.apiKey,
       model: formValue.model,
-      provider: formValue.provider
+      provider: this.getEnumFromProviderId(formValue.provider)
     };
 
     this.subscription.add(
@@ -251,7 +314,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
         baseUrl: formValue.baseUrl,
         apiKey: formValue.apiKey,
         model: formValue.model,
-        provider: formValue.provider,
+        provider: this.getEnumFromProviderId(formValue.provider),
         isActive: formValue.isActive,
         maxTokens: formValue.maxTokens,
         temperature: formValue.temperature,

@@ -93,7 +93,7 @@ export class ToolService {
   }
 
   private mapToolType(type: string): ToolType {
-    return type.toLowerCase() === 'api' ? ToolType.API : ToolType.MCP;
+    return type.toLowerCase() === 'apitool' ? ToolType.API : ToolType.MCP;
   }
 
   // API Methods
@@ -195,4 +195,6 @@ export class ToolService {
       })
     );
   }
+
+
 }
