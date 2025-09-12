@@ -61,7 +61,7 @@ export class AuthInterceptor implements HttpInterceptor {
       }
 
       const tokenRequest = {
-        scopes: ['api://andy-back/Api.Access'],
+        scopes: ['api://cd.afx.infradash-api/Api.Access'],
         account: account
       };
 

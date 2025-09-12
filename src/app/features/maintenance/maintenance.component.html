@@ -27,11 +27,7 @@
         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">API Status: Offline</span>
       </div>
       
-      <div class="text-sm text-gray-500 dark:text-gray-400">
-        <p>Last checked: {{ apiStatus.lastCheck | date:'short' }}</p>
-        <p class="mt-1">Consecutive failures: {{ apiStatus.consecutiveFailures }}</p>
-        <p class="mt-1">Retrying in: {{ retryCountdown }}s</p>
-      </div>
+     
     </div>
 
     <!-- Actions -->

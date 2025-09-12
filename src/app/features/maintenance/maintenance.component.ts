@@ -32,14 +32,8 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     this.apiStatusService.status$.subscribe(status => {
       this.apiStatus = status;
       this.lastCheckTime = status.lastCheck;
-      
-      // If API is back online, redirect to main app
-      if (status.isOnline && !status.isMaintenanceMode) {
-        this.router.navigate(['/agents']);
-      }
     });
     
-    this.startCountdown();
   }
 
   ngOnDestroy(): void {
@@ -51,16 +45,6 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  startCountdown(): void {
-    this.retryCountdown = 30;
-    this.countdownSubscription = interval(1000).subscribe(() => {
-      this.retryCountdown--;
-      if (this.retryCountdown <= 0) {
-        this.retryCountdown = 30;
-        this.retryConnection();
-      }
-    });
-  }
 
   retryConnection(): void {
     this.isRetrying = true;
@@ -69,11 +53,6 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     // Force API status check
     this.apiStatusService.forceRetry();
     
-    // Reset retrying state after a delay
-    setTimeout(() => {
-      this.isRetrying = false;
-      this.startCountdown();
-    }, 2000);
   }
 
   goToLogin(): void {

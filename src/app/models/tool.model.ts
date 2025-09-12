@@ -1,6 +1,6 @@
 export enum ToolType {
-  API = 'api',
-  MCP = 'mcp'
+  API = 'ApiTool',
+  MCP = 'McpTool'
 }
 
 export interface ToolParameter {
