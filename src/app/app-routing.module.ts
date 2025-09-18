@@ -10,7 +10,6 @@ import { SettingsComponent } from './features/settings/settings.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { LoginComponent } from './core/auth/components/login/login.component';
 import { LogoutComponent } from './core/auth/components/logout/logout.component';
-import { MaintenanceComponent } from './features/maintenance/maintenance.component';
 import { AuthGuard } from './core/auth/guards/auth.guard';
 import { ApiStatusGuard } from './core/guards/api-status.guard';
 
@@ -19,8 +18,6 @@ const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'logout', component: LogoutComponent },
   
-  // Maintenance route
-  { path: 'maintenance', component: MaintenanceComponent },
   
   // Protected routes
   { path: '', redirectTo: '/agents', pathMatch: 'full' },

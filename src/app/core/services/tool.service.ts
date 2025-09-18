@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
-import { Tool, ToolType, ToolAuthentication } from '../../models/tool.model';
+import { Tool, ToolType, ToolAuthentication, McpToolDiscoveryResponse } from '../../models/tool.model';
 import { ApiService } from './api.service';
 
 // Backend DTOs
@@ -93,7 +93,16 @@ export class ToolService {
   }
 
   private mapToolType(type: string): ToolType {
-    return type.toLowerCase() === 'apitool' ? ToolType.API : ToolType.MCP;
+    switch (type.toLowerCase()) {
+      case 'apitool':
+        return ToolType.API;
+      case 'mcptool':
+        return ToolType.MCP;
+      case 'internaltool':
+        return ToolType.INTERNAL;
+      default:
+        return ToolType.MCP; // Default fallback
+    }
   }
 
   // API Methods
@@ -196,5 +205,24 @@ export class ToolService {
     );
   }
 
+  discoverMcpTools(url: string): Observable<McpToolDiscoveryResponse> {
+    const params = this.apiService.createParams({ url });
+    return this.apiService.get<McpToolDiscoveryResponse>('/tools/discover-mcp', params).pipe(
+      catchError(error => {
+        console.error('Error discovering MCP tools:', error);
+        return throwError(() => new Error('Failed to discover MCP tools'));
+      })
+    );
+  }
 
+  discoverMcpToolsAsEntities(url: string): Observable<Tool[]> {
+    const request = { url };
+    return this.apiService.post<ToolDto[]>('/tools/discover-mcp-tools', request).pipe(
+      map(dtos => dtos.map(dto => this.mapToolDto(dto))),
+      catchError(error => {
+        console.error('Error discovering MCP tools as entities:', error);
+        return throwError(() => new Error('Failed to discover MCP tools as entities'));
+      })
+    );
+  }
 }

@@ -30,7 +30,6 @@ import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
-import { MaintenanceComponent } from './features/maintenance/maintenance.component';
 import { highlight } from 'prismjs';
 
 @NgModule({
@@ -46,7 +45,6 @@ import { highlight } from 'prismjs';
     LLMFormComponent,
     SettingsComponent,
     ChatbotComponent,
-    MaintenanceComponent,
     ToolExecutionDisplayComponent,
     ToolExecutionSummaryComponent,
     ThemeToggleComponent,

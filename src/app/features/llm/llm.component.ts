@@ -72,39 +72,54 @@ export class LLMComponent implements OnInit, OnDestroy {
     // Implement provider filter
   }
 
-  testConnection(config: LLMConfig): void {
+  testConnection(config: LLMConfig, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    
     this.subscription.add(
       this.llmService.testConnection(config).subscribe({
         next: (result) => {
           if (result.success) {
-            this.notificationService.success('Connexion réussie', result.message);
+            this.notificationService.success('Connection Successful', result.message);
           } else {
-            this.notificationService.error('Échec de connexion', result.message);
+            this.notificationService.error('Connection Failed', result.message);
           }
         },
         error: (error) => {
-          this.notificationService.error('Erreur', 'Impossible de tester la connexion');
+          this.notificationService.error('Error', 'Unable to test connection');
           console.error('Error testing connection:', error);
         }
       })
     );
   }
 
-  deleteConfig(id: string): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette configuration LLM ?')) {
+  deleteConfig(id: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    if (confirm('Are you sure you want to delete this LLM configuration? This action cannot be undone.')) {
       this.subscription.add(
         this.llmService.deleteLLMConfig(id).subscribe({
           next: () => {
-            this.notificationService.success('Succès', 'Configuration LLM supprimée');
+            this.notificationService.success('Success', 'LLM configuration deleted successfully');
             this.loadLLMConfigs();
           },
           error: (error) => {
             console.error('Error deleting LLM config:', error);
-            this.notificationService.error('Erreur', 'Impossible de supprimer la configuration LLM');
+            this.notificationService.error('Error', 'Unable to delete LLM configuration');
           }
         })
       );
     }
+  }
+
+  viewConfig(id: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.router.navigate(['/llm', id]);
   }
 
   createNewConfig(): void {
@@ -162,7 +177,7 @@ export class LLMComponent implements OnInit, OnDestroy {
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       model: config.model,
-      provider: config.provider,
+      provider: this.getProviderName(config.provider), // Convert enum to string
       isActive: config.isActive,
       isPublic: config.isPublic,
       maxTokens: config.maxTokens,
@@ -246,6 +261,27 @@ export class LLMComponent implements OnInit, OnDestroy {
         return 'azureopenai';
       default:
         return 'custom';
+    }
+  }
+
+  getProviderClasses(provider: LLMProviderType | string): string {
+    const providerName = this.getProviderName(provider).toLowerCase();
+    
+    switch (providerName) {
+      case 'openai':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'anthropic':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+      case 'google':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'ollama':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'azure openai':
+        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
+      case 'custom':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   }
 }

@@ -151,6 +151,26 @@
             Choose an existing LLM configuration for this agent. You can manage configurations in the LLM Configurations section.
           </p>
         </div>
+
+        <!-- Embedding LLM Config Selection -->
+        <div>
+          <label for="embeddingLlmConfigId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select Embedding Model (Optional)
+          </label>
+          <select
+            id="embeddingLlmConfigId"
+            formControlName="embeddingLlmConfigId"
+            class="input-field"
+          >
+            <option value="">No embedding model (RAG disabled)</option>
+            <option *ngFor="let config of availableLLMConfigs" [value]="config.id">
+              {{ config.name }} ({{ config.provider }} - {{ config.model }})
+            </option>
+          </select>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Select an LLM configuration for document embeddings. This enables RAG (Retrieval Augmented Generation) functionality with your agent's documents.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -446,6 +466,180 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
                      <p>No tool configured. Add tools to extend your agent's capabilities.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Documents</h2>
+        <div class="flex space-x-2">
+          <button
+            type="button"
+            (click)="createTextDocument()"
+            class="btn-secondary"
+            [disabled]="!agentId"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Create Text
+          </button>
+          <button
+            type="button"
+            (click)="triggerFileInput()"
+            class="btn-primary"
+            [disabled]="!agentId"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            Upload File
+          </button>
+        </div>
+      </div>
+
+      <!-- File Upload Input (Hidden) -->
+      <input
+        id="documentFile"
+        type="file"
+        (change)="onDocumentFileSelected($event)"
+        accept=".pdf,.doc,.docx,.txt,.json,.xml,.csv,.html,.md"
+        class="hidden"
+      />
+
+      <!-- Upload Button for Selected File -->
+      <div *ngIf="selectedDocumentFile" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getDocumentTypeIcon(selectedDocumentFile.name.split('.').pop() || '')"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-blue-900 dark:text-blue-100">{{ selectedDocumentFile.name }}</p>
+              <p class="text-xs text-blue-600 dark:text-blue-300">{{ formatFileSize(selectedDocumentFile.size) }}</p>
+            </div>
+          </div>
+          <div class="flex space-x-2">
+            <button
+              type="button"
+              (click)="uploadDocument()"
+              [disabled]="isUploadingDocument"
+              class="btn-primary text-sm"
+            >
+              <svg *ngIf="isUploadingDocument" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg *ngIf="!isUploadingDocument" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              {{ isUploadingDocument ? 'Uploading...' : 'Upload' }}
+            </button>
+            <button
+              type="button"
+              (click)="clearFileInput()"
+              class="btn-secondary text-sm"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents List -->
+      <div class="space-y-3">
+        <div
+          *ngFor="let agentDoc of agentDocuments; let i = index"
+          class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" [ngClass]="getDocumentTypeIconClass(agentDoc.document?.type || '')">
+              <!-- PDF Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'pdf'" class="w-4 h-4 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- DOCX/DOC Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'docx' || agentDoc.document?.type === 'doc'" class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- TXT Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'txt' || agentDoc.document?.type === 'text'" class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              
+              <!-- XLSX/XLS Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'xlsx' || agentDoc.document?.type === 'xls'" class="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- PPTX/PPT Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'pptx' || agentDoc.document?.type === 'ppt'" class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- Default Document Icon -->
+              <svg *ngIf="!isSpecificDocumentType(agentDoc.document?.type || '')" class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ agentDoc.document?.name }}</p>
+                <!-- RAG Processing Status Icon -->
+                <div class="flex items-center space-x-1">
+                  <svg *ngIf="agentDoc.document?.isRagProcessed" class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20" title="RAG Processed">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  <svg *ngIf="!agentDoc.document?.isRagProcessed" class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" title="RAG Not Processed">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ agentDoc.document?.type?.toUpperCase() }} • {{ formatFileSize(agentDoc.document?.size || 0) }}
+                <span *ngIf="agentDoc.document?.description"> • {{ agentDoc.document?.description }}</span>
+                <span *ngIf="agentDoc.document?.isRagProcessed" class="text-green-600 dark:text-green-400"> • RAG Processed</span>
+                <span *ngIf="!agentDoc.document?.isRagProcessed" class="text-yellow-600 dark:text-yellow-400"> • RAG Pending</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button
+              type="button"
+              (click)="downloadDocument(agentDoc.documentId, agentDoc.document?.name || 'document')"
+              class="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              title="Download document"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              (click)="removeDocument(agentDoc.documentId)"
+              class="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+              title="Remove document"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Message if no documents -->
+        <div *ngIf="agentDocuments.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>No documents attached. Add documents to provide context and knowledge to your agent.</p>
         </div>
       </div>
     </div>

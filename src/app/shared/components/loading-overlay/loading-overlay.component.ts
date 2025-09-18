@@ -23,10 +23,10 @@ import { Component, Input } from '@angular/core';
           <p class="text-gray-600 dark:text-gray-300 mb-4">{{ message }}</p>
           
           <!-- Progress Bar -->
-          <div *ngIf="showProgress" class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+          <div *ngIf="showProgress" class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4 overflow-hidden">
             <div 
               class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out"
-              [style.width.%]="progress"
+              [style.width.%]="getProgressWidth()"
             ></div>
           </div>
           
@@ -82,4 +82,12 @@ export class LoadingOverlayComponent {
   @Input() steps: string[] = [];
   @Input() currentStep: number = 0;
   @Input() additionalInfo: string = '';
+
+  // Expose Math to template
+  Math = Math;
+
+  // Method to get safe progress width
+  getProgressWidth(): number {
+    return Math.min(Math.max(this.progress, 0), 100);
+  }
 }

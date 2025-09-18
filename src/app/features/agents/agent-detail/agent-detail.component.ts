@@ -202,6 +202,19 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
         frequencyPenalty: agent.llmConfig.frequencyPenalty,
         presencePenalty: agent.llmConfig.presencePenalty
       },
+      embeddingLlmConfig: agent.embeddingLlmConfig ? {
+        name: agent.embeddingLlmConfig.name,
+        baseUrl: agent.embeddingLlmConfig.baseUrl,
+        apiKey: agent.embeddingLlmConfig.apiKey,
+        model: agent.embeddingLlmConfig.model,
+        provider: agent.embeddingLlmConfig.provider,
+        isActive: agent.embeddingLlmConfig.isActive,
+        maxTokens: agent.embeddingLlmConfig.maxTokens,
+        temperature: agent.embeddingLlmConfig.temperature,
+        topP: agent.embeddingLlmConfig.topP,
+        frequencyPenalty: agent.embeddingLlmConfig.frequencyPenalty,
+        presencePenalty: agent.embeddingLlmConfig.presencePenalty
+      } : null,
       prompts: agent.prompts.map(p => ({
         content: p.content,
         isActive: p.isActive,

@@ -18,6 +18,15 @@ export class AgentsComponent implements OnInit, OnDestroy {
   selectedStatus = '';
   agentTypes = Object.values(AgentType);
   isLoading = true;
+  viewMode: 'grid' | 'list' = 'grid';
+  sortBy: 'name' | 'createdAt' | 'updatedAt' | 'executionCount' = 'updatedAt';
+  sortOrder: 'asc' | 'desc' = 'desc';
+  
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 8;
+  totalPages = 1;
+  paginatedAgents: Agent[] = [];
   
   private subscription = new Subscription();
 
@@ -42,6 +51,7 @@ export class AgentsComponent implements OnInit, OnDestroy {
         next: (agents: Agent[]) => {
           this.agents = agents;
           this.filteredAgents = [...agents];
+          this.updatePagination();
           this.isLoading = false;
         },
         error: (error: any) => {
@@ -89,7 +99,86 @@ export class AgentsComponent implements OnInit, OnDestroy {
       filtered = filtered.filter(agent => agent.isActive === isActive);
     }
 
+    // Appliquer le tri
+    filtered = this.applySorting(filtered);
+
     this.filteredAgents = filtered;
+    this.updatePagination();
+  }
+
+  private updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredAgents.length / this.itemsPerPage);
+    this.currentPage = Math.min(this.currentPage, Math.max(1, this.totalPages));
+    
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedAgents = this.filteredAgents.slice(startIndex, endIndex);
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.updatePagination();
+  }
+
+  onItemsPerPageChange(itemsPerPage: number): void {
+    this.itemsPerPage = itemsPerPage;
+    this.currentPage = 1;
+    this.updatePagination();
+  }
+
+  getPageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxVisiblePages = 5;
+    const startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  getCurrentPageRange(): string {
+    const start = (this.currentPage - 1) * this.itemsPerPage + 1;
+    const end = Math.min(this.currentPage * this.itemsPerPage, this.filteredAgents.length);
+    return `${start}-${end}`;
+  }
+
+  private applySorting(agents: Agent[]): Agent[] {
+    return agents.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (this.sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'createdAt':
+          comparison = a.createdAt.getTime() - b.createdAt.getTime();
+          break;
+        case 'updatedAt':
+          comparison = a.updatedAt.getTime() - b.updatedAt.getTime();
+          break;
+        case 'executionCount':
+          comparison = a.executionCount - b.executionCount;
+          break;
+      }
+      
+      return this.sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }
+
+  toggleViewMode(): void {
+    this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+  }
+
+  onSortChange(sortBy: 'name' | 'createdAt' | 'updatedAt' | 'executionCount'): void {
+    if (this.sortBy === sortBy) {
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = sortBy;
+      this.sortOrder = 'desc';
+    }
+    this.applyFilters();
   }
 
   viewAgent(agentId: string): void {
@@ -212,6 +301,7 @@ export class AgentsComponent implements OnInit, OnDestroy {
       isPublic: agent.isPublic,
       tags: agent.agentTags,
       llmConfigId: agent.llmConfig?.id,
+      embeddingLlmConfigId: agent.embeddingLlmConfig?.id,
       prompts: agent.prompts.map(p => ({
         content: p.content,
         isActive: p.isActive,
@@ -238,31 +328,52 @@ export class AgentsComponent implements OnInit, OnDestroy {
   }
 
   getProviderName(provider: LLMProviderType | string | undefined): string {
-    if (!provider) {
+    // Handle null, undefined, or empty string
+    if (provider === null || provider === undefined || provider === '') {
       return 'Unknown';
     }
     
-    // If it's already a string (legacy), use it directly
+    // Handle string values (including enum string values)
     if (typeof provider === 'string') {
-      return provider;
+      // Map enum string values to display names
+      switch (provider) {
+        case 'OpenAi':
+          return 'OpenAI';
+        case 'Anthropic':
+          return 'Anthropic';
+        case 'Google':
+          return 'Google';
+        case 'Custom':
+          return 'Custom';
+        case 'Ollama':
+          return 'Ollama';
+        case 'AzureOpenAi':
+          return 'Azure OpenAI';
+        default:
+          return provider; // Return as-is if not a known enum value
+      }
     }
     
-    // If it's an enum, convert to readable name
-    const providerValue = provider as number;
-    if (providerValue === 0) { // LLMProviderType.OPENAI
-      return 'OpenAI';
-    } else if (providerValue === 1) { // LLMProviderType.ANTHROPIC
-      return 'Anthropic';
-    } else if (providerValue === 2) { // LLMProviderType.GOOGLE
-      return 'Google';
-    } else if (providerValue === 4) { // LLMProviderType.OLLAMA
-      return 'Ollama';
-    } else if (providerValue === 3) { // LLMProviderType.CUSTOM
-      return 'Custom';
-    } else if (providerValue === 5) { // LLMProviderType.AZURE_OPENAI
-      return 'Azure OpenAI';
-    } else {
-      return 'Custom';
+    // Handle numeric enum values (including 0)
+    if (typeof provider === 'number') {
+      if (provider === 0) { // LLMProviderType.OPENAI
+        return 'OpenAI';
+      } else if (provider === 1) { // LLMProviderType.ANTHROPIC
+        return 'Anthropic';
+      } else if (provider === 2) { // LLMProviderType.GOOGLE
+        return 'Google';
+      } else if (provider === 4) { // LLMProviderType.OLLAMA
+        return 'Ollama';
+      } else if (provider === 3) { // LLMProviderType.CUSTOM
+        return 'Custom';
+      } else if (provider === 5) { // LLMProviderType.AZURE_OPENAI
+        return 'Azure OpenAI';
+      } else {
+        return 'Custom';
+      }
     }
+    
+    // Fallback for any other type
+    return 'Unknown';
   }
 }

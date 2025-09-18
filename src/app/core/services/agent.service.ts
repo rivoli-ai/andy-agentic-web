@@ -18,6 +18,7 @@ interface AgentDto {
   createdByUserId?: string;
   agentTags: AgentTag[];
   llmConfig:  LLMConfig;
+  embeddingLlmConfig?: LLMConfig;
   prompts?: {
     id: string;
     content: string;
@@ -54,6 +55,22 @@ interface AgentDto {
         createdByUserId?: string;
         isPublic: boolean;
       };
+  }[] | null;
+  agentDocuments?: {
+    id: string;
+    agentId: string;
+    documentId: string;
+    document?: {
+      id: string;
+      name: string;
+      description?: string;
+      type: string;
+      size: number;
+      isActive: boolean;
+      isRagProcessed: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
   }[] | null;
 }
 
@@ -119,6 +136,7 @@ export class AgentService {
       createdByUserId: dto.createdByUserId,
       agentTags: dto.agentTags,
       llmConfig: dto.llmConfig,
+      embeddingLlmConfig: dto.embeddingLlmConfig,
       prompts: dto.prompts ? dto.prompts.map(p => ({
         id: p.id,
         content: p.content,
@@ -153,6 +171,22 @@ export class AgentService {
           updatedAt: t.tool.updatedAt,
           createdByUserId: t.tool.createdByUserId,
           isPublic: t.tool.isPublic
+        } : undefined
+      })) : [],
+      agentDocuments: dto.agentDocuments ? dto.agentDocuments.map(d => ({
+        id: d.id,
+        agentId: d.agentId,
+        documentId: d.documentId,
+        document: d.document ? {
+          id: d.document.id,
+          name: d.document.name,
+          description: d.document.description,
+          type: d.document.type,
+          size: d.document.size,
+          isActive: d.document.isActive,
+          isRagProcessed: d.document.isRagProcessed,
+          createdAt: new Date(d.document.createdAt),
+          updatedAt: new Date(d.document.updatedAt)
         } : undefined
       })) : [],
     };
@@ -206,6 +240,24 @@ export class AgentService {
         createdByUserId: undefined,
         isPublic: false
       },
+      embeddingLlmConfig: dto.embeddingLlmConfig ? {
+        id: dto.embeddingLlmConfig.id,
+        name: dto.embeddingLlmConfig.name,
+        baseUrl: dto.embeddingLlmConfig.baseUrl,
+        apiKey: dto.embeddingLlmConfig.apiKey,
+        model: dto.embeddingLlmConfig.model,
+        provider: this.mapLLMProvider(dto.embeddingLlmConfig.provider),
+        isActive: dto.embeddingLlmConfig.isActive,
+        maxTokens: dto.embeddingLlmConfig.maxTokens,
+        temperature: dto.embeddingLlmConfig.temperature,
+        topP: dto.embeddingLlmConfig.topP,
+        frequencyPenalty: dto.embeddingLlmConfig.frequencyPenalty,
+        presencePenalty: dto.embeddingLlmConfig.presencePenalty,
+        createdAt: new Date(dto.embeddingLlmConfig.createdAt),
+        updatedAt: new Date(dto.embeddingLlmConfig.updatedAt),
+        createdByUserId: dto.embeddingLlmConfig.createdByUserId,
+        isPublic: dto.embeddingLlmConfig.isPublic
+      } : undefined,
       prompts: dto.prompts ? dto.prompts.map(p => ({
         id: p.id,
         content: p.content,
@@ -240,6 +292,22 @@ export class AgentService {
           updatedAt: t.tool.updatedAt,
           createdByUserId: t.tool.createdByUserId,
           isPublic: t.tool.isPublic
+        } : undefined
+      })) : [],
+      agentDocuments: dto.agentDocuments ? dto.agentDocuments.map(d => ({
+        id: d.id,
+        agentId: d.agentId,
+        documentId: d.documentId,
+        document: d.document ? {
+          id: d.document.id,
+          name: d.document.name,
+          description: d.document.description,
+          type: d.document.type,
+          size: d.document.size,
+          isActive: d.document.isActive,
+          isRagProcessed: d.document.isRagProcessed,
+          createdAt: new Date(d.document.createdAt),
+          updatedAt: new Date(d.document.updatedAt)
         } : undefined
       })) : [],
     };

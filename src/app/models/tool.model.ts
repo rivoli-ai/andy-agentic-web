@@ -1,6 +1,7 @@
 export enum ToolType {
   API = 'ApiTool',
-  MCP = 'McpTool'
+  MCP = 'McpTool',
+  INTERNAL = 'InternalTool'
 }
 
 export interface ToolParameter {
@@ -42,4 +43,31 @@ export interface Tool {
   updatedAt: Date;
   createdByUserId?: string;
   isPublic: boolean;
+}
+
+// MCP Tool Discovery interfaces
+export interface McpToolDiscovery {
+  name: string;
+  description: string;
+  inputSchema?: McpToolInputSchema;
+}
+
+export interface McpToolInputSchema {
+  type: string;
+  properties?: { [key: string]: McpToolProperty };
+  required?: string[];
+}
+
+export interface McpToolProperty {
+  type: string;
+  description?: string;
+  default?: any;
+  enum?: any[];
+  items?: McpToolProperty;
+}
+
+export interface McpToolDiscoveryResponse {
+  tools: McpToolDiscovery[];
+  error?: string;
+  success: boolean;
 }

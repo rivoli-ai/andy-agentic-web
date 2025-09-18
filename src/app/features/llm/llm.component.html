@@ -76,21 +76,31 @@
   <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <div
       *ngFor="let config of filteredConfigs"
-      class="card hover:shadow-lg transition-shadow duration-200"
+      class="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      (click)="viewConfig(config.id)"
     >
       <!-- LLM Header -->
       <div class="flex items-start justify-between mb-4">
-        <div class="flex-1">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            {{ config.name }}
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ getProviderName(config.provider) }} - {{ config.model }}
-          </p>
+        <div class="flex items-start space-x-3 flex-1">
+          <!-- LLM Icon -->
+          <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              {{ config.name }}
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+              {{ getProviderName(config.provider) }} - {{ config.model }}
+            </p>
+          </div>
         </div>
         <div class="flex items-center space-x-2">
           <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getProviderClasses(config.provider)"
           >
             {{ getProviderName(config.provider) }}
           </span>
@@ -98,74 +108,115 @@
             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
             [ngClass]="config.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
           >
-            {{ config.isActive ? 'Actif' : 'Inactif' }}
+            {{ config.isActive ? 'Active' : 'Inactive' }}
           </span>
         </div>
       </div>
 
       <!-- LLM Details -->
-      <div class="mb-4 space-y-2">
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span class="font-medium">URL:</span> 
-          <span class="font-mono text-xs break-all">{{ config.baseUrl }}</span>
+      <div class="mb-4">
+        <!-- Configuration Details -->
+        <div class="mb-3">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+              {{ getProviderName(config.provider) }}
+            </span>
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+              {{ config.model }}
+            </span>
+            <span
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+              [ngClass]="config.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+            >
+              {{ config.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
         </div>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span class="font-medium">Modèle:</span> 
-          <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-            {{ config.model }}
-          </span>
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Max Tokens</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ config.maxTokens || 'N/A' }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Temperature</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ config.temperature || 'N/A' }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Top P</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ config.topP || 'N/A' }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400">Public</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ config.isPublic ? 'Yes' : 'No' }}</span>
+          </div>
         </div>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span class="font-medium">Max Tokens:</span> 
-          <span class="font-mono text-xs">{{ config.maxTokens }}</span>
-        </div>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span class="font-medium">Température:</span> 
-          <span class="font-mono text-xs">{{ config.temperature }}</span>
-        </div>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span class="font-medium">Top P:</span> 
-          <span class="font-mono text-xs">{{ config.topP }}</span>
+        
+        <!-- URL Display -->
+        <div class="text-xs text-gray-500 dark:text-gray-400 truncate" [title]="config.baseUrl">
+          <span class="font-medium">URL:</span> {{ config.baseUrl }}
         </div>
       </div>
 
       <!-- Actions -->
       <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
         <div class="text-xs text-gray-500 dark:text-gray-400">
-          Modifié: {{ config.updatedAt | date:'short' }}
+          Last modified: {{ config.updatedAt | date:'short' }}
         </div>
         <div class="flex items-center space-x-2">
           <button
-            (click)="testConnection(config)"
+            (click)="testConnection(config, $event)"
             class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
-            title="Tester la connexion"
+            [disabled]="!config.isActive"
+            [class.opacity-50]="!config.isActive"
+            [class.cursor-not-allowed]="!config.isActive"
+            title="Test connection"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
             </svg>
           </button>
           <button
-            (click)="duplicateConfig(config.id, $event)"
-            class="p-2 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900 rounded-md transition-colors duration-200"
-            title="Dupliquer la configuration"
+            (click)="viewConfig(config.id, $event)"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="View configuration"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
             </svg>
           </button>
           <button
             [routerLink]="['/llm', config.id, 'edit']"
+            (click)="$event.stopPropagation()"
             class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
-            title="Modifier la configuration"
+            title="Edit configuration"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
           </button>
           <button
-            (click)="deleteConfig(config.id)"
+            (click)="duplicateConfig(config.id, $event)"
+            class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
+            title="Duplicate configuration"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="deleteConfig(config.id, $event)"
             class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
-            title="Supprimer la configuration"
+            title="Delete configuration"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>

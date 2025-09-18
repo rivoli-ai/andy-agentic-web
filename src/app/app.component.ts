@@ -100,11 +100,6 @@ export class AppComponent implements OnInit, OnDestroy {
       if (!this.isInitializing) {
         this.apiStatus = status;
         
-        // Redirect to maintenance page when API is down and in maintenance mode
-        // Only redirect if not already on maintenance page to prevent infinite redirects
-        if (status.isMaintenanceMode && !status.isOnline && !this.router.url.includes('/maintenance')) {
-          this.router.navigate(['/maintenance']);
-        }
       }
     });
 
@@ -211,47 +206,26 @@ export class AppComponent implements OnInit, OnDestroy {
       };
       
       if (!isApiHealthy) {
-        // If API is not healthy, redirect to maintenance immediately
-        this.isInitializing = false; // Mark initialization as complete before redirect
-        this.router.navigate(['/maintenance']);
-        return;
-      }
-
-      // Check if we're still on a valid route (not redirected to maintenance)
-      if (this.router.url.includes('/maintenance')) {
+        // If API is not healthy, show error
         this.isInitializing = false;
         return;
       }
+
 
       // Step 3: Continue with authentication
       this.updateAuthProgress(2);
       await this.delay(300);
 
-      // Check again after delay
-      if (this.router.url.includes('/maintenance')) {
-        this.isInitializing = false;
-        return;
-      }
 
       // Step 4: Load user profile
       this.updateAuthProgress(3);
       await this.delay(200);
 
-      // Check again after delay
-      if (this.router.url.includes('/maintenance')) {
-        this.isInitializing = false;
-        return;
-      }
 
       // Step 5: Setup workspace
       this.updateAuthProgress(4);
       await this.delay(200);
 
-      // Final check before completing
-      if (this.router.url.includes('/maintenance')) {
-        this.isInitializing = false;
-        return;
-      }
 
       // Complete initialization
       this.updateAuthProgress(100);
@@ -261,9 +235,8 @@ export class AppComponent implements OnInit, OnDestroy {
       
     } catch (error) {
       console.error('App initialization failed:', error);
-      // On error, mark initialization as complete and redirect to maintenance
+      // On error, mark initialization as complete
       this.isInitializing = false;
-      this.router.navigate(['/maintenance']);
     }
   }
 
@@ -332,8 +305,8 @@ export class AppComponent implements OnInit, OnDestroy {
     
     this.progressInterval = window.setInterval(() => {
       if (this.authProgress < 100) {
-        this.authProgress += Math.random() * 15; // Random increment for realistic progress
-        if (this.authProgress > 100) this.authProgress = 100;
+        const increment = Math.random() * 15; // Random increment for realistic progress
+        this.authProgress = Math.min(this.authProgress + increment, 100);
         
         // Update current step based on progress
         const stepProgress = this.authProgress / 100;
@@ -352,8 +325,8 @@ export class AppComponent implements OnInit, OnDestroy {
     
     this.progressInterval = window.setInterval(() => {
       if (this.logoutProgress < 100) {
-        this.logoutProgress += Math.random() * 20; // Faster progress for logout
-        if (this.logoutProgress > 100) this.logoutProgress = 100;
+        const increment = Math.random() * 20; // Faster progress for logout
+        this.logoutProgress = Math.min(this.logoutProgress + increment, 100);
         
         // Update current step based on progress
         const stepProgress = this.logoutProgress / 100;

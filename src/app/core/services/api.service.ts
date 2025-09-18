@@ -28,6 +28,10 @@ export class ApiService {
     return this.http.delete<T>(`${this.baseUrl}${endpoint}`);
   }
 
+  getBlob(endpoint: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}${endpoint}`, { responseType: 'blob' });
+  }
+
   // Helper method to create HttpParams
   createParams(params: { [key: string]: string | number | boolean }): HttpParams {
     let httpParams = new HttpParams();

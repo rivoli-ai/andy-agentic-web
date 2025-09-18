@@ -1,16 +1,19 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, AbstractControl, FormControl } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, forkJoin, of } from 'rxjs';
-import { Agent, AgentType, Prompt, PromptVariable, AgentTool, LLMConfig, AgentTag, TagDto, LLMProviderType } from '../../../models/agent.model';
+import { Subscription, of } from 'rxjs';
+import { Agent, AgentType, Prompt, PromptVariable, AgentTool, LLMConfig, AgentTag, TagDto, LLMProviderType, AgentDocument } from '../../../models/agent.model';
 import { AgentService } from '../../../core/services/agent.service';
 import { LLMService } from '../../../core/services/llm.service';
 import { LLMProvider } from '../../../models/agent.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Tool, ToolType } from '../../../models/tool.model';
+import { Document, DocumentType, CreateDocumentDto } from '../../../models/document.model';
+import { DocumentService } from '../../../core/services/document.service';
 import { ToolService } from '../../../core/services/tool.service';
 import { v4 as uuidv4 } from 'uuid';
 import { TagService } from '../../../core/services/tag.service';
+import { SignalRService, DocumentRagStatusUpdate } from '../../../core/services/signalr.service';
 
 @Component({
   selector: 'app-agent-form',
@@ -30,6 +33,13 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   toolTypes = Object.values(ToolType);
   availableLLMConfigs: LLMConfig[] = [];
   
+  // Document properties
+  agentDocuments: AgentDocument[] = [];
+  availableDocuments: Document[] = [];
+  documentTypes = Object.values(DocumentType);
+  selectedDocumentFile: File | null = null;
+  isUploadingDocument = false;
+  
   // MCP Discovery properties
   showMcpDiscovery = false;
   mcpServerUrl = '';
@@ -43,11 +53,13 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     private agentService: AgentService,
     private llmService: LLMService,
     private toolService: ToolService,
+    private documentService: DocumentService,
     private notificationService: NotificationService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private tagService: TagService
+    private tagService: TagService,
+    private signalRService: SignalRService
   ) {
     this.agentForm = this.createForm();
   }
@@ -60,6 +72,9 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     this.agentId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.agentId;
     
+    // Initialize SignalR connection
+    this.initializeSignalR();
+    
     if (this.isEditMode) {
       this.loadAgentForEdit();
     }
@@ -67,6 +82,80 @@ export class AgentFormComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    // Clean up SignalR connection
+    if (this.agentId) {
+      this.signalRService.leaveAgentGroup(this.agentId);
+    }
+  }
+
+  /**
+   * Initialize SignalR connection and subscribe to RAG status updates
+   */
+  private initializeSignalR(): void {
+    // Start SignalR connection
+    this.signalRService.startConnection().then(() => {
+      console.log('SignalR connection established');
+      
+      // Subscribe to RAG status updates
+      this.subscription.add(
+        this.signalRService.getDocumentRagStatusUpdates().subscribe(update => {
+          console.log('SignalR update received:', update);
+          console.log('Current agentId:', this.agentId);
+          if (update && this.agentId && update.agentId === this.agentId) {
+            console.log('Processing RAG status update for current agent');
+            this.handleRagStatusUpdate(update);
+          } else {
+            console.log('Ignoring RAG status update - not for current agent or missing data');
+          }
+        })
+      );
+      
+      // Join agent group if we have an agentId
+      if (this.agentId) {
+        this.joinAgentGroup();
+      }
+    }).catch(error => {
+      console.error('Failed to start SignalR connection:', error);
+    });
+  }
+
+  /**
+   * Handle RAG status updates from SignalR
+   */
+  private handleRagStatusUpdate(update: DocumentRagStatusUpdate): void {
+    console.log('Received RAG status update:', update);
+    
+    // Find and update the document in the agentDocuments array
+    const documentIndex = this.agentDocuments.findIndex(
+      agentDoc => agentDoc.document?.id === update.documentId
+    );
+    
+    if (documentIndex !== -1 && this.agentDocuments[documentIndex].document) {
+      // Update the document's RAG status
+      this.agentDocuments[documentIndex].document!.isRagProcessed = update.isRagProcessed;
+      
+      // Trigger change detection to update the UI
+      this.cdr.detectChanges();
+      
+      // Show notification
+      this.notificationService.success(
+        'RAG Processing Update',
+        `Document "${this.agentDocuments[documentIndex].document!.name}" RAG processing ${update.isRagProcessed ? 'completed' : 'failed'}`
+      );
+    }
+  }
+
+  /**
+   * Join agent group for SignalR updates when editing an agent
+   */
+  private joinAgentGroup(): void {
+    if (this.agentId) {
+      this.signalRService.joinAgentGroup(this.agentId).then(() => {
+        console.log(`Joined SignalR group for agent: ${this.agentId}`);
+      }).catch(error => {
+        console.error('Failed to join agent group:', error);
+      });
+    }
   }
 
   private loadLLMProviders(): void {
@@ -179,6 +268,7 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       isPublic: [false],
       tags: [[]],
       llmConfigId: ['', Validators.required],
+      embeddingLlmConfigId: [''], // Optional embedding LLM config
       prompts: this.fb.array([]),
       tools: this.fb.array([]),
     });
@@ -314,25 +404,11 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   private loadAgentForEdit(): void {
     if (!this.agentId) return;
     
-    console.log('Loading agent for edit, ID:', this.agentId);
-    console.log('Available tools at load time:', this.availableTools.length);
-    
-    // Make sure both tools and agent data are loaded before populating
-    const loadAgent$ = this.agentService.getAgentById(this.agentId);
-    const loadTools$ = this.availableTools.length > 0 ? 
-      of(this.availableTools) : 
-      this.toolService.getTools();
-
     this.subscription.add(
-      forkJoin([loadAgent$, loadTools$]).subscribe({
-        next: ([agent, tools]) => {
-          if (agent) {
-            this.availableTools = tools;
-            console.log('Tools loaded:', this.availableTools.length);
-            console.log('Agent loaded:', agent);
-            this.populateForm(agent);
-            this.cdr.detectChanges();
-          }
+      this.agentService.getAgentById(this.agentId).subscribe({
+        next: (agent) => {
+          this.populateForm(agent);
+          this.loadAgentDocumentsFromAgent(agent);
         },
         error: (error: any) => {
           this.notificationService.error('Erreur', 'Impossible de charger l\'agent pour édition');
@@ -358,7 +434,8 @@ export class AgentFormComponent implements OnInit, OnDestroy {
       isActive: agent.isActive,
       isPublic: agent.isPublic,
       tags: [...agent.agentTags],
-      llmConfigId: agent.llmConfig?.id
+      llmConfigId: agent.llmConfig?.id,
+      embeddingLlmConfigId: agent.embeddingLlmConfig?.id || ''
     });
 
     // Set selected provider - find provider by ID since that's what's stored
@@ -641,6 +718,12 @@ export class AgentFormComponent implements OnInit, OnDestroy {
           tagId: tag.tagId,
         })),
         llmConfigId: formValue.llmConfigId,
+        embeddingLlmConfigId: formValue.embeddingLlmConfigId || null,
+        agentDocuments: this.agentDocuments.map(agentDoc => ({
+          id: agentDoc.id,
+          agentId: this.agentId,
+          documentId: agentDoc.documentId
+        })),
         prompts: formValue.prompts.map((prompt: any) => ({
           content: prompt.content,
           isActive: prompt.isActive,
@@ -780,6 +863,253 @@ export class AgentFormComponent implements OnInit, OnDestroy {
         return 'azureopenai';
       default:
         return 'custom';
+    }
+  }
+
+  // Document methods
+  loadAgentDocuments(): void {
+    if (this.agentId) {
+      this.subscription.add(
+        this.documentService.getDocumentsByAgentId(this.agentId).subscribe({
+          next: (documents) => {
+            this.agentDocuments = documents.map(doc => ({
+              id: uuidv4(),
+              agentId: this.agentId!,
+              documentId: doc.id,
+              document: {
+                id: doc.id,
+                name: doc.name,
+                description: doc.description,
+                type: doc.type,
+                size: doc.size,
+                isActive: doc.isActive,
+                isRagProcessed: doc.isRagProcessed,
+                createdAt: doc.createdAt,
+                updatedAt: doc.updatedAt
+              }
+            }));
+            // Trigger change detection to ensure UI updates
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error loading agent documents:', error);
+          }
+        })
+      );
+    }
+  }
+
+  loadAgentDocumentsFromAgent(agent: Agent): void {
+    if (agent.agentDocuments && agent.agentDocuments.length > 0) {
+      this.agentDocuments = agent.agentDocuments
+        .filter(agentDoc => agentDoc.document) // Filter out any agentDocs without documents
+        .map(agentDoc => ({
+          id: uuidv4(),
+          agentId: agent.id,
+          documentId: agentDoc.document!.id,
+          document: {
+            id: agentDoc.document!.id,
+            name: agentDoc.document!.name,
+            description: agentDoc.document!.description,
+            type: agentDoc.document!.type,
+            size: agentDoc.document!.size,
+            isActive: agentDoc.document!.isActive,
+            isRagProcessed: agentDoc.document!.isRagProcessed,
+            createdAt: agentDoc.document!.createdAt,
+            updatedAt: agentDoc.document!.updatedAt
+          }
+        }));
+    } else {
+      this.agentDocuments = [];
+    }
+  }
+
+  onDocumentFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedDocumentFile = input.files[0];
+    }
+  }
+
+  uploadDocument(): void {
+    if (!this.selectedDocumentFile || !this.agentId) {
+      this.notificationService.error('Error', 'Please select a file and ensure agent is created first');
+      return;
+    }
+
+    this.isUploadingDocument = true;
+    this.subscription.add(
+      this.documentService.uploadDocument(this.agentId, this.selectedDocumentFile).subscribe({
+        next: (response) => {
+          if (response.success && response.document) {
+            this.notificationService.success('Success', 'Document uploaded successfully');
+            this.loadAgentDocuments();
+            this.selectedDocumentFile = null;
+            // Reset file input
+            const fileInput = document.getElementById('documentFile') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
+          } else {
+            this.notificationService.error('Error', response.error || 'Failed to upload document');
+          }
+          this.isUploadingDocument = false;
+        },
+        error: (error) => {
+          console.error('Error uploading document:', error);
+          this.notificationService.error('Error', 'Failed to upload document');
+          this.isUploadingDocument = false;
+        }
+      })
+    );
+  }
+
+  createTextDocument(): void {
+    if (!this.agentId) {
+      this.notificationService.error('Error', 'Please create the agent first');
+      return;
+    }
+
+    const name = prompt('Enter document name:');
+    if (!name) return;
+
+    const content = prompt('Enter document content:');
+    if (!content) return;
+
+    const documentData: CreateDocumentDto = {
+      name: name,
+      content: content,
+      type: DocumentType.TEXT,
+      agentId: this.agentId,
+      isActive: true,
+      isPublic: false
+    };
+
+    this.subscription.add(
+      this.documentService.createDocument(documentData).subscribe({
+        next: (document) => {
+          this.notificationService.success('Success', 'Document created successfully');
+          this.loadAgentDocuments();
+        },
+        error: (error) => {
+          console.error('Error creating document:', error);
+          this.notificationService.error('Error', 'Failed to create document');
+        }
+      })
+    );
+  }
+
+  removeDocument(documentId: string): void {
+    if (!this.agentId) {
+      this.notificationService.error('Error', 'Agent ID not available');
+      return;
+    }
+
+    if (confirm('Are you sure you want to remove this document from the agent?')) {
+      this.subscription.add(
+        this.documentService.removeDocumentFromAgent(this.agentId, documentId).subscribe({
+          next: () => {
+            this.notificationService.success('Success', 'Document removed from agent and RAG successfully');
+            this.loadAgentDocuments();
+          },
+          error: (error) => {
+            console.error('Error removing document from agent:', error);
+            this.notificationService.error('Error', 'Failed to remove document from agent');
+          }
+        })
+      );
+    }
+  }
+
+
+  downloadDocument(documentId: string, fileName: string): void {
+    this.subscription.add(
+      this.documentService.downloadDocument(documentId).subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          link.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: (error) => {
+          console.error('Error downloading document:', error);
+          this.notificationService.error('Error', 'Failed to download document');
+        }
+      })
+    );
+  }
+
+  getDocumentTypeIcon(type: string): string {
+    switch (type) {
+      case 'pdf':
+        return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+      case 'docx':
+      case 'doc':
+        return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+      case 'txt':
+      case 'text':
+        return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+      case 'json':
+        return 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4';
+      case 'xml':
+        return 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4';
+      case 'csv':
+        return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+      case 'html':
+        return 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4';
+      case 'markdown':
+        return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+      default:
+        return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+    }
+  }
+
+  getDocumentTypeIconClass(type: string): string {
+    switch (type) {
+      case 'pdf':
+        return 'bg-red-100 dark:bg-red-900/20';
+      case 'docx':
+      case 'doc':
+        return 'bg-blue-100 dark:bg-blue-900/20';
+      case 'txt':
+      case 'text':
+        return 'bg-gray-100 dark:bg-gray-700';
+      case 'xlsx':
+      case 'xls':
+        return 'bg-green-100 dark:bg-green-900/20';
+      case 'pptx':
+      case 'ppt':
+        return 'bg-orange-100 dark:bg-orange-900/20';
+      default:
+        return 'bg-gray-100 dark:bg-gray-700';
+    }
+  }
+
+  isSpecificDocumentType(type: string): boolean {
+    const specificTypes = ['pdf', 'docx', 'doc', 'txt', 'text', 'xlsx', 'xls', 'pptx', 'ppt'];
+    return specificTypes.includes(type.toLowerCase());
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  triggerFileInput(): void {
+    const fileInput = document.getElementById('documentFile') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  clearFileInput(): void {
+    this.selectedDocumentFile = null;
+    const fileInput = document.getElementById('documentFile') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
     }
   }
 }

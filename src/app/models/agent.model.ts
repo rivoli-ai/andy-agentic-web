@@ -99,14 +99,33 @@ export interface Agent {
   type: AgentType;
   isActive: boolean;
   llmConfig: LLMConfig;
+  embeddingLlmConfig?: LLMConfig; // Optional embedding LLM config
   prompts: Prompt[];
   tools: AgentTool[];
   agentTags: AgentTag[];
+  agentDocuments: AgentDocument[];
   executionCount: number;
   createdAt: Date;
   updatedAt: Date;
   createdByUserId?: string;
   isPublic: boolean;
+}
+
+export interface AgentDocument {
+  id: string;
+  agentId: string;
+  documentId: string;
+  document?: {
+    id: string;
+    name: string;
+    description?: string;
+    type: string;
+    size: number;
+    isActive: boolean;
+    isRagProcessed: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  };
 }
 
 export interface AgentExecutionResult {
