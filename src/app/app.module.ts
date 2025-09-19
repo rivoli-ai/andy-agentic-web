@@ -31,6 +31,7 @@ import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { highlight } from 'prismjs';
+import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -73,7 +74,8 @@ import { highlight } from 'prismjs';
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true
-    }
+    },
+    { provide: LocationStrategy, useClass: HashLocationStrategy }
   ],
   bootstrap: [AppComponent]
 })
