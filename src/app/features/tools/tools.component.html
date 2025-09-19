@@ -86,8 +86,16 @@
     </div>
   </div>
 
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex items-center justify-center py-12">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+      <p class="text-gray-600 dark:text-gray-400">Loading tools...</p>
+    </div>
+  </div>
+
   <!-- Tools Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <div
       *ngFor="let tool of filteredTools"
       class="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
@@ -238,7 +246,7 @@
 
   <!-- Empty State -->
   <div
-    *ngIf="filteredTools.length === 0"
+    *ngIf="!isLoading && filteredTools.length === 0"
     class="text-center py-12"
   >
     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

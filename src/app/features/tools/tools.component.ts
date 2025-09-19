@@ -16,6 +16,7 @@ export class ToolsComponent implements OnInit, OnDestroy {
   tools: Tool[] = [];
   filteredTools: Tool[] = [];
   toolTypes: ToolType[] = [];
+  isLoading = true;
   
   searchQuery = '';
   selectedType = '';
@@ -39,11 +40,13 @@ export class ToolsComponent implements OnInit, OnDestroy {
   }
 
   private loadTools(): void {
+    this.isLoading = true;
     this.subscription.add(
       this.toolService.getTools().subscribe({
         next: (tools) => {
           this.tools = tools;
           this.applyFilters();
+          this.isLoading = false;
         },
         error: (error) => {
           console.error('Error loading tools:', error);
@@ -51,6 +54,7 @@ export class ToolsComponent implements OnInit, OnDestroy {
             'Error Loading Tools',
             'Failed to load tools from the server.'
           );
+          this.isLoading = false;
         }
       })
     );

@@ -30,6 +30,10 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   isDiscoveringMcpTools = false;
   mcpDiscoveryError = '';
   selectedMcpTool: McpToolDiscovery | null = null;
+  private isManualToolSelection = false; // Flag to prevent auto-discovery during manual selection
+  
+  // Loading states
+  isLoadingTool = false;
   
   private subscription = new Subscription();
 
@@ -93,16 +97,19 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   private loadToolForEdit(): void {
     if (!this.toolId) return;
     
+    this.isLoadingTool = true;
     this.subscription.add(
       this.toolService.getToolById(this.toolId).subscribe({
         next: (tool) => {
           if (tool) {
             this.populateForm(tool);
           }
+          this.isLoadingTool = false;
         },
         error: (error) => {
           this.notificationService.error('Erreur', 'Impossible de charger l\'outil pour édition');
           console.error('Error loading tool:', error);
+          this.isLoadingTool = false;
         }
       })
     );
@@ -617,6 +624,12 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   onEndpointChange(endpoint: string): void {
     const toolType = this.toolForm.get('type')?.value;
     
+    // Skip auto-discovery if we're in the middle of manual tool selection
+    if (this.isManualToolSelection) {
+      console.log('Skipping auto-discovery due to manual tool selection');
+      return;
+    }
+    
     // Only auto-discover for MCP tools when endpoint is provided
     if (toolType === ToolType.MCP && endpoint && endpoint.trim()) {
       this.discoverMcpTools(endpoint.trim());
@@ -634,13 +647,23 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     this.subscription.add(
       this.toolService.discoverMcpToolsAsEntities(endpoint).subscribe({
         next: (tools) => {
-          // Convert Tool entities back to McpToolDiscovery for display
-          this.discoveredMcpTools = tools.map(tool => ({
-            name: tool.name,
-            description: tool.description,
-            inputSchema: this.parseToolParameters(tool.parameters)
-          }));
+          console.log('discoverMcpTools - received tools:', tools);
           
+          // Convert Tool entities back to McpToolDiscovery for display
+          this.discoveredMcpTools = tools.map(tool => {
+            console.log('Processing tool:', tool);
+            console.log('tool.parameters:', tool.parameters);
+            const inputSchema = this.parseToolParameters(tool.parameters);
+            console.log('Parsed inputSchema:', inputSchema);
+            
+            return {
+              name: tool.name,
+              description: tool.description,
+              inputSchema: inputSchema
+            };
+          });
+          
+          console.log('Final discoveredMcpTools:', this.discoveredMcpTools);
           this.isDiscoveringMcpTools = false;
           this.notificationService.success('MCP Discovery', `Discovered ${this.discoveredMcpTools.length} tools from MCP server`);
         },
@@ -654,15 +677,23 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   }
 
   onMcpToolSelected(toolName: string): void {
+    console.log('onMcpToolSelected called with toolName:', toolName);
+    
     if (!toolName) {
       this.selectedMcpTool = null;
       this.clearToolParameters();
       return;
     }
 
+    // Set flag to prevent auto-discovery during manual selection
+    this.isManualToolSelection = true;
+
     this.selectedMcpTool = this.discoveredMcpTools.find(tool => tool.name === toolName) || null;
+    console.log('selectedMcpTool found:', this.selectedMcpTool);
     
     if (this.selectedMcpTool) {
+      console.log('selectedMcpTool.inputSchema:', this.selectedMcpTool.inputSchema);
+      
       // Truncate description to fit validation rules (max 1000 characters)
       const truncatedDescription = this.selectedMcpTool.description.length > 1000 
         ? this.selectedMcpTool.description.substring(0, 997) + '...'
@@ -673,17 +704,27 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         name: this.selectedMcpTool.name,
         description: truncatedDescription,
         type: ToolType.MCP,
-        mcpType: 'SSE'
+        mcpType: 'SSE',
+        mcpName: this.selectedMcpTool.name // Set the MCP name
       });
 
       // Trigger validation update for tool type change
       this.onToolTypeChange();
 
       // Populate parameters
+      console.log('About to call populateToolParameters');
       this.populateToolParameters(this.selectedMcpTool);
       
       this.notificationService.success('Tool Selected', `Selected MCP tool: ${this.selectedMcpTool.name}`);
+    } else {
+      console.log('No MCP tool found with name:', toolName);
     }
+
+    // Reset flag after a short delay to allow form updates to complete
+    setTimeout(() => {
+      this.isManualToolSelection = false;
+      console.log('Manual tool selection completed, auto-discovery re-enabled');
+    }, 100);
   }
 
   clearMcpDiscovery(): void {
@@ -701,12 +742,19 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   }
 
   private populateToolParameters(tool: McpToolDiscovery): void {
+    console.log('populateToolParameters called with tool:', tool);
+    console.log('tool.inputSchema:', tool.inputSchema);
+    console.log('tool.inputSchema?.properties:', tool.inputSchema?.properties);
+    
     this.clearToolParameters();
     
     if (tool.inputSchema?.properties) {
+      console.log('Found properties, creating parameters...');
       const parametersArray = this.toolForm.get('parameters') as FormArray;
+      console.log('parametersArray before:', parametersArray.length);
       
       Object.entries(tool.inputSchema.properties).forEach(([paramName, paramDef]) => {
+        console.log('Processing parameter:', paramName, paramDef);
         const isRequired = tool.inputSchema?.required?.includes(paramName) || false;
         
         const parameterGroup = this.fb.group({
@@ -714,28 +762,44 @@ export class ToolFormComponent implements OnInit, OnDestroy {
           type: [paramDef.type || 'string', Validators.required],
           required: [isRequired],
           description: [paramDef.description || ''],
-          defaultValue: [paramDef.default || '']
+          default: [paramDef.default || ''] // Fixed: changed from 'defaultValue' to 'default'
         });
         
         parametersArray.push(parameterGroup);
+        console.log('Added parameter group:', parameterGroup.value);
       });
+      
+      console.log('parametersArray after:', parametersArray.length);
+      console.log('parametersArray controls:', parametersArray.controls);
+    } else {
+      console.log('No properties found in inputSchema');
     }
   }
 
   private parseToolParameters(parameters?: any): any {
-    if (!parameters) return undefined;
+    console.log('parseToolParameters called with parameters:', parameters);
+    
+    if (!parameters) {
+      console.log('No parameters provided, returning undefined');
+      return undefined;
+    }
     
     try {
       const params = typeof parameters === 'string' ? JSON.parse(parameters) : parameters;
+      console.log('Parsed params:', params);
+      console.log('Is array?', Array.isArray(params));
+      
       if (Array.isArray(params)) {
         const properties: { [key: string]: any } = {};
         const required: string[] = [];
         
         params.forEach((param: any) => {
+          console.log('Processing param:', param);
           if (param.name) {
             properties[param.name] = {
               type: param.type || 'string',
-              description: param.description
+              description: param.description,
+              default: param.default || param.defaultValue // Handle both field names for backward compatibility
             };
             if (param.required) {
               required.push(param.name);
@@ -743,16 +807,19 @@ export class ToolFormComponent implements OnInit, OnDestroy {
           }
         });
         
-        return {
+        const result = {
           type: 'object',
           properties,
           required
         };
+        console.log('parseToolParameters result:', result);
+        return result;
       }
     } catch (error) {
       console.warn('Failed to parse tool parameters:', error);
     }
     
+    console.log('parseToolParameters returning undefined');
     return undefined;
   }
 

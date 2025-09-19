@@ -127,7 +127,16 @@
     <!-- LLM Configuration -->
     <div class="card">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">LLM Configuration</h2>
-      <div class="space-y-4">
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoadingLLMConfigs" class="flex items-center justify-center py-8">
+        <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="text-gray-600 dark:text-gray-400">Loading LLM configurations...</span>
+      </div>
+      
+      <div *ngIf="!isLoadingLLMConfigs" class="space-y-4">
         <!-- LLM Config Selection -->
         <div>
           <label for="llmConfigId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -183,14 +192,27 @@
           (click)="refreshTags()"
           class="btn-secondary text-sm"
           title="Refresh tags from API"
+          [disabled]="isLoadingTags"
         >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg *ngIf="!isLoadingTags" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          Refresh
+          <svg *ngIf="isLoadingTags" class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          {{ isLoadingTags ? 'Loading...' : 'Refresh' }}
         </button>
       </div>
-      <div class="space-y-4">
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoadingTags" class="flex items-center justify-center py-8">
+        <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="text-gray-600 dark:text-gray-400">Loading available tags...</span>
+      </div>
+      
+      <div *ngIf="!isLoadingTags" class="space-y-4">
         <!-- Existing Tags -->
         <div *ngIf="agentForm.get('tags')?.value?.length > 0" class="flex flex-wrap gap-2">
           <span
@@ -392,15 +414,27 @@
           type="button"
           (click)="addTool()"
           class="btn-secondary"
+          [disabled]="isLoadingTools"
         >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg *ngIf="!isLoadingTools" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
-                     Add a tool
+          <svg *ngIf="isLoadingTools" class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          {{ isLoadingTools ? 'Loading...' : 'Add a tool' }}
         </button>
       </div>
 
-      <div class="space-y-4">
+      <!-- Loading State -->
+      <div *ngIf="isLoadingTools" class="flex items-center justify-center py-8">
+        <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="text-gray-600 dark:text-gray-400">Loading available tools...</span>
+      </div>
+
+      <div *ngIf="!isLoadingTools" class="space-y-4">
         <div
           *ngFor="let toolGroup of toolsArray.controls; let i = index"
           class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface DocumentRagStatusUpdate {
   documentId: string;
@@ -28,7 +29,7 @@ export class SignalRService {
     }
 
     this.hubConnection = new HubConnectionBuilder()
-      .withUrl('https://localhost/documentRagHub')
+      .withUrl(environment.signalRUrl)
       .withAutomaticReconnect()
       .build();
 

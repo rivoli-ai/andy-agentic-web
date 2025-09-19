@@ -1,6 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost/api',
+  apiUrl: 'http://localhost:5000/api',
+  signalRUrl: 'http://localhost:5000/documentRagHub',
   azureAd: {
     clientId: '5c286802-9e81-4aa6-abd3-f083ad57c5dc',
     tenantId: '1335991b-55a1-47b7-a4dd-177f429f0719',

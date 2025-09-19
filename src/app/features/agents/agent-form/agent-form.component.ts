@@ -46,6 +46,11 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   isDiscoveringMcpTools = false;
   mcpDiscoveryError = '';
   
+  // Loading states
+  isLoadingTools = false;
+  isLoadingLLMConfigs = false;
+  isLoadingTags = false;
+  
   private subscription = new Subscription();
 
   constructor(
@@ -172,36 +177,44 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   }
 
   private loadAvailableTools(): void {
+    this.isLoadingTools = true;
     this.subscription.add(
       this.toolService.getTools().subscribe({
         next: (tools) => {
           this.availableTools = tools;
+          this.isLoadingTools = false;
         },
         error: (error) => {
           console.error('Error loading tools:', error);
+          this.isLoadingTools = false;
         }
       })
     );
   }
 
   private loadAvailableLLMConfigs(): void {
+    this.isLoadingLLMConfigs = true;
     this.subscription.add(
       this.llmService.getLLMConfigs().subscribe({
         next: (configs) => {
           this.availableLLMConfigs = configs;
+          this.isLoadingLLMConfigs = false;
         },
         error: (error) => {
           console.error('Error loading LLM configs:', error);
+          this.isLoadingLLMConfigs = false;
         }
       })
     );
   }
 
   private loadAvailableTags(): void {
+    this.isLoadingTags = true;
     this.subscription.add(
       this.tagService.getTags().subscribe({
         next: (tags) => {
           this.availableTags = tags;
+          this.isLoadingTags = false;
         },
         error: (error) => {
           console.error('Error loading tags:', error);
@@ -215,6 +228,7 @@ export class AgentFormComponent implements OnInit, OnDestroy {
             { id: '6', name: 'data', color: '#06B6D4' },
             { id: '7', name: 'insights', color: '#84CC16' }
           ];
+          this.isLoadingTags = false;
         }
       })
     );
