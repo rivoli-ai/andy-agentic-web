@@ -1,4 +1,10 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://flexagent.online:5000/api' // Will be relative to the deployed domain,
+  apiUrl: 'http://flexagent.online:5000/api',
+  signalRUrl: 'http://flexagent.online:5000/documentRagHub',
+  azureAd: {
+    clientId: '5c286802-9e81-4aa6-abd3-f083ad57c5dc',
+    tenantId: '1335991b-55a1-47b7-a4dd-177f429f0719',
+    redirectUri: 'http://localhost:4200'
+  } // Will be relative to the deployed domain,
 };
