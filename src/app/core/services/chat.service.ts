@@ -128,8 +128,8 @@ export class ChatService {
     return this.apiService.post<ChatResponse>('/chat', message);
   }
 
-  // Send streaming message with optional session ID
-  sendMessageStream(content: string, agentId: string, sessionId?: string): Observable<string> {
+  // Send streaming message with optional session ID and abort signal
+  sendMessageStream(content: string, agentId: string, sessionId?: string, abortSignal?: AbortSignal): Observable<string> {
     const message: CreateChatMessageDto = {
       content,
       agentId,
@@ -143,14 +143,15 @@ export class ChatService {
           return;
         }
 
-        // Use fetch with proper authentication headers
+        // Use fetch with proper authentication headers and abort signal
         fetch(`${environment.apiUrl}/chat/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(message)
+          body: JSON.stringify(message),
+          signal: abortSignal
         }).then(response => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -203,13 +204,23 @@ export class ChatService {
 
               readChunk();
             }).catch(error => {
-              observer.error(error);
+              // Check if the error is due to abort
+              if (error.name === 'AbortError') {
+                observer.error(new Error('Request aborted by user'));
+              } else {
+                observer.error(error);
+              }
             });
           };
 
           readChunk();
         }).catch(error => {
-          observer.error(error);
+          // Check if the error is due to abort
+          if (error.name === 'AbortError') {
+            observer.error(new Error('Request aborted by user'));
+          } else {
+            observer.error(error);
+          }
         });
       }).catch(error => {
         observer.error(error);

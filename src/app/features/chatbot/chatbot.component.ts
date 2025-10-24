@@ -70,6 +70,10 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   isToolSummaryExpanded = false;
   showToolExecutions = true;
   
+  // Cancellation support
+  private currentStreamSubscription: Subscription | null = null;
+  private abortController: AbortController | null = null;
+  
   private subscription = new Subscription();
 
   public options: MermaidAPI.Config = {
@@ -112,6 +116,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    this.stopStreaming();
   }
 
   private loadAgentById(agentId: string): void {
@@ -400,29 +405,48 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     // Force change detection for immediate display
     this.scrollToBottom();
 
-    this.subscription.add(
-      this.chatService.sendMessageStream(userMessage, this.selectedAgent.id, this.currentSessionId).subscribe({
-        next: (chunk: string) => {
-          // Update the streaming message content in real-time
-          streamingMessage.content += chunk;
-          // Force change detection for live updates
-          this.scrollToBottom();
-        },
-        complete: () => {
-          // Streaming completed
-          streamingMessage.isStreaming = false;
-          this.isExecuting = false;
+    // Create abort controller for cancellation
+    this.abortController = new AbortController();
+
+    // Store the subscription for potential cancellation
+    this.currentStreamSubscription = this.chatService.sendMessageStream(userMessage, this.selectedAgent.id, this.currentSessionId, this.abortController.signal).subscribe({
+      next: (chunk: string) => {
+        // Update the streaming message content in real-time
+        streamingMessage.content += chunk;
+        // Force change detection for live updates
+        this.scrollToBottom();
+      },
+      complete: () => {
+        // Streaming completed
+        streamingMessage.isStreaming = false;
+        this.isExecuting = false;
+        this.currentStreamSubscription = null;
+        this.abortController = null;
+        
+        // Wait a moment for backend to process tool executions, then reload
+        if (this.currentSessionId) {
+          setTimeout(() => {
+            this.reloadChatHistory();
+          }, 1000); // Wait 1 second for backend processing
+        }
+        
+        this.scrollToBottom();
+      },
+      error: (error: any) => {
+        // Check if it was cancelled
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+          // Remove streaming message and add cancellation message
+          this.messages = this.messages.filter(msg => msg.id !== streamingMessage.id);
           
-          // Wait a moment for backend to process tool executions, then reload
-          if (this.currentSessionId) {
-            setTimeout(() => {
-              this.reloadChatHistory();
-            }, 1000); // Wait 1 second for backend processing
-          }
-          
-          this.scrollToBottom();
-        },
-        error: (error: any) => {
+          this.messages.push({
+            id: this.generateId(),
+            content: '⏹️ Message generation stopped by user.',
+            isUser: false,
+            timestamp: new Date(),
+            agentId: this.selectedAgent!.id,
+            agentName: this.selectedAgent!.name
+          });
+        } else {
           // Remove streaming message and add error message
           this.messages = this.messages.filter(msg => msg.id !== streamingMessage.id);
           
@@ -435,12 +459,48 @@ export class ChatbotComponent implements OnInit, OnDestroy {
             agentName: this.selectedAgent!.name
           });
           
-          this.isExecuting = false;
           this.notificationService.error('Error', 'Agent execution failed');
-          this.scrollToBottom();
         }
-      })
-    );
+        
+        this.isExecuting = false;
+        this.currentStreamSubscription = null;
+        this.abortController = null;
+        this.scrollToBottom();
+      }
+    });
+  }
+
+  stopStreaming(): void {
+    if (this.currentStreamSubscription) {
+      this.currentStreamSubscription.unsubscribe();
+      this.currentStreamSubscription = null;
+    }
+    
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    
+    // Find and update the current streaming message
+    const streamingMessage = this.messages.find(msg => msg.isStreaming);
+    if (streamingMessage) {
+      // Mark the message as no longer streaming
+      streamingMessage.isStreaming = false;
+      
+      // If the message has no content, replace it with a stopped message
+      if (!streamingMessage.content || streamingMessage.content.trim() === '') {
+        streamingMessage.content = '⏹️ Message generation stopped by user.';
+      } else {
+        // If there's partial content, append the stopped indicator
+        streamingMessage.content += '\n\n⏹️ *Generation stopped by user*';
+      }
+    }
+    
+    this.isExecuting = false;
+    
+    // Force change detection to update the UI immediately
+    this.cdr.detectChanges();
+    this.scrollToBottom();
   }
 
   private scrollToBottom(): void {

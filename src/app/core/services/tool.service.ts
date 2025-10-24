@@ -52,7 +52,7 @@ export class ToolService {
       category: dto.category,
       isActive: dto.isActive,
       configuration: dto.configuration,
-      authentication: this.parseAuthentication(dto.authentication),
+      authentication: dto.authentication || '{"type":"none","required":false}', // Keep as JSON string
       parameters: dto.parameters ? JSON.parse(dto.parameters) : [],
       headers: dto.headers ? JSON.parse(dto.headers) : [],
       createdAt: new Date(dto.createdAt),
@@ -75,12 +75,20 @@ export class ToolService {
         apiKey: parsed.apiKey,
         username: parsed.username,
         password: parsed.password,
+        token: parsed.token,
+        accessToken: parsed.accessToken,
+        clientId: parsed.clientId,
+        clientSecret: parsed.clientSecret,
+        tokenUrl: parsed.tokenUrl,
+        tenantId: parsed.tenantId,
+        resource: parsed.resource,
+        scopes: parsed.scopes,
         headers: parsed.headers || {},
         required: parsed.required || false
       };
       
       // Validation des types d'authentification
-      if (!['api_key', 'basic', 'bearer', 'none'].includes(auth.type)) {
+      if (!['api_key', 'basic', 'bearer', 'oauth2', 'azure_oauth2', 'none'].includes(auth.type)) {
         console.warn(`Invalid authentication type: ${auth.type}, defaulting to 'none'`);
         auth.type = 'none';
       }

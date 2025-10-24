@@ -16,11 +16,20 @@ export class AgentsComponent implements OnInit, OnDestroy {
   searchQuery = '';
   selectedType = '';
   selectedStatus = '';
+  selectedTag = '';
   agentTypes = Object.values(AgentType);
   isLoading = true;
   viewMode: 'grid' | 'list' = 'grid';
   sortBy: 'name' | 'createdAt' | 'updatedAt' | 'executionCount' = 'updatedAt';
   sortOrder: 'asc' | 'desc' = 'desc';
+  
+  // Grouping
+  groupByTags = false;
+  groupedAgents = new Map<string, Agent[]>();
+  collapsedGroups = new Set<string>();
+  
+  // Available tags for filtering
+  availableTags: { id: string; name: string; color: string }[] = [];
   
   // Pagination
   currentPage = 1;
@@ -29,6 +38,7 @@ export class AgentsComponent implements OnInit, OnDestroy {
   paginatedAgents: Agent[] = [];
   
   private subscription = new Subscription();
+  private searchSaveTimeout: any;
 
   constructor(
     private agentService: AgentService,
@@ -37,11 +47,83 @@ export class AgentsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadPreferences();
     this.loadAgents();
   }
 
   ngOnDestroy(): void {
+    if (this.searchSaveTimeout) {
+      clearTimeout(this.searchSaveTimeout);
+    }
+    this.savePreferences();
     this.subscription.unsubscribe();
+  }
+
+  private loadPreferences(): void {
+    try {
+      const preferences = localStorage.getItem('agents-preferences');
+      if (preferences) {
+        const prefs = JSON.parse(preferences);
+        
+        // Load view mode
+        if (prefs.viewMode && (prefs.viewMode === 'grid' || prefs.viewMode === 'list')) {
+          this.viewMode = prefs.viewMode;
+        }
+        
+        // Load grouping preference
+        if (typeof prefs.groupByTags === 'boolean') {
+          this.groupByTags = prefs.groupByTags;
+        }
+        
+        // Load sort preferences
+        if (prefs.sortBy && ['name', 'createdAt', 'updatedAt', 'executionCount'].includes(prefs.sortBy)) {
+          this.sortBy = prefs.sortBy;
+        }
+        
+        if (prefs.sortOrder && (prefs.sortOrder === 'asc' || prefs.sortOrder === 'desc')) {
+          this.sortOrder = prefs.sortOrder;
+        }
+        
+        // Load filter preferences
+        if (prefs.selectedType) {
+          this.selectedType = prefs.selectedType;
+        }
+        
+        if (prefs.selectedStatus) {
+          this.selectedStatus = prefs.selectedStatus;
+        }
+        
+        if (prefs.selectedTag) {
+          this.selectedTag = prefs.selectedTag;
+        }
+        
+        // Load collapsed groups
+        if (prefs.collapsedGroups && Array.isArray(prefs.collapsedGroups)) {
+          this.collapsedGroups = new Set(prefs.collapsedGroups);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load agents preferences:', error);
+    }
+  }
+
+  private savePreferences(): void {
+    try {
+      const preferences = {
+        viewMode: this.viewMode,
+        groupByTags: this.groupByTags,
+        sortBy: this.sortBy,
+        sortOrder: this.sortOrder,
+        selectedType: this.selectedType,
+        selectedStatus: this.selectedStatus,
+        selectedTag: this.selectedTag,
+        collapsedGroups: Array.from(this.collapsedGroups)
+      };
+      
+      localStorage.setItem('agents-preferences', JSON.stringify(preferences));
+    } catch (error) {
+      console.warn('Failed to save agents preferences:', error);
+    }
   }
 
   private loadAgents(): void {
@@ -50,8 +132,8 @@ export class AgentsComponent implements OnInit, OnDestroy {
       this.agentService.getAgents().subscribe({
         next: (agents: Agent[]) => {
           this.agents = agents;
-          this.filteredAgents = [...agents];
-          this.updatePagination();
+          this.extractAvailableTags();
+          this.applyFilters();
           this.isLoading = false;
         },
         error: (error: any) => {
@@ -63,16 +145,75 @@ export class AgentsComponent implements OnInit, OnDestroy {
     );
   }
 
+  private extractAvailableTags(): void {
+    const tagMap = new Map<string, { id: string; name: string; color: string }>();
+    
+    this.agents.forEach(agent => {
+      agent.agentTags.forEach(agentTag => {
+        if (agentTag.tag) {
+          tagMap.set(agentTag.tag.id, {
+            id: agentTag.tag.id,
+            name: agentTag.tag.name,
+            color: agentTag.tag.color
+          });
+        }
+      });
+    });
+    
+    this.availableTags = Array.from(tagMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   onSearch(): void {
     this.applyFilters();
+    
+    // Debounced save for search query
+    if (this.searchSaveTimeout) {
+      clearTimeout(this.searchSaveTimeout);
+    }
+    this.searchSaveTimeout = setTimeout(() => {
+      this.savePreferences();
+    }, 1000); // Save after 1 second of no typing
   }
 
   onTypeFilterChange(): void {
     this.applyFilters();
+    this.savePreferences();
   }
 
   onStatusFilterChange(): void {
     this.applyFilters();
+    this.savePreferences();
+  }
+
+  onTagFilterChange(): void {
+    this.applyFilters();
+    this.savePreferences();
+  }
+
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
+    this.savePreferences();
+  }
+
+  toggleGrouping(): void {
+    this.groupByTags = !this.groupByTags;
+    this.applyFilters();
+    this.savePreferences();
+  }
+
+  toggleGroupCollapse(groupKey: string): void {
+    if (this.collapsedGroups.has(groupKey)) {
+      this.collapsedGroups.delete(groupKey);
+    } else {
+      this.collapsedGroups.add(groupKey);
+    }
+    this.savePreferences();
+  }
+
+  toggleSortOrder(): void {
+    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    this.applyFilters();
+    this.savePreferences();
   }
 
   private applyFilters(): void {
@@ -99,11 +240,49 @@ export class AgentsComponent implements OnInit, OnDestroy {
       filtered = filtered.filter(agent => agent.isActive === isActive);
     }
 
+    // Filtre par tag
+    if (this.selectedTag) {
+      filtered = filtered.filter(agent =>
+        agent.agentTags.some((tag: AgentTag) => tag.tag?.id === this.selectedTag)
+      );
+    }
+
     // Appliquer le tri
     filtered = this.applySorting(filtered);
 
     this.filteredAgents = filtered;
+    
+    // Grouper par tags si activé
+    if (this.groupByTags) {
+      this.groupAgentsByTags(filtered);
+    } else {
+      this.groupedAgents.clear();
+    }
+    
     this.updatePagination();
+  }
+
+  private groupAgentsByTags(agents: Agent[]): void {
+    this.groupedAgents.clear();
+    
+    agents.forEach(agent => {
+      if (agent.agentTags.length === 0) {
+        // Agents sans tags
+        const untagged = this.groupedAgents.get('untagged') || [];
+        untagged.push(agent);
+        this.groupedAgents.set('untagged', untagged);
+      } else {
+        // Agents avec tags - ajouter à chaque groupe de tag
+        agent.agentTags.forEach(agentTag => {
+          if (agentTag.tag) {
+            const tagName = agentTag.tag.name;
+            const existing = this.groupedAgents.get(tagName) || [];
+            existing.push(agent);
+            this.groupedAgents.set(tagName, existing);
+          }
+        });
+      }
+    });
   }
 
   private updatePagination(): void {
@@ -167,8 +346,11 @@ export class AgentsComponent implements OnInit, OnDestroy {
     });
   }
 
-  toggleViewMode(): void {
-    this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+
+  // Helper methods
+  getTagColor(tagName: string): string {
+    const tag = this.availableTags.find(t => t.name === tagName);
+    return tag?.color || '#9ca3af';
   }
 
   onSortChange(sortBy: 'name' | 'createdAt' | 'updatedAt' | 'executionCount'): void {
@@ -179,6 +361,7 @@ export class AgentsComponent implements OnInit, OnDestroy {
       this.sortOrder = 'desc';
     }
     this.applyFilters();
+    this.savePreferences();
   }
 
   viewAgent(agentId: string): void {

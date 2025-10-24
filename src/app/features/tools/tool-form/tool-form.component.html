@@ -322,9 +322,14 @@
              (change)="onAuthenticationTypeChange()"
              class="input-field"
            >
-             <option *ngFor="let authType of authenticationTypes" [value]="authType">
-               {{ authType === 'none' ? 'None' : authType === 'api_key' ? 'API Key' : authType === 'bearer' ? 'Bearer Token' : authType === 'basic' ? 'Basic Auth' : 'OAuth2' }}
-             </option>
+            <option *ngFor="let authType of authenticationTypes" [value]="authType">
+              {{ authType === 'none' ? 'None' : 
+                 authType === 'api_key' ? 'API Key' : 
+                 authType === 'bearer' ? 'Bearer Token' : 
+                 authType === 'basic' ? 'Basic Auth' : 
+                 authType === 'oauth2' ? 'OAuth2 (Generic)' : 
+                 authType === 'azure_oauth2' ? 'Azure OAuth2' : authType }}
+            </option>
            </select>
          </div>
 
@@ -381,6 +386,167 @@
               class="input-field"
               placeholder="Enter password"
             />
+          </div>
+        </div>
+
+        <!-- OAuth2 Authentication (Generic) -->
+        <div *ngIf="showOAuth2Fields()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Client ID *
+              </label>
+              <input
+                id="clientId"
+                type="text"
+                formControlName="authClientId"
+                class="input-field"
+                placeholder="Enter OAuth2 client ID"
+              />
+            </div>
+            <div>
+              <label for="clientSecret" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Client Secret *
+              </label>
+              <input
+                id="clientSecret"
+                type="password"
+                formControlName="authClientSecret"
+                class="input-field"
+                placeholder="Enter OAuth2 client secret"
+              />
+            </div>
+          </div>
+          <div>
+            <label for="tokenUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Token URL *
+            </label>
+            <input
+              id="tokenUrl"
+              type="url"
+              formControlName="authTokenUrl"
+              class="input-field"
+              placeholder="https://oauth.example.com/token"
+            />
+          </div>
+          <div>
+            <label for="scopes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Scopes
+            </label>
+            <input
+              id="scopes"
+              type="text"
+              formControlName="authScopes"
+              class="input-field"
+              placeholder="read write (space-separated)"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Enter space-separated OAuth2 scopes (e.g., "read write admin")
+            </p>
+          </div>
+          <div>
+            <label for="oauth2Token" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Access Token (Optional)
+            </label>
+            <input
+              id="oauth2Token"
+              type="password"
+              formControlName="authApiKey"
+              class="input-field"
+              placeholder="Enter pre-obtained access token for testing"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              If you already have an access token, you can provide it here. Otherwise, the system will obtain it using client credentials.
+            </p>
+          </div>
+        </div>
+
+        <!-- Azure OAuth2 Authentication -->
+        <div *ngIf="showAzureOAuth2Fields()" class="space-y-4">
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+              </svg>
+              <p class="text-sm text-blue-800 dark:text-blue-200">
+                Azure OAuth2 uses the standard Microsoft token endpoint. Just provide your Tenant ID and we'll construct the token URL automatically.
+              </p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="azureClientId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Client ID (Application ID) *
+              </label>
+              <input
+                id="azureClientId"
+                type="text"
+                formControlName="authClientId"
+                class="input-field"
+                placeholder="12345678-1234-1234-1234-123456789012"
+              />
+            </div>
+            <div>
+              <label for="azureClientSecret" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Client Secret *
+              </label>
+              <input
+                id="azureClientSecret"
+                type="password"
+                formControlName="authClientSecret"
+                class="input-field"
+                placeholder="Enter Azure client secret"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label for="tenantId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tenant ID *
+            </label>
+            <input
+              id="tenantId"
+              type="text"
+              formControlName="authTenantId"
+              class="input-field"
+              placeholder="87654321-4321-4321-4321-210987654321"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Your Azure AD tenant ID (found in Azure Portal)
+            </p>
+          </div>
+          
+          <div>
+            <label for="resource" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Resource / Scope
+            </label>
+            <input
+              id="resource"
+              type="text"
+              formControlName="authResource"
+              class="input-field"
+              placeholder="https://graph.microsoft.com/.default"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Azure resource identifier or scope (e.g., "https://graph.microsoft.com/.default")
+            </p>
+          </div>
+          
+          <div>
+            <label for="azureToken" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Access Token (Optional)
+            </label>
+            <input
+              id="azureToken"
+              type="password"
+              formControlName="authApiKey"
+              class="input-field"
+              placeholder="Enter pre-obtained access token for testing"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              If you already have an access token, you can provide it here. Otherwise, the system will obtain it automatically.
+            </p>
           </div>
         </div>
       </div>

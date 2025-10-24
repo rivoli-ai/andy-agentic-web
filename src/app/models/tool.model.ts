@@ -20,10 +20,18 @@ export interface ToolHeader {
 }
 
 export interface ToolAuthentication {
-  type: 'api_key' | 'basic' | 'bearer' | 'none';
+  type: 'api_key' | 'basic' | 'bearer' | 'oauth2' | 'none';
   apiKey?: string;
   username?: string;
   password?: string;
+  token?: string;
+  accessToken?: string;
+  clientId?: string;
+  clientSecret?: string;
+  tokenUrl?: string;
+  tenantId?: string;  // For Azure OAuth2
+  resource?: string;  // For Azure OAuth2 resource/scope
+  scopes?: string;
   headers?: Record<string, string>;
   required?: boolean;
 }
@@ -36,7 +44,7 @@ export interface Tool {
   category?: string;
   isActive: boolean;
   configuration?: string;
-  authentication: ToolAuthentication;
+  authentication: string | ToolAuthentication;  // Can be JSON string or object
   parameters?: ToolParameter[];
   headers?: ToolHeader[];
   createdAt: Date;

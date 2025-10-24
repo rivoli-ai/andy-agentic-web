@@ -16,7 +16,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   isEditMode = false;
   toolId: string | null = null;
   toolTypes = Object.values(ToolType);
-  authenticationTypes = ['none', 'api_key', 'bearer', 'basic', 'oauth2'];
+  authenticationTypes = ['none', 'api_key', 'bearer', 'basic', 'oauth2', 'azure_oauth2'];
   httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
   mcpTypes = ['SSE', 'HTTP Streaming'];
   
@@ -52,9 +52,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     this.toolId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.toolId;
     
-    // Set initial validation based on default tool type
-    this.onToolTypeChange();
-    
     // Listen for endpoint changes to auto-discover MCP tools
     this.subscription.add(
       this.toolForm.get('endpoint')?.valueChanges.subscribe(endpoint => {
@@ -64,6 +61,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     
     if (this.isEditMode) {
       this.loadToolForEdit();
+    } else {
+      // Only set initial validation for new tools (not editing)
+      this.onToolTypeChange();
     }
   }
 
@@ -89,6 +89,12 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       authApiKey: [''],
       authUsername: [''],
       authPassword: [''],
+      authClientId: [''],
+      authClientSecret: [''],
+      authTokenUrl: [''],
+      authTenantId: [''],
+      authResource: [''],
+      authScopes: [''],
       parameters: this.fb.array([]),
       headers: this.fb.array([])
     });
@@ -159,25 +165,44 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
          // Remplir l'authentification - parse JSON string if needed
      let authData: any = {};
+     console.log('populateForm - tool.authentication:', tool.authentication);
+     console.log('populateForm - typeof tool.authentication:', typeof tool.authentication);
+     
      if (tool.authentication) {
        if (typeof tool.authentication === 'string') {
+         console.log('populateForm - parsing JSON string');
          try {
            authData = JSON.parse(tool.authentication);
+           console.log('populateForm - parsed authData:', authData);
          } catch (e) {
            console.warn('Invalid authentication JSON:', tool.authentication);
            authData = {};
          }
        } else {
+         console.log('populateForm - using authentication object directly');
          authData = tool.authentication;
        }
        
-       this.toolForm.patchValue({
-         authType: authData.type || 'none',
-         authRequired: authData.required || false,
-         authApiKey: authData.apiKey || '',
-         authUsername: authData.username || '',
-         authPassword: authData.password || ''
-       });
+      console.log('populateForm - final authData:', authData);
+      console.log('populateForm - authData.type:', authData.type);
+      
+      this.toolForm.patchValue({
+        authType: authData.type || 'none',
+        authRequired: authData.required || false,
+        authApiKey: authData.apiKey || authData.token || '',
+        authUsername: authData.username || '',
+        authPassword: authData.password || '',
+        authClientId: authData.clientId || '',
+        authClientSecret: authData.clientSecret || '',
+        authTokenUrl: authData.tokenUrl || '',
+        authTenantId: authData.tenantId || '',
+        authResource: authData.resource || '',
+        authScopes: authData.scopes || ''
+      });
+      console.log('populateForm - authType set to:', authData.type || 'none');
+      console.log('populateForm - form authType after patch:', this.toolForm.get('authType')?.value);
+     } else {
+       console.log('populateForm - no authentication data found');
      }
 
     // Ajouter les paramètres - parse JSON string if needed
@@ -221,7 +246,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     }
     
     // Set validation based on the loaded tool type
+    console.log('populateForm - calling onToolTypeChange, current authType:', this.toolForm.get('authType')?.value);
     this.onToolTypeChange();
+    console.log('populateForm - after onToolTypeChange, authType:', this.toolForm.get('authType')?.value);
   }
 
   private clearFormArrays(): void {
@@ -358,18 +385,24 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       // Clear parameters and headers for internal tools
       this.clearFormArrays();
       
-      // Set default values for internal tools
-      this.toolForm.patchValue({
-        authType: 'none',
-        authRequired: false,
-        method: 'GET',
-        mcpType: 'SSE',
-        endpoint: '',
-        internalToolName: 'Search' // Set default internal tool name
-      });
-      
-      // Set the name field to the selected internal tool name
-      this.onInternalToolNameChange('Search');
+      // Only set default values for internal tools if we're not in edit mode
+      // This prevents overriding existing authentication data when editing
+      if (!this.isEditMode) {
+        console.log('onToolTypeChange - Setting defaults for new internal tool');
+        this.toolForm.patchValue({
+          authType: 'none',
+          authRequired: false,
+          method: 'GET',
+          mcpType: 'SSE',
+          endpoint: '',
+          internalToolName: 'Search' // Set default internal tool name
+        });
+        
+        // Set the name field to the selected internal tool name
+        this.onInternalToolNameChange('Search');
+      } else {
+        console.log('onToolTypeChange - Edit mode: preserving existing authentication data');
+      }
     }
     
     methodControl?.updateValueAndValidity();
@@ -418,16 +451,50 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authRequired: false,
         authApiKey: '',
         authUsername: '',
-        authPassword: ''
+        authPassword: '',
+        authClientId: '',
+        authClientSecret: '',
+        authTokenUrl: '',
+        authTenantId: '',
+        authResource: '',
+        authScopes: ''
       });
     } else if (authType === 'api_key' || authType === 'bearer') {
       this.toolForm.patchValue({
         authUsername: '',
-        authPassword: ''
+        authPassword: '',
+        authClientId: '',
+        authClientSecret: '',
+        authTokenUrl: '',
+        authTenantId: '',
+        authResource: '',
+        authScopes: ''
       });
     } else if (authType === 'basic') {
       this.toolForm.patchValue({
-        authApiKey: ''
+        authApiKey: '',
+        authClientId: '',
+        authClientSecret: '',
+        authTokenUrl: '',
+        authTenantId: '',
+        authResource: '',
+        authScopes: ''
+      });
+    } else if (authType === 'oauth2') {
+      this.toolForm.patchValue({
+        authApiKey: '',
+        authUsername: '',
+        authPassword: '',
+        authTenantId: '',
+        authResource: ''
+      });
+    } else if (authType === 'azure_oauth2') {
+      this.toolForm.patchValue({
+        authApiKey: '',
+        authUsername: '',
+        authPassword: '',
+        authTokenUrl: '',
+        authScopes: ''
       });
     }
     
@@ -460,6 +527,24 @@ export class ToolFormComponent implements OnInit, OnDestroy {
          } else if (formValue.authType === 'basic') {
            authentication.username = formValue.authUsername;
            authentication.password = formValue.authPassword;
+         } else if (formValue.authType === 'oauth2') {
+           authentication.clientId = formValue.authClientId;
+           authentication.clientSecret = formValue.authClientSecret;
+           authentication.tokenUrl = formValue.authTokenUrl;
+           authentication.scopes = formValue.authScopes;
+           // If a token is already provided (for testing), include it
+           if (formValue.authApiKey) {
+             authentication.token = formValue.authApiKey;
+           }
+         } else if (formValue.authType === 'azure_oauth2') {
+           authentication.clientId = formValue.authClientId;
+           authentication.clientSecret = formValue.authClientSecret;
+           authentication.tenantId = formValue.authTenantId;
+           authentication.resource = formValue.authResource;
+           // If a token is already provided (for testing), include it
+           if (formValue.authApiKey) {
+             authentication.token = formValue.authApiKey;
+           }
          }
        }
 
@@ -581,6 +666,16 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   showBasicAuthFields(): boolean {
     const authType = this.toolForm.get('authType')?.value;
     return authType === 'basic';
+  }
+
+  showOAuth2Fields(): boolean {
+    const authType = this.toolForm.get('authType')?.value;
+    return authType === 'oauth2';
+  }
+
+  showAzureOAuth2Fields(): boolean {
+    const authType = this.toolForm.get('authType')?.value;
+    return authType === 'azure_oauth2';
   }
 
   showCategoryField(): boolean {

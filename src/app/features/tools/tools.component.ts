@@ -22,7 +22,18 @@ export class ToolsComponent implements OnInit, OnDestroy {
   selectedType = '';
   selectedStatus = '';
   
+  // View and sorting options
+  viewMode: 'grid' | 'list' = 'grid';
+  sortBy: 'name' | 'createdAt' | 'updatedAt' | 'type' = 'updatedAt';
+  sortOrder: 'asc' | 'desc' = 'desc';
+  
+  // Grouping
+  groupByType = false;
+  groupedTools = new Map<string, Tool[]>();
+  collapsedGroups = new Set<string>();
+  
   private subscription = new Subscription();
+  private searchSaveTimeout: any;
 
   constructor(
     private notificationService: NotificationService,
@@ -31,12 +42,84 @@ export class ToolsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadPreferences();
     this.loadTools();
     this.toolTypes = Object.values(ToolType);
   }
 
   ngOnDestroy(): void {
+    if (this.searchSaveTimeout) {
+      clearTimeout(this.searchSaveTimeout);
+    }
+    this.savePreferences();
     this.subscription.unsubscribe();
+  }
+
+  private loadPreferences(): void {
+    try {
+      const preferences = localStorage.getItem('tools-preferences');
+      if (preferences) {
+        const prefs = JSON.parse(preferences);
+        
+        // Load view mode
+        if (prefs.viewMode && (prefs.viewMode === 'grid' || prefs.viewMode === 'list')) {
+          this.viewMode = prefs.viewMode;
+        }
+        
+        // Load grouping preference
+        if (typeof prefs.groupByType === 'boolean') {
+          this.groupByType = prefs.groupByType;
+        }
+        
+        // Load sort preferences
+        if (prefs.sortBy && ['name', 'createdAt', 'updatedAt', 'type'].includes(prefs.sortBy)) {
+          this.sortBy = prefs.sortBy;
+        }
+        
+        if (prefs.sortOrder && (prefs.sortOrder === 'asc' || prefs.sortOrder === 'desc')) {
+          this.sortOrder = prefs.sortOrder;
+        }
+        
+        // Load filter preferences
+        if (prefs.selectedType) {
+          this.selectedType = prefs.selectedType;
+        }
+        
+        if (prefs.selectedStatus) {
+          this.selectedStatus = prefs.selectedStatus;
+        }
+        
+        if (prefs.searchQuery) {
+          this.searchQuery = prefs.searchQuery;
+        }
+        
+        // Load collapsed groups
+        if (prefs.collapsedGroups && Array.isArray(prefs.collapsedGroups)) {
+          this.collapsedGroups = new Set(prefs.collapsedGroups);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load tools preferences:', error);
+    }
+  }
+
+  private savePreferences(): void {
+    try {
+      const preferences = {
+        viewMode: this.viewMode,
+        groupByType: this.groupByType,
+        sortBy: this.sortBy,
+        sortOrder: this.sortOrder,
+        selectedType: this.selectedType,
+        selectedStatus: this.selectedStatus,
+        searchQuery: this.searchQuery,
+        collapsedGroups: Array.from(this.collapsedGroups)
+      };
+      
+      localStorage.setItem('tools-preferences', JSON.stringify(preferences));
+    } catch (error) {
+      console.warn('Failed to save tools preferences:', error);
+    }
   }
 
   private loadTools(): void {
@@ -62,14 +145,61 @@ export class ToolsComponent implements OnInit, OnDestroy {
 
   onSearchChange(): void {
     this.applyFilters();
+    
+    // Debounced save for search query
+    if (this.searchSaveTimeout) {
+      clearTimeout(this.searchSaveTimeout);
+    }
+    this.searchSaveTimeout = setTimeout(() => {
+      this.savePreferences();
+    }, 1000); // Save after 1 second of no typing
   }
 
   onTypeFilterChange(): void {
     this.applyFilters();
+    this.savePreferences();
   }
 
   onStatusFilterChange(): void {
     this.applyFilters();
+    this.savePreferences();
+  }
+
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
+    this.savePreferences();
+  }
+
+  onSortChange(sortBy: 'name' | 'createdAt' | 'updatedAt' | 'type'): void {
+    if (this.sortBy === sortBy) {
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = sortBy;
+      this.sortOrder = 'desc';
+    }
+    this.applyFilters();
+    this.savePreferences();
+  }
+
+  toggleSortOrder(): void {
+    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    this.applyFilters();
+    this.savePreferences();
+  }
+
+  toggleGrouping(): void {
+    this.groupByType = !this.groupByType;
+    this.applyFilters();
+    this.savePreferences();
+  }
+
+  toggleGroupCollapse(groupKey: string): void {
+    if (this.collapsedGroups.has(groupKey)) {
+      this.collapsedGroups.delete(groupKey);
+    } else {
+      this.collapsedGroups.add(groupKey);
+    }
+    this.savePreferences();
   }
 
   private applyFilters(): void {
@@ -95,7 +225,62 @@ export class ToolsComponent implements OnInit, OnDestroy {
       filtered = filtered.filter(tool => tool.isActive === isActive);
     }
 
+    // Sort the filtered results
+    filtered.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (this.sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'createdAt':
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        case 'updatedAt':
+          aValue = new Date(a.updatedAt).getTime();
+          bValue = new Date(b.updatedAt).getTime();
+          break;
+        case 'type':
+          aValue = a.type.toLowerCase();
+          bValue = b.type.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) {
+        return this.sortOrder === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return this.sortOrder === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+
     this.filteredTools = filtered;
+
+    // Group tools by type if grouping is enabled
+    if (this.groupByType) {
+      this.groupedTools.clear();
+      
+      filtered.forEach(tool => {
+        const typeKey = tool.type || 'Unknown';
+        if (!this.groupedTools.has(typeKey)) {
+          this.groupedTools.set(typeKey, []);
+        }
+        this.groupedTools.get(typeKey)!.push(tool);
+      });
+      
+      // Sort groups by type name
+      const sortedGroups = new Map<string, Tool[]>();
+      Array.from(this.groupedTools.keys()).sort().forEach(key => {
+        sortedGroups.set(key, this.groupedTools.get(key)!);
+      });
+      this.groupedTools = sortedGroups;
+    }
   }
 
   createNewTool(): void {
@@ -216,6 +401,26 @@ export class ToolsComponent implements OnInit, OnDestroy {
       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
   }
 
+  getAuthType(tool: Tool): string | undefined {
+    if (!tool.authentication) {
+      return undefined;
+    }
+    
+    // Authentication is now always a JSON string
+    if (typeof tool.authentication === 'string') {
+      try {
+        const authData = JSON.parse(tool.authentication);
+        return authData.type;
+      } catch (e) {
+        console.warn('Invalid authentication JSON:', tool.authentication);
+        return undefined;
+      }
+    }
+    
+    // Fallback for object (shouldn't happen anymore)
+    return tool.authentication.type;
+  }
+
   getAuthTypeDisplay(authType: string | undefined): string {
     if (!authType) {
       return 'None';
@@ -228,10 +433,25 @@ export class ToolsComponent implements OnInit, OnDestroy {
         return 'Basic Auth';
       case 'bearer':
         return 'Bearer Token';
+      case 'oauth2':
+        return 'OAuth2 (Generic)';
+      case 'azure_oauth2':
+        return 'Azure OAuth2';
       case 'none':
         return 'None';
       default:
         return authType.charAt(0).toUpperCase() + authType.slice(1);
+    }
+  }
+
+  getTypeColor(type: string): string {
+    switch (type) {
+      case 'API':
+        return '#3b82f6'; // blue
+      case 'MCP':
+        return '#10b981'; // green
+      default:
+        return '#9ca3af'; // gray
     }
   }
 
