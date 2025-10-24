@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, combineLatest } from 'rxjs';
 import { Agent } from '../../models/agent.model';
 import { AgentService } from '../../core/services/agent.service';
 import { ChatService, ChatMessage as ChatMessageInterface, ChatResponse, ChatSessionDto, ChatHistoryDto, ToolExecutionLogDto } from '../../core/services/chat.service';
@@ -97,18 +97,40 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    console.log('ChatbotComponent: ngOnInit called');
+    
     this.subscription.add(
       this.themeService.currentTheme$.subscribe((theme: any) => {
         this.updateMermaidOptions(theme);
       })
     );
 
+    // Use combineLatest to handle both route and query parameters
     this.subscription.add(
-      this.route.queryParams.subscribe(params => {
-        if (params['agentId']) {
-          this.loadAgentById(params['agentId']);
+      combineLatest([
+        this.route.params,
+        this.route.queryParams
+      ]).subscribe(([routeParams, queryParams]) => {
+        console.log('ChatbotComponent: Route params:', routeParams);
+        console.log('ChatbotComponent: Query params:', queryParams);
+        
+        // Priority: route params > query params > localStorage
+        let agentId = routeParams['agentId'] || queryParams['agentId'];
+        
+        if (agentId) {
+          console.log('ChatbotComponent: Loading agent from URL:', agentId);
+          this.loadAgentById(agentId);
         } else {
-          this.addWelcomeMessage();
+          // Check if there's a persisted agent in localStorage
+          const persistedAgentId = localStorage.getItem('selectedAgentId');
+          console.log('ChatbotComponent: Persisted agent ID:', persistedAgentId);
+          if (persistedAgentId) {
+            console.log('ChatbotComponent: Loading agent from localStorage:', persistedAgentId);
+            this.loadAgentById(persistedAgentId);
+          } else {
+            console.log('ChatbotComponent: No agent found, showing welcome message');
+            this.addWelcomeMessage();
+          }
         }
       })
     );
@@ -120,15 +142,21 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   private loadAgentById(agentId: string): void {
+    console.log('ChatbotComponent: loadAgentById called with:', agentId);
     this.subscription.add(
       this.agentService.getAgentById(agentId).subscribe({
         next: (agent: Agent | undefined) => {
+          console.log('ChatbotComponent: Agent loaded:', agent);
           if (agent) {
             this.selectedAgent = agent;
             this.chatForm.setValue({ 
               agentId: agent.id, 
               message: '' 
             });
+
+            // Persist the selected agent to localStorage
+            localStorage.setItem('selectedAgentId', agent.id);
+            console.log('ChatbotComponent: Agent persisted to localStorage:', agent.id);
 
             // Load chat sessions for this agent
             this.loadChatSessions(agent.id);
@@ -147,6 +175,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         error: (error: any) => {
           this.notificationService.error('Error', 'Unable to load agent');
           console.error('Error loading agent:', error);
+          // Clear invalid agent from localStorage
+          localStorage.removeItem('selectedAgentId');
         }
       })
     );
@@ -201,9 +231,11 @@ export class ChatbotComponent implements OnInit, OnDestroy {
               
               // Add tool execution data from ToolResults array (new format)
               if (msg.toolResults && Array.isArray(msg.toolResults) && msg.toolResults.length > 0) {
-                chatMessage.toolExecutions = msg.toolResults.map((toolLog: ToolExecutionLogDto) => 
-                  this.convertToolExecutionLogToToolExecution(toolLog)
-                );
+                chatMessage.toolExecutions = msg.toolResults
+                  .map((toolLog: ToolExecutionLogDto) => 
+                    this.convertToolExecutionLogToToolExecution(toolLog)
+                  )
+                  .sort((a, b) => a.executedAt.getTime() - b.executedAt.getTime());
               }
               // Fallback to legacy single tool execution format
               else if (msg.isToolExecution && msg.toolName) {
@@ -338,6 +370,9 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       isUser: false,
       timestamp: new Date()
     });
+    
+    // Clear any persisted agent when showing welcome message
+    localStorage.removeItem('selectedAgentId');
   }
 
   private updateMermaidOptions(theme: 'light' | 'dark'): void {
@@ -427,7 +462,9 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         if (this.currentSessionId) {
           setTimeout(() => {
             this.reloadChatHistory();
-          }, 1000); // Wait 1 second for backend processing
+            // Force change detection after reloading chat history
+            this.cdr.detectChanges();
+          }, 500); // Reduced delay for faster tool execution display
         }
         
         this.scrollToBottom();
@@ -527,6 +564,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           // Find the most recent agent message and update it with tool executions
           this.updateLatestAgentMessageWithToolExecutions(history);
           
+          // Force change detection to ensure UI updates
+          this.cdr.detectChanges();
           this.scrollToBottom();
         },
         error: (error: any) => {
@@ -584,14 +623,21 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       console.log('Tool results found:', historyEntry.toolResults);
       
       // Update the message with tool executions
-      latestAgentMessage.toolExecutions = historyEntry.toolResults.map((toolLog: ToolExecutionLogDto) => 
-        this.convertToolExecutionLogToToolExecution(toolLog)
-      );
+      latestAgentMessage.toolExecutions = historyEntry.toolResults
+        .map((toolLog: ToolExecutionLogDto) => 
+          this.convertToolExecutionLogToToolExecution(toolLog)
+        )
+        .sort((a, b) => a.executedAt.getTime() - b.executedAt.getTime());
       
       console.log('Updated message with tool executions:', latestAgentMessage);
       
       // Trigger change detection for this specific message
       this.triggerChangeDetection();
+      
+      // Also trigger change detection after a short delay to ensure UI updates
+      setTimeout(() => {
+        this.cdr.detectChanges();
+      }, 100);
     } else {
       console.log('No tool results found for this message');
     }
@@ -767,6 +813,9 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         }
       }
     });
+    
+    // Sort all tool executions by execution time
+    this.allToolExecutions.sort((a, b) => a.executedAt.getTime() - b.executedAt.getTime());
   }
 
   isCurrentSession(sessionId: string): boolean {

@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 import { Agent, AgentExecutionResult, LLMProviderType } from '../../../models/agent.model';
 import { AgentService } from '../../../core/services/agent.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { RoleService } from '../../../core/services/role.service';
 
 @Component({
   selector: 'app-agent-detail',
@@ -14,7 +15,9 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
   agent: Agent | null = null;
   executions: AgentExecutionResult[] = [];
   isLoading = true;
-  isExecuting = false;
+  
+  // Role-based permissions
+  hasWritePermission: Observable<boolean>;
   
   private subscription = new Subscription();
 
@@ -22,8 +25,11 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private agentService: AgentService,
-    private notificationService: NotificationService
-  ) {}
+    private notificationService: NotificationService,
+    private roleService: RoleService
+  ) {
+    this.hasWritePermission = this.roleService.hasWritePermission();
+  }
 
   ngOnInit(): void {
     const agentId = this.route.snapshot.paramMap.get('id');
@@ -62,32 +68,6 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error loading executions:', error);
-        }
-      })
-    );
-  }
-
-  executeAgent(): void {
-    if (!this.agent) return;
-
-    this.isExecuting = true;
-    this.notificationService.info('Exécution', 'Démarrage de l\'exécution de l\'agent...');
-
-    this.subscription.add(
-      this.agentService.executeAgent(this.agent.id, {}).subscribe({
-        next: (result) => {
-          this.isExecuting = false;
-          this.notificationService.success(
-            'Exécution terminée',
-            `Agent exécuté avec succès en ${result.executionTime}ms`
-          );
-          this.loadExecutions(this.agent!.id);
-          this.loadAgent(this.agent!.id); // Recharger pour mettre à jour le compteur
-        },
-        error: (error) => {
-          this.isExecuting = false;
-          this.notificationService.error('Erreur', 'Échec de l\'exécution de l\'agent');
-          console.error('Error executing agent:', error);
         }
       })
     );

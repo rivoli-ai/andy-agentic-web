@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 import { LLMConfig, LLMProvider, LLMProviderType } from '../../models/agent.model';
 import { LLMService } from '../../core/services/llm.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { Router } from '@angular/router';
+import { RoleService } from '../../core/services/role.service';
 
 @Component({
   selector: 'app-llm',
@@ -17,13 +18,19 @@ export class LLMComponent implements OnInit, OnDestroy {
   searchQuery = '';
   selectedProvider = '';
   
+  // Role-based permissions
+  hasWritePermission: Observable<boolean>;
+  
   private subscription = new Subscription();
 
   constructor(
     private llmService: LLMService,
     private notificationService: NotificationService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private roleService: RoleService
+  ) {
+    this.hasWritePermission = this.roleService.hasWritePermission();
+  }
 
   ngOnInit(): void {
     this.loadLLMConfigs();
@@ -70,28 +77,6 @@ export class LLMComponent implements OnInit, OnDestroy {
 
   onProviderFilterChange(): void {
     // Implement provider filter
-  }
-
-  testConnection(config: LLMConfig, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    
-    this.subscription.add(
-      this.llmService.testConnection(config).subscribe({
-        next: (result) => {
-          if (result.success) {
-            this.notificationService.success('Connection Successful', result.message);
-          } else {
-            this.notificationService.error('Connection Failed', result.message);
-          }
-        },
-        error: (error) => {
-          this.notificationService.error('Error', 'Unable to test connection');
-          console.error('Error testing connection:', error);
-        }
-      })
-    );
   }
 
   deleteConfig(id: string, event?: Event): void {

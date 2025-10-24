@@ -1,0 +1,219 @@
+<div class="max-w-6xl mx-auto p-6 space-y-6" *ngIf="!isLoading && tool">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <button
+        (click)="goBack()"
+        class="btn-secondary"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Back
+      </button>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ tool.name }}</h1>
+        <p class="mt-1 text-gray-600 dark:text-gray-400">{{ tool.description }}</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center space-x-3 mt-4 sm:mt-0">
+      <button
+        *ngIf="hasWritePermission | async"
+        (click)="duplicateTool()"
+        class="btn-secondary"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+        Duplicate
+      </button>
+      <button
+        *ngIf="hasWritePermission | async"
+        (click)="editTool()"
+        class="btn-secondary"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+        </svg>
+        Edit
+      </button>
+      <button
+        *ngIf="hasWritePermission | async"
+        (click)="deleteTool()"
+        class="btn-danger"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Main information -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Basic information -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Tool Details -->
+      <div class="card">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Tool Details</h2>
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+              <span [class]="getTypeClasses(tool.type)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                {{ tool.type }}
+              </span>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <span [class]="tool.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                {{ tool.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Authentication</label>
+              <span class="text-sm text-gray-900 dark:text-white">{{ getAuthTypeDisplay(getAuthType(tool)) }}</span>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Created</label>
+              <span class="text-sm text-gray-900 dark:text-white">{{ tool.createdAt | date:'medium' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuration -->
+      <div class="card" *ngIf="tool.configuration">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Configuration</h2>
+        <div class="space-y-3">
+          <div *ngFor="let configItem of getConfigurationItems()" class="flex flex-col sm:flex-row sm:items-center">
+            <div class="sm:w-1/3 mb-1 sm:mb-0">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ configItem.key }}</label>
+            </div>
+            <div class="sm:w-2/3">
+              <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <span class="text-sm text-gray-900 dark:text-white">{{ configItem.value }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Headers -->
+      <div class="card" *ngIf="tool.headers && tool.headers.length > 0">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Headers</h2>
+        <div class="space-y-3">
+          <div *ngFor="let header of tool.headers" class="flex flex-col sm:flex-row sm:items-center">
+            <div class="sm:w-1/3 mb-1 sm:mb-0">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ header.name }}
+                <span *ngIf="header.required" class="text-red-500 ml-1">*</span>
+              </label>
+              <p *ngIf="header.description" class="text-xs text-gray-500 dark:text-gray-400">{{ header.description }}</p>
+            </div>
+            <div class="sm:w-2/3">
+              <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <span class="text-sm text-gray-900 dark:text-white">{{ formatHeaderValue(header) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parameters -->
+      <div class="card" *ngIf="tool.parameters && tool.parameters.length > 0">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Parameters</h2>
+        <div class="space-y-3">
+          <div *ngFor="let param of tool.parameters" class="flex flex-col sm:flex-row sm:items-start">
+            <div class="sm:w-1/3 mb-1 sm:mb-0">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ param.name }}
+                <span *ngIf="param.required" class="text-red-500 ml-1">*</span>
+              </label>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ param.type }}</p>
+              <p *ngIf="param.description" class="text-xs text-gray-500 dark:text-gray-400">{{ param.description }}</p>
+            </div>
+            <div class="sm:w-2/3">
+              <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <span class="text-sm text-gray-900 dark:text-white">{{ formatParameterValue(param) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      <!-- Quick actions -->
+      <div class="card">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Quick actions</h2>
+        <div class="space-y-3">
+          <button
+            *ngIf="hasWritePermission | async"
+            (click)="editTool()"
+            class="w-full btn-secondary"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Edit tool
+          </button>
+          
+          <button
+            *ngIf="hasWritePermission | async"
+            (click)="duplicateTool()"
+            class="w-full btn-secondary"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            Duplicate
+          </button>
+        </div>
+      </div>
+
+      <!-- Tool Information -->
+      <div class="card">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Information</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tool ID</label>
+            <p class="text-sm text-gray-900 dark:text-white font-mono">{{ tool.id }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Modified</label>
+            <p class="text-sm text-gray-900 dark:text-white">{{ tool.updatedAt | date:'medium' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading state -->
+<div *ngIf="isLoading" class="max-w-6xl mx-auto p-6">
+  <div class="flex items-center justify-center py-12">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    <span class="ml-3 text-gray-600 dark:text-gray-400">Loading tool details...</span>
+  </div>
+</div>
+
+<!-- Error state -->
+<div *ngIf="!isLoading && !tool" class="max-w-6xl mx-auto p-6">
+  <div class="text-center py-12">
+    <div class="text-gray-500 dark:text-gray-400">
+      <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"></path>
+      </svg>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Tool not found</h3>
+      <p class="text-gray-600 dark:text-gray-400 mb-4">The tool you are looking for does not exist or has been deleted.</p>
+      <button (click)="router.navigate(['/tools'])" class="btn-primary">
+        Back to Tools
+      </button>
+    </div>
+  </div>
+</div>

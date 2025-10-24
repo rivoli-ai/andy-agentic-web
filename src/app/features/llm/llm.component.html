@@ -7,7 +7,7 @@
         Manage your language model configurations for your agents
       </p>
     </div>
-    <div class="mt-4 sm:mt-0">
+    <div class="mt-4 sm:mt-0" *ngIf="hasWritePermission | async">
       <button
         (click)="createNewConfig()"
         class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800"
@@ -173,18 +173,6 @@
         </div>
         <div class="flex items-center space-x-2">
           <button
-            (click)="testConnection(config, $event)"
-            class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
-            [disabled]="!config.isActive"
-            [class.opacity-50]="!config.isActive"
-            [class.cursor-not-allowed]="!config.isActive"
-            title="Test connection"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-            </svg>
-          </button>
-          <button
             (click)="viewConfig(config.id, $event)"
             class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
             title="View configuration"
@@ -195,6 +183,7 @@
             </svg>
           </button>
           <button
+            *ngIf="hasWritePermission | async"
             [routerLink]="['/llm', config.id, 'edit']"
             (click)="$event.stopPropagation()"
             class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
@@ -205,6 +194,7 @@
             </svg>
           </button>
           <button
+            *ngIf="hasWritePermission | async"
             (click)="duplicateConfig(config.id, $event)"
             class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
             title="Duplicate configuration"
@@ -214,6 +204,7 @@
             </svg>
           </button>
           <button
+            *ngIf="hasWritePermission | async"
             (click)="deleteConfig(config.id, $event)"
             class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
             title="Delete configuration"

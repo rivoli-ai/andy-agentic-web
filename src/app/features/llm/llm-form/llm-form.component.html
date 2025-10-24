@@ -165,24 +165,7 @@
           {{ getFieldError('model') }}
         </div>
       </div>
-
-      <!-- Test Connection Button -->
-      <div class="mt-6">
-        <button
-          type="button"
-          (click)="testConnection()"
-          [disabled]="!llmForm.valid"
-          class="btn-secondary"
-          [class.opacity-50]="!llmForm.valid"
-        >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          Tester la connexion
-        </button>
-      </div>
     </div>
-
     <!-- Advanced Parameters -->
     <div class="card">
       <h2 class="text-xl font-semibold mb-6">Paramètres avancés</h2>

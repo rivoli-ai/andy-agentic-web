@@ -7,7 +7,7 @@
         Manage external APIs and internal tools for your agents
       </p>
     </div>
-    <div class="mt-4 sm:mt-0">
+    <div class="mt-4 sm:mt-0" *ngIf="hasWritePermission | async">
       <button
         (click)="createNewTool()"
         class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800"
@@ -289,18 +289,6 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <button
-                    (click)="testTool(tool.id, $event)"
-                    class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
-                    [disabled]="!tool.isActive"
-                    [class.opacity-50]="!tool.isActive"
-                    [class.cursor-not-allowed]="!tool.isActive"
-                    title="Test tool"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                  </button>
-                  <button
                     (click)="viewTool(tool.id, $event)"
                     class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
                     title="View tool"
@@ -311,6 +299,7 @@
                     </svg>
                   </button>
                   <button
+                    *ngIf="hasWritePermission | async"
                     (click)="editTool(tool.id, $event)"
                     class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
                     title="Edit tool"
@@ -320,6 +309,7 @@
                     </svg>
                   </button>
                   <button
+                    *ngIf="hasWritePermission | async"
                     (click)="duplicateTool(tool.id, $event)"
                     class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
                     title="Duplicate tool"
@@ -329,6 +319,7 @@
                     </svg>
                   </button>
                   <button
+                    *ngIf="hasWritePermission | async"
                     (click)="deleteTool(tool.id, $event)"
                     class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
                     title="Delete tool"
@@ -409,16 +400,7 @@
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div class="flex items-center justify-end space-x-2">
                         <button
-                          (click)="testTool(tool.id, $event)"
-                          class="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400"
-                          [disabled]="!tool.isActive"
-                          title="Test"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
-                        </button>
-                        <button
+                          *ngIf="hasWritePermission | async"
                           (click)="editTool(tool.id, $event)"
                           class="text-secondary-600 hover:text-secondary-900 dark:hover:text-secondary-400"
                           title="Edit"
@@ -428,6 +410,7 @@
                           </svg>
                         </button>
                         <button
+                          *ngIf="hasWritePermission | async"
                           (click)="duplicateTool(tool.id, $event)"
                           class="text-warning-600 hover:text-warning-900 dark:hover:text-warning-400"
                           title="Duplicate"
@@ -437,6 +420,7 @@
                           </svg>
                         </button>
                         <button
+                          *ngIf="hasWritePermission | async"
                           (click)="deleteTool(tool.id, $event)"
                           class="text-error-600 hover:text-error-900 dark:hover:text-error-400"
                           title="Delete"
@@ -553,30 +537,19 @@
             <div class="text-xs text-gray-500 dark:text-gray-400">
               Last modified: {{ tool.updatedAt | date:'short' }}
             </div>
-            <div class="flex items-center space-x-2">
-              <button
-                (click)="testTool(tool.id, $event)"
-                class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
-                [disabled]="!tool.isActive"
-                [class.opacity-50]="!tool.isActive"
-                [class.cursor-not-allowed]="!tool.isActive"
-                title="Test tool"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </button>
-              <button
-                (click)="viewTool(tool.id, $event)"
-                class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
-                title="View tool"
-              >
+        <div class="flex items-center space-x-2">
+          <button
+            (click)="viewTool(tool.id, $event)"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="View tool"
+          >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
               </button>
               <button
+                *ngIf="hasWritePermission | async"
                 (click)="editTool(tool.id, $event)"
                 class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
                 title="Edit tool"
@@ -586,6 +559,7 @@
                 </svg>
               </button>
               <button
+                *ngIf="hasWritePermission | async"
                 (click)="duplicateTool(tool.id, $event)"
                 class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
                 title="Duplicate tool"
@@ -595,6 +569,7 @@
                 </svg>
               </button>
               <button
+                *ngIf="hasWritePermission | async"
                 (click)="deleteTool(tool.id, $event)"
                 class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
                 title="Delete tool"
@@ -675,16 +650,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex items-center justify-end space-x-2">
                     <button
-                      (click)="testTool(tool.id, $event)"
-                      class="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400"
-                      [disabled]="!tool.isActive"
-                      title="Test"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </button>
-                    <button
+                      *ngIf="hasWritePermission | async"
                       (click)="editTool(tool.id, $event)"
                       class="text-secondary-600 hover:text-secondary-900 dark:hover:text-secondary-400"
                       title="Edit"
@@ -694,6 +660,7 @@
                       </svg>
                     </button>
                     <button
+                      *ngIf="hasWritePermission | async"
                       (click)="duplicateTool(tool.id, $event)"
                       class="text-warning-600 hover:text-warning-900 dark:hover:text-warning-400"
                       title="Duplicate"
@@ -703,6 +670,7 @@
                       </svg>
                     </button>
                     <button
+                      *ngIf="hasWritePermission | async"
                       (click)="deleteTool(tool.id, $event)"
                       class="text-error-600 hover:text-error-900 dark:hover:text-error-400"
                       title="Delete"

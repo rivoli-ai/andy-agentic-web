@@ -20,14 +20,19 @@ import { ToolExecutionSummaryComponent } from './shared/components/tool-executio
 import { ThemeToggleComponent } from './shared/components/theme-toggle/theme-toggle.component';
 import { LoadingOverlayComponent } from './shared/components/loading-overlay/loading-overlay.component';
 
+// Role pipes
+import { HasRolePipe, HasAnyRolePipe, HasWritePermissionPipe, HasReadPermissionPipe } from './shared/pipes/role.pipe';
+
 // Feature components
 import { AgentsComponent } from './features/agents/agents.component';
 import { AgentFormComponent } from './features/agents/agent-form/agent-form.component';
 import { AgentDetailComponent } from './features/agents/agent-detail/agent-detail.component';
 import { ToolsComponent } from './features/tools/tools.component';
 import { ToolFormComponent } from './features/tools/tool-form/tool-form.component';
+import { ToolDetailComponent } from './features/tools/tool-detail/tool-detail.component';
 import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
+import { LLMDetailComponent } from './features/llm/llm-detail/llm-detail.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { highlight } from 'prismjs';
@@ -42,14 +47,20 @@ import { HashLocationStrategy, LocationStrategy } from '@angular/common';
     AgentDetailComponent,
     ToolsComponent,
     ToolFormComponent,
+    ToolDetailComponent,
     LLMComponent,
     LLMFormComponent,
+    LLMDetailComponent,
     SettingsComponent,
     ChatbotComponent,
     ToolExecutionDisplayComponent,
     ToolExecutionSummaryComponent,
     ThemeToggleComponent,
-    LoadingOverlayComponent
+    LoadingOverlayComponent,
+    HasRolePipe,
+    HasAnyRolePipe,
+    HasWritePermissionPipe,
+    HasReadPermissionPipe
   ],
   imports: [
     BrowserModule,

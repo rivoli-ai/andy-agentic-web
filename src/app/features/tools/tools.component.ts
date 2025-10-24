@@ -2,10 +2,11 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 import { Tool, ToolType } from '../../models/tool.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToolService } from '../../core/services/tool.service';
+import { RoleService } from '../../core/services/role.service';
 
 @Component({
   selector: 'app-tools',
@@ -32,14 +33,20 @@ export class ToolsComponent implements OnInit, OnDestroy {
   groupedTools = new Map<string, Tool[]>();
   collapsedGroups = new Set<string>();
   
+  // Role-based permissions
+  hasWritePermission: Observable<boolean>;
+  
   private subscription = new Subscription();
   private searchSaveTimeout: any;
 
   constructor(
     private notificationService: NotificationService,
     private router: Router,
-    private toolService: ToolService
-  ) {}
+    private toolService: ToolService,
+    private roleService: RoleService
+  ) {
+    this.hasWritePermission = this.roleService.hasWritePermission();
+  }
 
   ngOnInit(): void {
     this.loadPreferences();
@@ -367,29 +374,14 @@ export class ToolsComponent implements OnInit, OnDestroy {
     }
   }
 
-  testTool(id: string, event: Event): void {
-    event.stopPropagation();
-    
-    this.notificationService.info(
-      'Testing Tool',
-      'Testing tool connection...'
-    );
-
-    // Simulate tool testing
-    setTimeout(() => {
-      this.notificationService.success(
-        'Test Complete',
-        'Tool connection test successful!'
-      );
-    }, 2000);
-  }
-
   getTypeClasses(type: ToolType): string {
     switch (type) {
       case ToolType.API:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case ToolType.MCP:
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case ToolType.INTERNAL:
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
@@ -447,9 +439,14 @@ export class ToolsComponent implements OnInit, OnDestroy {
   getTypeColor(type: string): string {
     switch (type) {
       case 'API':
+      case 'ApiTool':
         return '#3b82f6'; // blue
       case 'MCP':
+      case 'McpTool':
         return '#10b981'; // green
+      case 'INTERNAL':
+      case 'InternalTool':
+        return '#8b5cf6'; // purple
       default:
         return '#9ca3af'; // gray
     }

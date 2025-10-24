@@ -276,34 +276,6 @@ export class LLMFormComponent implements OnInit, OnDestroy {
     return currentModel;
   }
 
-  testConnection(): void {
-    const formValue = this.llmForm.value;
-    if (!this.llmForm.valid) return;
-
-    const testConfig = {
-      baseUrl: formValue.baseUrl,
-      apiKey: formValue.apiKey,
-      model: formValue.model,
-      provider: this.getEnumFromProviderId(formValue.provider)
-    };
-
-    this.subscription.add(
-      this.llmService.testConnection(testConfig).subscribe({
-        next: (result) => {
-          if (result.success) {
-            this.notificationService.success('Connexion réussie', result.message);
-          } else {
-            this.notificationService.error('Échec de connexion', result.message);
-          }
-        },
-        error: (error) => {
-          this.notificationService.error('Erreur', 'Impossible de tester la connexion');
-          console.error('Error testing connection:', error);
-        }
-      })
-    );
-  }
-
   onSubmit(): void {
     if (this.llmForm.valid) {
       const formValue = this.llmForm.value;

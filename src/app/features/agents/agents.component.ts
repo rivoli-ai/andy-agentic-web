@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 import { Agent, AgentTag, AgentType, LLMProviderType } from '../../models/agent.model';
 import { AgentService } from '../../core/services/agent.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { RoleService } from '../../core/services/role.service';
 
 @Component({
   selector: 'app-agents',
@@ -28,6 +29,9 @@ export class AgentsComponent implements OnInit, OnDestroy {
   groupedAgents = new Map<string, Agent[]>();
   collapsedGroups = new Set<string>();
   
+  // Role-based permissions
+  hasWritePermission: Observable<boolean>;
+  
   // Available tags for filtering
   availableTags: { id: string; name: string; color: string }[] = [];
   
@@ -43,8 +47,11 @@ export class AgentsComponent implements OnInit, OnDestroy {
   constructor(
     private agentService: AgentService,
     private notificationService: NotificationService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private roleService: RoleService
+  ) {
+    this.hasWritePermission = this.roleService.hasWritePermission();
+  }
 
   ngOnInit(): void {
     this.loadPreferences();
@@ -366,29 +373,6 @@ export class AgentsComponent implements OnInit, OnDestroy {
 
   viewAgent(agentId: string): void {
     this.router.navigate(['/agents', agentId]);
-  }
-
-  executeAgent(agentId: string, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    
-    this.subscription.add(
-      this.agentService.executeAgent(agentId, {}).subscribe({
-        next: (result: any) => {
-          this.notificationService.success(
-            'Exécution réussie',
-            `Agent exécuté en ${result.executionTime}ms`
-          );
-          // Recharger les agents pour mettre à jour le compteur d'exécutions
-          this.loadAgents();
-        },
-        error: (error: any) => {
-          this.notificationService.error('Erreur', 'Échec de l\'exécution de l\'agent');
-          console.error('Error executing agent:', error);
-        }
-      })
-    );
   }
 
   duplicateAgent(agentId: string, event?: Event): void {

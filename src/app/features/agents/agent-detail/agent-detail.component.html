@@ -26,6 +26,7 @@
       
       <div class="flex items-center space-x-3">
         <button
+          *ngIf="hasWritePermission | async"
           (click)="duplicateAgent()"
           class="btn-secondary"
         >
@@ -35,6 +36,7 @@
           Duplicate
         </button>
         <button
+          *ngIf="hasWritePermission | async"
           (click)="editAgent()"
           class="btn-secondary"
         >
@@ -44,21 +46,7 @@
           Edit
         </button>
         <button
-          (click)="executeAgent()"
-          [disabled]="isExecuting || !agent.isActive"
-          class="btn-primary"
-          [class.opacity-50]="isExecuting || !agent.isActive"
-        >
-          <svg *ngIf="!isExecuting" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <svg *ngIf="isExecuting" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {{ isExecuting ? 'Executing...' : 'Execute' }}
-        </button>
-        <button
+          *ngIf="hasWritePermission | async"
           (click)="deleteAgent()"
           class="btn-danger"
         >
@@ -306,18 +294,7 @@
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Quick actions</h2>
           <div class="space-y-3">
             <button
-              (click)="executeAgent()"
-              [disabled]="isExecuting || !agent.isActive"
-              class="w-full btn-primary"
-              [class.opacity-50]="isExecuting || !agent.isActive"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              {{ isExecuting ? 'Executing...' : 'Execute now' }}
-            </button>
-            
-            <button
+              *ngIf="hasWritePermission | async"
               (click)="editAgent()"
               class="w-full btn-secondary"
             >
@@ -328,6 +305,7 @@
             </button>
             
             <button
+              *ngIf="hasWritePermission | async"
               (click)="duplicateAgent()"
               class="w-full btn-secondary"
             >
