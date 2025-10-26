@@ -1,28 +1,37 @@
 <div class="h-full flex bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
   <!-- Sessions Sidebar -->
-  <div class="flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 shadow-lg transition-all duration-300"
+  <div class="flex-shrink-0 bg-white dark:bg-slate-800 border-r border-slate-200/50 dark:border-slate-700/50 shadow-lg transition-all duration-300"
        [class.w-80]="isSessionPanelOpen"
        [class.w-16]="!isSessionPanelOpen">
     
          <!-- Sidebar Header -->
-     <div class="flex items-center justify-between p-4 border-b border-slate-200/50 dark:border-slate-700/50">
+     <div class="flex items-center justify-between p-4 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800">
        <div class="flex items-center space-x-3">
          <div *ngIf="isSessionPanelOpen" class="flex-1">
-           <h2 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Sessions</h2>
-           <p class="text-xs text-slate-500 dark:text-slate-400">Chat history</p>
+           <div class="flex items-center space-x-2">
+             <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+               </svg>
+             </div>
+             <div>
+               <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Chat History</h2>
+               <p class="text-xs text-slate-600 dark:text-slate-400 font-medium">{{ chatSessions.length }} active</p>
+             </div>
+           </div>
          </div>
        </div>
       
                            <!-- Toggle Button -->
         <button
           (click)="toggleSessionPanel()"
-          class="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500"
+          class="w-9 h-9 flex items-center justify-center text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md"
           title="Toggle sidebar"
         >
-          <svg *ngIf="isSessionPanelOpen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg *ngIf="isSessionPanelOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
           </svg>
-          <svg *ngIf="!isSessionPanelOpen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg *ngIf="!isSessionPanelOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
           </svg>
         </button>
@@ -31,16 +40,19 @@
          <!-- Sidebar Content -->
      <div *ngIf="isSessionPanelOpen" class="flex-1 w-80 flex flex-col min-h-0 overflow-hidden">
        <!-- Agent Info -->
-       <div *ngIf="selectedAgent" class="flex-shrink-0 p-4 border-b border-slate-200/50 dark:border-slate-700/50">
-         <div class="flex items-center space-x-3">
-           <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-xs font-semibold text-white">
+       <div *ngIf="selectedAgent" class="flex-shrink-0 p-4 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-800">
+         <div class="flex items-center space-x-3 mb-3">
+           <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-lg">
              {{ getAgentAvatar(selectedAgent) }}
            </div>
            <div class="flex-1 min-w-0">
-             <p class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+             <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
                {{ selectedAgent.name }}
              </p>
-             <p class="text-xs text-slate-500 dark:text-slate-400">Active Agent</p>
+             <div class="flex items-center space-x-1">
+               <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+               <p class="text-xs text-slate-600 dark:text-slate-400 font-medium">Active</p>
+             </div>
            </div>
          </div>
          
@@ -50,16 +62,16 @@
          <button
            (click)="startNewSession()"
            [disabled]="isLoading"
-           class="w-full mt-3 inline-flex items-center justify-center px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:cursor-not-allowed text-sm"
+           class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-green-300 disabled:to-green-400 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:cursor-not-allowed text-sm font-semibold transform hover:scale-[1.02] active:scale-[0.98]"
            title="Start new chat session"
          >
-           <svg *ngIf="!isLoading" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <svg *ngIf="!isLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
            </svg>
-           <svg *ngIf="isLoading" class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <svg *ngIf="isLoading" class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
            </svg>
-           New Session
+           New Chat
          </button>
        </div>
 
@@ -75,12 +87,14 @@
 
                                            <!-- Sessions -->
             <div *ngIf="!isLoadingSessions" class="sidebar-scrollable">
-                             <div *ngIf="chatSessions.length === 0" class="text-center py-8 text-slate-500 dark:text-slate-400">
-                 <svg class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                 </svg>
-                 <p class="text-sm">No sessions yet</p>
-                 <p class="text-xs">Start chatting to create one</p>
+                             <div *ngIf="chatSessions.length === 0" class="text-center py-12 px-4">
+                 <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 rounded-2xl flex items-center justify-center">
+                   <svg class="w-8 h-8 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                   </svg>
+                 </div>
+                 <p class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">No chat sessions yet</p>
+                 <p class="text-xs text-slate-500 dark:text-slate-400">Start chatting to create your first session</p>
                </div>
                
                <div class="space-y-2 p-2 min-h-0 max-h-[26rem] sm:max-h-[26rem] md:max-h-[28rem] lg:max-h-[32rem] xl:max-h-[15rem] 2xl:max-h-[37rem] overflow-hidden overflow-y-auto scrollbar-hide">
@@ -251,16 +265,16 @@
             <!-- User Message -->
             <div *ngIf="message.isUser" class="flex justify-end">
               <div class="max-w-4xl w-full">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl px-6 py-4 shadow-lg">
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl px-6 py-4 shadow-lg break-words overflow-hidden">
                   <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                       <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                       </svg>
                     </div>
-                    <div class="flex-1">
+                    <div class="flex-1 min-w-0 overflow-hidden">
                       <p class="text-sm font-medium">You</p>
-                      <p class="text-sm mt-1 leading-relaxed">{{ message.content }}</p>
+                      <p class="text-sm mt-1 leading-relaxed break-words whitespace-pre-wrap">{{ message.content }}</p>
                     </div>
                   </div>
                   <div class="text-xs text-blue-100 mt-2 text-right">
@@ -273,14 +287,14 @@
             <!-- Agent Message -->
             <div *ngIf="!message.isUser" class="flex justify-start">
               <div class="max-w-4xl w-full chat-message-container">
-                <div class="bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl px-6 py-4 shadow-lg">
+                <div class="bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl px-6 py-4 shadow-lg break-words overflow-hidden">
                   <div class="flex items-start space-x-3">
                     <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                       </svg>
                     </div>
-                    <div class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0 overflow-hidden">
                       <div class="flex items-center space-x-2 mb-2">
                         <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
                           {{ message.agentName }}
@@ -367,13 +381,14 @@
                       </div>
 
                       <!-- Content (Streaming or Final) -->
-                      <div class="prose prose-sm dark:prose-invert max-w-none relative group">
+                      <div class="prose prose-sm dark:prose-invert max-w-none relative group break-words overflow-wrap-anywhere">
                         <div 
                           markdown 
                           clipboard
                           mermaid
                           [mermaidOptions]="options"
-                          [data]="message.content">
+                          [data]="message.content"
+                          class="break-words overflow-wrap-anywhere">
                         </div>
                          
                         <button

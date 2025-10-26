@@ -25,6 +25,17 @@
   overflow: hidden !important;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Fix text overflow issues - force all elements inside to respect boundaries */
+.chat-message-container,
+.chat-message-container * {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* Ensure chat message content doesn't overflow */
@@ -32,7 +43,8 @@
   max-width: 100% !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 /* Tool execution section in chat messages */
@@ -1222,4 +1234,89 @@ button {
 
 .animate-thinking {
   animation: animateThinking 2s ease-in-out infinite;
+}
+
+/* Fix long text overflow in chat messages */
+.break-words,
+.overflow-wrap-anywhere {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  hyphens: auto;
+}
+
+/* Ensure prose content respects container width */
+.prose {
+  max-width: 100% !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Fix all inline and block elements in messages */
+.prose p,
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6,
+.prose ul, .prose ol,
+.prose li,
+.prose blockquote,
+.prose code {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Fix code blocks - allow horizontal scroll but constrain width */
+.prose pre {
+  overflow-x: auto;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.prose pre code {
+  word-wrap: normal !important;
+  word-break: normal !important;
+  white-space: pre !important;
+  max-width: 100% !important;
+}
+
+/* Force all elements inside messages to respect container */
+.chat-message-container .prose,
+.chat-message-container .prose * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Add specific fixes for problematic elements */
+.rounded-2xl {
+  overflow: hidden !important;
+}
+
+/* Fix flex containers to not expand beyond bounds */
+.flex-1 {
+  min-width: 0 !important;
+}
+
+/* Ensure images don't overflow */
+img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+/* Fix table overflow */
+table {
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  word-wrap: break-word !important;
+}
+
+/* Fix any inline or inline-block elements */
+span, a, strong, em, b, i, u, mark, del, ins, sub, sup {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
 }

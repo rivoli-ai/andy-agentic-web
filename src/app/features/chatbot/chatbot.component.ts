@@ -861,4 +861,14 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     // If no period or too short, get last 100 characters
     return trimmed.length > 100 ? '...' + trimmed.substring(trimmed.length - 100) : trimmed;
   }
+
+  // Get avatar from agent name (first two letters)
+  public getAgentAvatarFromName(agentName: string | undefined): string {
+    if (!agentName) return '??';
+    const parts = agentName.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return agentName.substring(0, 2).toUpperCase();
+  }
 }
