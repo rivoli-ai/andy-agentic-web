@@ -53,3 +53,5 @@ export class HasReadPermissionPipe implements PipeTransform {
     return this.roleService.hasReadPermission();
   }
 }
+
+

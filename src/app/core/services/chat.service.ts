@@ -14,6 +14,7 @@ export interface ChatMessage {
   agentId?: string;
   agentName?: string;
   userId?: string;
+  thinking?: string;
 }
 
 export interface ChatResponse {
@@ -79,6 +80,7 @@ export interface ChatHistoryDto {
   toolName?: string;
   toolResult?: string;
   toolResults: ToolExecutionLogDto[];
+  thinking?: string;
 }
 
 @Injectable({
@@ -129,14 +131,14 @@ export class ChatService {
   }
 
   // Send streaming message with optional session ID and abort signal
-  sendMessageStream(content: string, agentId: string, sessionId?: string, abortSignal?: AbortSignal): Observable<string> {
+  sendMessageStream(content: string, agentId: string, sessionId?: string, abortSignal?: AbortSignal): Observable<{type: string, data: string}> {
     const message: CreateChatMessageDto = {
       content,
       agentId,
       sessionId
     };
 
-    return new Observable<string>(observer => {
+    return new Observable<{type: string, data: string}>(observer => {
       this.getAccessToken().then(token => {
         if (!token) {
           observer.error(new Error('No access token available'));
@@ -184,10 +186,13 @@ export class ChatService {
                   if (data) {
                     try {
                       const parsed = JSON.parse(data);
-                      if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
-                        const content = parsed.choices[0].delta.content;
-                        if (content) {
-                          observer.next(content);
+                      if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                        const delta = parsed.choices[0].delta;
+                        if (delta.content) {
+                          observer.next({ type: 'content', data: delta.content });
+                        }
+                        if (delta.thinking) {
+                          observer.next({ type: 'thinking', data: delta.thinking });
                         }
                       }
                       if (parsed.choices && parsed.choices[0] && parsed.choices[0].finish_reason === 'stop') {
@@ -196,7 +201,7 @@ export class ChatService {
                       }
                     } catch (error) {
                       console.warn('Failed to parse streaming response as JSON, treating as plain text:', error);
-                      observer.next(data);
+                      observer.next({ type: 'content', data: data });
                     }
                   }
                 }

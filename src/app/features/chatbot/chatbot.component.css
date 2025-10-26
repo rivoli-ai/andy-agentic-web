@@ -976,3 +976,250 @@ button {
 .tool-summary-container::-webkit-scrollbar-thumb:hover {
   @apply bg-slate-400 dark:bg-slate-500;
 }
+
+/* Thinking section styles */
+.thinking-section {
+  @apply transition-all duration-300 ease-in-out;
+  border-left: 3px solid #3b82f6;
+}
+
+.dark .thinking-section {
+  border-left-color: #60a5fa;
+}
+
+.thinking-header {
+  @apply transition-all duration-200;
+}
+
+.thinking-header:hover {
+  @apply bg-slate-100 dark:bg-slate-800;
+}
+
+.thinking-dots {
+  @apply flex items-center space-x-1;
+}
+
+.thinking-dot {
+  @apply w-2 h-2 rounded-full;
+  animation: thinkingPulse 1.5s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes thinkingPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.thinking-content {
+  @apply transition-all duration-300 ease-in-out;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.thinking-content.expanded {
+  max-height: 24rem; /* 384px */
+}
+
+.thinking-text {
+  @apply font-mono text-sm leading-relaxed;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Thinking toggle button */
+.thinking-toggle {
+  @apply transition-all duration-200;
+}
+
+.thinking-toggle:hover {
+  @apply transform scale-110;
+}
+
+.thinking-toggle svg {
+  @apply transition-transform duration-200;
+}
+
+/* Professional thinking indicator */
+.thinking-indicator {
+  @apply inline-flex items-center space-x-2 px-2 py-1 rounded-full text-xs font-medium;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.dark .thinking-indicator {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.thinking-streaming {
+  @apply animate-pulse;
+}
+
+/* Collapsible animation */
+.collapsible-content {
+  @apply transition-all duration-300 ease-in-out;
+  overflow: hidden;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapsible-content.expanded {
+  max-height: 24rem;
+  opacity: 1;
+}
+
+/* ChatGPT-style thinking component */
+.thinking-section-collapsed {
+  @apply bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200;
+}
+
+.thinking-section-expanded {
+  @apply bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-3 transition-all duration-200;
+}
+
+/* Smooth expand/collapse animation */
+@keyframes thinkingExpand {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 500px;
+    opacity: 1;
+  }
+}
+
+@keyframes thinkingCollapse {
+  from {
+    max-height: 500px;
+    opacity: 1;
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+/* Thinking content container with scroll */
+.thinking-content-container {
+  @apply max-h-64 overflow-y-auto pr-2;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.thinking-content-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thinking-content-container::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.thinking-content-container::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.thinking-content-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+.dark .thinking-content-container::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.3);
+}
+
+.dark .thinking-content-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+/* Custom scrollbar class */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+/* Improved thinking text formatting */
+.thinking-text {
+  @apply font-sans;
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Thinking section container improvements */
+.thinking-section {
+  @apply rounded-lg;
+  background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
+}
+
+.dark .thinking-section {
+  background: linear-gradient(to bottom, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.3) 100%);
+}
+
+/* Animate thinking icon - brain "noting mind" effect */
+@keyframes animateThinking {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.animate-thinking {
+  animation: animateThinking 2s ease-in-out infinite;
+}

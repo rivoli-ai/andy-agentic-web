@@ -22,6 +22,9 @@ interface ChatMessage {
   isStreaming?: boolean;
   userId?: string;
   toolExecutions?: ToolExecution[];
+  thinking?: string;
+  isThinking?: boolean;
+  showThinking?: boolean;
 }
 
 interface ToolExecution {
@@ -226,7 +229,10 @@ export class ChatbotComponent implements OnInit, OnDestroy {
                 isUser: msg.role === 'user',
                 timestamp: new Date(msg.timestamp),
                 agentId: msg.agentId,
-                agentName: msg.agentName
+                agentName: msg.agentName,
+                thinking: msg.thinking,
+                isThinking: false, // Historical messages are never actively thinking
+                showThinking: false
               };
               
               // Add tool execution data from ToolResults array (new format)
@@ -409,7 +415,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       id: this.generateId(),
       content: messageContent,
       isUser: true,
-      timestamp: new Date()
+      timestamp: new Date(),
+      showThinking: false
     });
 
     // Clear form
@@ -433,7 +440,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       timestamp: new Date(),
       agentId: this.selectedAgent.id,
       agentName: this.selectedAgent.name,
-      isStreaming: true
+      isStreaming: true,
+      showThinking: false
     };
     this.messages.push(streamingMessage);
 
@@ -445,15 +453,24 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
     // Store the subscription for potential cancellation
     this.currentStreamSubscription = this.chatService.sendMessageStream(userMessage, this.selectedAgent.id, this.currentSessionId, this.abortController.signal).subscribe({
-      next: (chunk: string) => {
-        // Update the streaming message content in real-time
-        streamingMessage.content += chunk;
+      next: (chunk: {type: string, data: string}) => {
+        // Handle different types of streaming data
+        if (chunk.type === 'content') {
+          // Content chunk - no longer thinking
+          streamingMessage.content += chunk.data;
+          streamingMessage.isThinking = false;
+        } else if (chunk.type === 'thinking') {
+          // Thinking chunk - actively thinking
+          streamingMessage.thinking = (streamingMessage.thinking || '') + chunk.data;
+          streamingMessage.isThinking = true;
+        }
         // Force change detection for live updates
         this.scrollToBottom();
       },
       complete: () => {
         // Streaming completed
         streamingMessage.isStreaming = false;
+        streamingMessage.isThinking = false;
         this.isExecuting = false;
         this.currentStreamSubscription = null;
         this.abortController = null;
@@ -820,5 +837,28 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
   isCurrentSession(sessionId: string): boolean {
     return this.currentSessionId === sessionId;
+  }
+
+  // Toggle thinking section visibility
+  toggleThinking(message: ChatMessage): void {
+    message.showThinking = !message.showThinking;
+  }
+
+  // Get last thinking phrase for preview (ChatGPT style)
+  public getLastThinkingPhrase(thinking: string | undefined): string {
+    if (!thinking) return '';
+    
+    // Get last sentence or last 100 characters
+    const trimmed = thinking.trim();
+    
+    // Try to get the last sentence
+    const lastPeriod = trimmed.lastIndexOf('.');
+    if (lastPeriod > 0 && lastPeriod > trimmed.length - 100) {
+      const lastSentence = trimmed.substring(Math.max(0, trimmed.lastIndexOf('.', lastPeriod - 1) + 1)).trim();
+      return lastSentence || trimmed.substring(Math.max(0, trimmed.length - 100));
+    }
+    
+    // If no period or too short, get last 100 characters
+    return trimmed.length > 100 ? '...' + trimmed.substring(trimmed.length - 100) : trimmed;
   }
 }
