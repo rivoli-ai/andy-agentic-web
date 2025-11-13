@@ -296,16 +296,9 @@
                     </div>
                     <div class="flex-1 min-w-0 overflow-hidden">
                       <div class="flex items-center space-x-2 mb-2">
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {{ message.agentName }}
-                        </span>
-                        <span class="inline-flex items-center space-x-1">
-                          <span *ngIf="message.isStreaming" class="text-xs text-slate-500 dark:text-slate-400">I'm receiving...</span>
-                          <span *ngIf="!message.isStreaming" class="text-xs text-slate-500 dark:text-slate-400">Completed</span>
-                          <span class="text-xs text-blue-500 font-mono ml-2">
-                            {{ message.content.length || 0 }} chars
-                          </span>
-                        </span>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {{ message.agentName || selectedAgent?.name || 'Agent' }}
+                        </p>
                       </div>
                       
                       <!-- Thinking Section - ChatGPT Style -->
@@ -434,18 +427,23 @@
                       
                       <!-- Status Bar (Always Visible) -->
                       <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center space-x-2">
-                          <div *ngIf="message.isStreaming" class="loading-dots text-blue-500">
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                          </div>
-                          <span *ngIf="message.isStreaming" class="text-xs text-slate-500 dark:text-slate-400">Streaming...</span>
-                          <span *ngIf="!message.isStreaming" class="text-xs text-slate-500 dark:text-slate-400">Completed</span>
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <span *ngIf="message.isStreaming" class="inline-flex items-center space-x-1.5 flex-shrink-0">
+                            <span class="streaming-typing-indicator">
+                              <span></span>
+                            </span>
+                            <span class="text-xs text-blue-500 dark:text-blue-400 font-medium">Streaming</span>
+                          </span>
+                          <span *ngIf="!message.isStreaming" class="inline-flex items-center space-x-1.5 flex-shrink-0">
+                            <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Done</span>
+                          </span>
                         </div>
-                        <div class="text-xs text-slate-400 dark:text-slate-500 font-mono">
-                          {{ message.content.length || 0 }} characters received
-                        </div>
+                        <span class="text-xs text-slate-400 dark:text-slate-500 font-mono flex-shrink-0">
+                          {{ message.content.length || 0 }} chars
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -473,14 +471,12 @@
                       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
                         {{ selectedAgent?.name }}
                       </span>
-                      <div class="loading-dots text-blue-500">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                      </div>
+                      <span class="streaming-typing-indicator">
+                        <span></span>
+                      </span>
                     </div>
                     <p class="text-sm text-slate-500 dark:text-slate-400">
-                      Thinking...
+                      Preparing response...
                     </p>
                   </div>
                 </div>

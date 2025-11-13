@@ -78,6 +78,10 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private abortController: AbortController | null = null;
   
   private subscription = new Subscription();
+  private pendingTimeouts: number[] = [];
+  
+  // Track the current streaming message to update it precisely
+  private currentStreamingMessage: ChatMessage | null = null;
 
   public options: MermaidAPI.Config = {
     theme: MermaidAPI.Theme.Base,
@@ -140,8 +144,15 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Clean up all subscriptions
     this.subscription.unsubscribe();
+    
+    // Stop any streaming
     this.stopStreaming();
+    
+    // Clear all pending timeouts
+    this.pendingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    this.pendingTimeouts = [];
   }
 
   private loadAgentById(agentId: string): void {
@@ -397,9 +408,13 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       if (!this.currentSessionId) {
         this.startNewSession();
         // Wait a bit for session creation, then send message
-        setTimeout(() => {
+        const timeoutId = window.setTimeout(() => {
           this.sendMessage(messageContent);
+          // Remove from pending timeouts
+          const index = this.pendingTimeouts.indexOf(timeoutId);
+          if (index > -1) this.pendingTimeouts.splice(index, 1);
         }, 500);
+        this.pendingTimeouts.push(timeoutId);
         return;
       }
       
@@ -444,6 +459,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       showThinking: false
     };
     this.messages.push(streamingMessage);
+    this.currentStreamingMessage = streamingMessage; // Track this message for precise updates
 
     // Force change detection for immediate display
     this.scrollToBottom();
@@ -451,7 +467,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     // Create abort controller for cancellation
     this.abortController = new AbortController();
 
-    // Store the subscription for potential cancellation
+    // Store the subscription for potential cancellation AND cleanup
     this.currentStreamSubscription = this.chatService.sendMessageStream(userMessage, this.selectedAgent.id, this.currentSessionId, this.abortController.signal).subscribe({
       next: (chunk: {type: string, data: string}) => {
         // Handle different types of streaming data
@@ -472,16 +488,29 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         streamingMessage.isStreaming = false;
         streamingMessage.isThinking = false;
         this.isExecuting = false;
-        this.currentStreamSubscription = null;
+        
+        // Clean up the subscription reference
+        if (this.currentStreamSubscription) {
+          this.currentStreamSubscription = null;
+        }
         this.abortController = null;
+        
+        // Force change detection
+        this.cdr.detectChanges();
         
         // Wait a moment for backend to process tool executions, then reload
         if (this.currentSessionId) {
-          setTimeout(() => {
+          const timeoutId = window.setTimeout(() => {
             this.reloadChatHistory();
             // Force change detection after reloading chat history
             this.cdr.detectChanges();
+            // Clear the streaming message reference after update
+            this.currentStreamingMessage = null;
+            // Remove from pending timeouts
+            const index = this.pendingTimeouts.indexOf(timeoutId);
+            if (index > -1) this.pendingTimeouts.splice(index, 1);
           }, 500); // Reduced delay for faster tool execution display
+          this.pendingTimeouts.push(timeoutId);
         }
         
         this.scrollToBottom();
@@ -525,15 +554,23 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   stopStreaming(): void {
+    // Cancel the streaming subscription
     if (this.currentStreamSubscription) {
       this.currentStreamSubscription.unsubscribe();
       this.currentStreamSubscription = null;
     }
     
+    // Abort the ongoing request
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
+    
+    // Reset execution state
+    this.isExecuting = false;
+    
+    // Clear streaming message reference
+    this.currentStreamingMessage = null;
     
     // Find and update the current streaming message
     const streamingMessage = this.messages.find(msg => msg.isStreaming);
@@ -558,11 +595,15 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   private scrollToBottom(): void {
-    setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       if (this.chatContainer) {
         this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
       }
+      // Remove from pending timeouts
+      const index = this.pendingTimeouts.indexOf(timeoutId);
+      if (index > -1) this.pendingTimeouts.splice(index, 1);
     }, 100);
+    this.pendingTimeouts.push(timeoutId);
   }
 
   private generateId(): string {
@@ -596,11 +637,17 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     console.log('Updating latest agent message with tool executions...');
     console.log('Current messages:', this.messages);
     console.log('History from backend:', history);
+    console.log('Current streaming message:', this.currentStreamingMessage);
     
-    // Find the most recent agent message in the UI
-    const latestAgentMessage = this.messages
-      .filter(msg => !msg.isUser && msg.agentId)
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+    // Use the tracked streaming message if available (most accurate)
+    let latestAgentMessage = this.currentStreamingMessage;
+    
+    // If no tracked message, find the most recent agent message in the UI
+    if (!latestAgentMessage) {
+      latestAgentMessage = this.messages
+        .filter(msg => !msg.isUser && msg.agentId)
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+    }
     
     console.log('Latest agent message:', latestAgentMessage);
     
@@ -610,27 +657,38 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     }
     
     // Find the corresponding history entry for this message
-    // Try multiple matching strategies
+    // Strategy 1: Match by content (most reliable for the just-streamed message)
     let historyEntry = history.find(h => 
       h.role === 'assistant' && 
-      h.agentId === latestAgentMessage.agentId &&
-      Math.abs(new Date(h.timestamp).getTime() - latestAgentMessage.timestamp.getTime()) < 30000 // Within 30 seconds
+      h.agentId === latestAgentMessage!.agentId &&
+      h.content && latestAgentMessage!.content &&
+      h.content.trim() === latestAgentMessage!.content.trim()
     );
     
-    // If no exact match, try to find by content similarity
+    // Strategy 2: Match by timestamp (within 10 seconds, tighter window)
     if (!historyEntry) {
       historyEntry = history.find(h => 
         h.role === 'assistant' && 
-        h.agentId === latestAgentMessage.agentId &&
-        h.content && latestAgentMessage.content &&
-        h.content.includes(latestAgentMessage.content.substring(0, 50)) // Match first 50 characters
+        h.agentId === latestAgentMessage!.agentId &&
+        Math.abs(new Date(h.timestamp).getTime() - latestAgentMessage!.timestamp.getTime()) < 10000 // Within 10 seconds
       );
     }
     
-    // If still no match, try to find the most recent assistant message
+    // Strategy 3: Match by content prefix (first 100 characters)
+    if (!historyEntry) {
+      const contentPrefix = latestAgentMessage.content.substring(0, 100).trim();
+      historyEntry = history.find(h => 
+        h.role === 'assistant' && 
+        h.agentId === latestAgentMessage!.agentId &&
+        h.content && contentPrefix &&
+        h.content.substring(0, 100).trim() === contentPrefix
+      );
+    }
+    
+    // Strategy 4: Fallback - most recent assistant message with tool results
     if (!historyEntry) {
       historyEntry = history
-        .filter(h => h.role === 'assistant' && h.agentId === latestAgentMessage.agentId)
+        .filter(h => h.role === 'assistant' && h.agentId === latestAgentMessage!.agentId && h.toolResults && h.toolResults.length > 0)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
     }
     
@@ -638,6 +696,9 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     
     if (historyEntry && historyEntry.toolResults && historyEntry.toolResults.length > 0) {
       console.log('Tool results found:', historyEntry.toolResults);
+      
+      // Clear any existing tool executions to avoid duplicates
+      latestAgentMessage.toolExecutions = [];
       
       // Update the message with tool executions
       latestAgentMessage.toolExecutions = historyEntry.toolResults
@@ -652,11 +713,17 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       this.triggerChangeDetection();
       
       // Also trigger change detection after a short delay to ensure UI updates
-      setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
         this.cdr.detectChanges();
+        // Remove from pending timeouts
+        const index = this.pendingTimeouts.indexOf(timeoutId);
+        if (index > -1) this.pendingTimeouts.splice(index, 1);
       }, 100);
+      this.pendingTimeouts.push(timeoutId);
     } else {
       console.log('No tool results found for this message');
+      // Clear tool executions if no results found (avoid showing old ones)
+      latestAgentMessage.toolExecutions = [];
     }
   }
 
@@ -872,3 +939,4 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     return agentName.substring(0, 2).toUpperCase();
   }
 }
+

@@ -22,7 +22,8 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   
   // Predefined internal tool names
   internalToolNames = [
-    { value: 'Search', description: 'Search functionality for finding information' }
+    { value: 'Search', description: 'Search functionality for finding information' },
+    { value: 'Export', description: 'Export responses to document formats (Excel, PDF, Word)' }
   ];
   
   // MCP Discovery properties
@@ -96,7 +97,8 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       authResource: [''],
       authScopes: [''],
       parameters: this.fb.array([]),
-      headers: this.fb.array([])
+      headers: this.fb.array([]),
+      configFields: this.fb.array([]) // Configuration fields for internal tools
     });
   }
 
@@ -160,6 +162,18 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       mcpName: mcpName,
       internalToolName: tool.type === ToolType.INTERNAL ? tool.name : ''
     });
+    
+    // Pour les InternalTool, parser la configuration en champs clé-valeur
+    if (tool.type === ToolType.INTERNAL && tool.configuration) {
+      try {
+        const config = JSON.parse(tool.configuration);
+        Object.entries(config).forEach(([key, value]) => {
+          this.addConfigField(key, String(value));
+        });
+      } catch (e) {
+        console.error('Error parsing configuration JSON for InternalTool:', tool.configuration, e);
+      }
+    }
     
     console.log('populateForm - form type after patch:', this.toolForm.get('type')?.value);
 
@@ -258,11 +272,15 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     while (this.headersArray.length !== 0) {
       this.headersArray.removeAt(0);
     }
+    while (this.configFieldsArray.length !== 0) {
+      this.configFieldsArray.removeAt(0);
+    }
   }
 
   // Getters pour les FormArrays
   get parametersArray(): FormArray { return this.toolForm.get('parameters') as FormArray; }
   get headersArray(): FormArray { return this.toolForm.get('headers') as FormArray; }
+  get configFieldsArray(): FormArray { return this.toolForm.get('configFields') as FormArray; }
 
   getParameterGroup(index: number): FormGroup { return this.parametersArray.at(index) as FormGroup; }
   getParameterName(index: number): FormControl { 
@@ -303,6 +321,39 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
   removeParameter(index: number): void {
     this.parametersArray.removeAt(index);
+  }
+
+  // Configuration Fields Management (for Internal Tools)
+  addConfigField(key?: string, value?: string): void {
+    const configGroup = this.fb.group({
+      key: [key || '', [Validators.required]],
+      value: [value || '', [Validators.required]]
+    });
+    this.configFieldsArray.push(configGroup);
+  }
+
+  removeConfigField(index: number): void {
+    this.configFieldsArray.removeAt(index);
+  }
+
+  getConfigFieldGroup(index: number): FormGroup {
+    return this.configFieldsArray.at(index) as FormGroup;
+  }
+
+  getConfigFieldKey(index: number): FormControl {
+    const control = this.getConfigFieldGroup(index)?.get('key');
+    return control instanceof FormControl ? control : new FormControl('');
+  }
+
+  getConfigFieldValue(index: number): FormControl {
+    const control = this.getConfigFieldGroup(index)?.get('value');
+    return control instanceof FormControl ? control : new FormControl('');
+  }
+
+  clearConfigFields(): void {
+    while (this.configFieldsArray.length !== 0) {
+      this.configFieldsArray.removeAt(0);
+    }
   }
 
   // Méthodes pour les Headers
@@ -382,13 +433,14 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       nameControl?.clearValidators();
       internalToolNameControl?.setValidators([Validators.required]);
       
-      // Clear parameters and headers for internal tools
-      this.clearFormArrays();
-      
-      // Only set default values for internal tools if we're not in edit mode
-      // This prevents overriding existing authentication data when editing
+      // Only clear form arrays and set defaults if we're not in edit mode
+      // In edit mode, data is already loaded by populateForm()
       if (!this.isEditMode) {
         console.log('onToolTypeChange - Setting defaults for new internal tool');
+        
+        // Clear parameters and headers for internal tools
+        this.clearFormArrays();
+        
         this.toolForm.patchValue({
           authType: 'none',
           authRequired: false,
@@ -401,7 +453,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         // Set the name field to the selected internal tool name
         this.onInternalToolNameChange('Search');
       } else {
-        console.log('onToolTypeChange - Edit mode: preserving existing authentication data');
+        console.log('onToolTypeChange - Edit mode: preserving existing data (auth, config fields, etc.)');
       }
     }
     
@@ -437,6 +489,12 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         name: selectedTool.value,
         description: selectedTool.description
       });
+      
+      // Set default configuration fields for Export tool
+      if (selectedName === 'Export') {
+        this.clearConfigFields();
+        this.addConfigField('apiUrl', 'https://localhost');
+      }
     }
   }
 
@@ -558,20 +616,28 @@ export class ToolFormComponent implements OnInit, OnDestroy {
            endpoint: formValue.endpoint,
            method: formValue.method
          };
-       } else if (formValue.type === ToolType.MCP) {
-         configuration = {
-           endpoint: formValue.endpoint,
-           mcpType: formValue.mcpType
-         };
-         if (formValue.mcpName) {
-           configuration.name = formValue.mcpName;
-         }
-       } else if (formValue.type === ToolType.INTERNAL) {
-         // Internal tools don't need complex configuration
-         configuration = {};
-       }
-       
-       const configurationValue = JSON.stringify(configuration);
+      } else if (formValue.type === ToolType.MCP) {
+        configuration = {
+          endpoint: formValue.endpoint,
+          mcpType: formValue.mcpType
+        };
+        if (formValue.mcpName) {
+          configuration.name = formValue.mcpName;
+        }
+      } else if (formValue.type === ToolType.INTERNAL) {
+        // Internal tools: transform configFields array to configuration object
+        configuration = {};
+        const configFields = formValue.configFields || this.configFieldsArray.value;
+        if (configFields && configFields.length > 0) {
+          configFields.forEach((field: any) => {
+            if (field.key && field.value) {
+              configuration[field.key] = field.value;
+            }
+          });
+        }
+      }
+      
+      const configurationValue = JSON.stringify(configuration);
 
        const toolData = {
          name: formValue.name,
@@ -581,9 +647,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
          category: formValue.category || undefined,
          isActive: formValue.isActive,
          configuration: configurationValue,
-         authentication: JSON.stringify(authentication),
-         parameters: formValue.type === ToolType.INTERNAL ? JSON.stringify([]) : JSON.stringify(formValue.parameters),
-         headers: formValue.type === ToolType.INTERNAL ? JSON.stringify([]) : JSON.stringify(formValue.headers)
+        authentication: JSON.stringify(authentication),
+        parameters: formValue.type === ToolType.INTERNAL ? JSON.stringify([]) : JSON.stringify(formValue.parameters),
+        headers: formValue.type === ToolType.INTERNAL ? JSON.stringify([]) : JSON.stringify(formValue.headers)
        };
 
       if (this.isEditMode && this.toolId) {

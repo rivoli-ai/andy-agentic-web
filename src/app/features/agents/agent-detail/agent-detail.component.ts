@@ -5,6 +5,7 @@ import { Agent, AgentExecutionResult, LLMProviderType } from '../../../models/ag
 import { AgentService } from '../../../core/services/agent.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { RoleService } from '../../../core/services/role.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-agent-detail',
@@ -18,6 +19,10 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
   
   // Role-based permissions
   hasWritePermission: Observable<boolean>;
+  
+  // Integration code section
+  selectedIntegrationTab: 'mcp' | 'rest' = 'mcp';
+  copiedCode = false;
   
   private subscription = new Subscription();
 
@@ -272,5 +277,92 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
       default:
         return 'Custom';
     }
+  }
+
+  // Integration Code Methods
+  selectIntegrationTab(tab: 'mcp' | 'rest'): void {
+    this.selectedIntegrationTab = tab;
+    this.copiedCode = false;
+  }
+
+  getIntegrationCode(): string {
+    if (!this.agent) return '';
+
+    switch (this.selectedIntegrationTab) {
+      case 'mcp':
+        return this.getMcpIntegrationCode();
+      case 'rest':
+        return this.getRestApiIntegrationCode();
+      default:
+        return '';
+    }
+  }
+
+  private getMcpIntegrationCode(): string {
+    if (!this.agent) return '';
+    const agentName = this.agent.name.toLowerCase().replace(/\s+/g, '_');
+    const baseUrl = environment.apiUrl.replace('/api', ''); // Remove /api suffix
+    
+    return `// MCP Server Configuration
+// Add this to your MCP settings file (e.g., claude_desktop_config.json)
+
+{
+  "mcpServers": {
+    "${agentName}": {
+      "autoApprove": [],
+      "url": "${baseUrl}/sse",
+      "headers": {
+        "X-Agent-Id": "${this.agent.id}"
+      }
+    }
+  }
+}`;
+  }
+
+  private getRestApiIntegrationCode(): string {
+    if (!this.agent) return '';
+    const apiUrl = environment.apiUrl;
+    return `// REST API Integration (Server-Sent Events)
+// Stream responses from the agent in real-time
+
+const response = await fetch('${apiUrl}/chat/stream', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_TOKEN'
+  },
+  body: JSON.stringify({
+    content: "Your message here",
+    agentId: "${this.agent.id}",
+    sessionId: null, // Optional
+    role: "user"
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\\n');
+  
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = JSON.parse(line.slice(6));
+      console.log(data.choices[0].delta.content);
+    }
+  }
+}`;
+  }
+
+  copyIntegrationCode(): void {
+    const code = this.getIntegrationCode();
+    navigator.clipboard.writeText(code).then(() => {
+      this.copiedCode = true;
+      setTimeout(() => this.copiedCode = false, 2000);
+    });
   }
 }

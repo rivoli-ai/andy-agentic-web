@@ -115,6 +115,61 @@
           ></textarea>
         </div>
 
+        <!-- Internal Tool Configuration Fields -->
+        <div *ngIf="showInternalToolFields()" class="md:col-span-2">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Configuration
+            </label>
+            <button
+              type="button"
+              (click)="addConfigField()"
+              class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Add Field
+            </button>
+          </div>
+          
+          <div class="space-y-2" formArrayName="configFields">
+            <div *ngFor="let field of configFieldsArray.controls; let i = index" [formGroupName]="i" 
+                 class="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+              <div class="flex-1">
+                <input
+                  type="text"
+                  formControlName="key"
+                  placeholder="Key (e.g., apiUrl)"
+                  class="input-field text-sm"
+                />
+              </div>
+              <div class="flex-1">
+                <input
+                  type="text"
+                  formControlName="value"
+                  placeholder="Value (e.g., https://localhost)"
+                  class="input-field text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                (click)="removeConfigField(i)"
+                class="p-2 text-error-600 hover:text-error-700 dark:text-error-400 dark:hover:text-error-300"
+                title="Remove field"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <div *ngIf="configFieldsArray.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
+              No configuration fields. Click "Add Field" to add configuration (e.g., apiUrl for Export tool).
+            </div>
+          </div>
+        </div>
+
         <!-- Category -->
         <div *ngIf="showCategoryField()" class="md:col-span-2">
           <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

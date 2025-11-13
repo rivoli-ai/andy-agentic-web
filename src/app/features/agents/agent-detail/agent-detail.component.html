@@ -248,6 +248,74 @@
           </div>
         </div>
 
+        <!-- Integration Code -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Integration Code</h2>
+            <button
+              (click)="copyIntegrationCode()"
+              class="inline-flex items-center px-3 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+            >
+              <svg *ngIf="!copiedCode" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <svg *ngIf="copiedCode" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              {{ copiedCode ? 'Copied!' : 'Copy Code' }}
+            </button>
+          </div>
+
+          <!-- Tab navigation -->
+          <div class="flex space-x-2 mb-4 border-b border-gray-200 dark:border-gray-700">
+            <button
+              (click)="selectIntegrationTab('mcp')"
+              class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+              [class.border-primary-600]="selectedIntegrationTab === 'mcp'"
+              [class.text-primary-600]="selectedIntegrationTab === 'mcp'"
+              [class.border-transparent]="selectedIntegrationTab !== 'mcp'"
+              [class.text-gray-600]="selectedIntegrationTab !== 'mcp'"
+              [class.dark:text-gray-400]="selectedIntegrationTab !== 'mcp'"
+            >
+              MCP Server
+            </button>
+            <button
+              (click)="selectIntegrationTab('rest')"
+              class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+              [class.border-primary-600]="selectedIntegrationTab === 'rest'"
+              [class.text-primary-600]="selectedIntegrationTab === 'rest'"
+              [class.border-transparent]="selectedIntegrationTab !== 'rest'"
+              [class.text-gray-600]="selectedIntegrationTab !== 'rest'"
+              [class.dark:text-gray-400]="selectedIntegrationTab !== 'rest'"
+            >
+              REST API
+            </button>
+          </div>
+
+          <!-- Code display -->
+          <div class="relative">
+            <pre class="bg-gray-900 dark:bg-black text-gray-100 rounded-lg p-4 overflow-x-auto text-sm"><code>{{ getIntegrationCode() }}</code></pre>
+          </div>
+
+          <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+              </svg>
+              <div class="text-sm text-blue-800 dark:text-blue-200">
+                <p class="font-medium mb-1">Integration Notes:</p>
+                <ul class="list-disc list-inside space-y-1 text-xs">
+                  <li *ngIf="selectedIntegrationTab !== 'mcp'">Replace <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">YOUR_TOKEN</code> with your authentication token</li>
+                  <li *ngIf="selectedIntegrationTab === 'mcp'">Add this configuration to your MCP client settings file</li>
+                  <li *ngIf="selectedIntegrationTab === 'mcp'">The <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">X-Agent-Id</code> header routes requests to this specific agent</li>
+                  <li>Session ID is optional - if not provided, a new session will be created</li>
+                  <li>The agent will use the tools configured above during execution</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Sidebar with recent executions -->
