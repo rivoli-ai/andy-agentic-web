@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, combineLatest } from 'rxjs';
@@ -11,6 +11,12 @@ import { MermaidAPI } from 'ngx-markdown';
 import { ThemeService } from 'src/app/core/services/theme.service';
 import { ToolExecutionDisplayComponent } from '../../shared/components/tool-execution-display/tool-execution-display.component';
 import { ToolExecutionSummaryComponent } from '../../shared/components/tool-execution-summary/tool-execution-summary.component';
+
+interface ChatImage {
+  data: string; // base64 encoded image data
+  mimeType: string;
+  name?: string;
+}
 
 interface ChatMessage {
   id: string;
@@ -25,6 +31,8 @@ interface ChatMessage {
   thinking?: string;
   isThinking?: boolean;
   showThinking?: boolean;
+  images?: ChatImage[];
+  isExpanded?: boolean; // For long user messages
 }
 
 interface ToolExecution {
@@ -55,6 +63,7 @@ interface ToolExecution {
 })
 export class ChatbotComponent implements OnInit, OnDestroy {
   @ViewChild('chatContainer') chatContainer!: ElementRef;
+  @ViewChild('messageTextarea', { static: false }) messageTextarea!: ElementRef<HTMLTextAreaElement>;
   
   chatForm: FormGroup;
   selectedAgent: Agent | null = null;
@@ -80,8 +89,20 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private subscription = new Subscription();
   private pendingTimeouts: number[] = [];
   
+  // Message preview settings
+  private readonly MESSAGE_PREVIEW_LENGTH = 200; // Characters to show in preview (reduced for smaller preview)
+  private readonly MESSAGE_PREVIEW_LINES = 3; // Lines to show in preview (reduced for smaller preview)
+  
   // Track the current streaming message to update it precisely
   private currentStreamingMessage: ChatMessage | null = null;
+
+  // Image upload support
+  selectedImages: ChatImage[] = [];
+  imagePreviewUrls: string[] = [];
+
+  // Image modal support
+  selectedImageForModal: string | null = null;
+  isImageModalOpen = false;
 
   public options: MermaidAPI.Config = {
     theme: MermaidAPI.Theme.Base,
@@ -100,6 +121,11 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     this.chatForm = this.fb.group({
       message: ['', [Validators.required, Validators.minLength(1)]],
       agentId: ['', Validators.required]
+    });
+
+    // Subscribe to message changes to auto-resize textarea
+    this.chatForm.get('message')?.valueChanges.subscribe(() => {
+      setTimeout(() => this.autoResizeTextarea(), 0);
     });
   }
 
@@ -243,7 +269,9 @@ export class ChatbotComponent implements OnInit, OnDestroy {
                 agentName: msg.agentName,
                 thinking: msg.thinking,
                 isThinking: false, // Historical messages are never actively thinking
-                showThinking: false
+                showThinking: false,
+                images: msg.images,
+                isExpanded: false // Default to collapsed for long messages
               };
               
               // Add tool execution data from ToolResults array (new format)
@@ -425,24 +453,37 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private sendMessage(messageContent: string): void {
     if (!this.selectedAgent || !this.currentSessionId) return;
 
-    // Add user message
-    this.messages.push({
+    // Store images before clearing (they'll be cleared after sending)
+    const imagesToSend = this.selectedImages.length > 0 ? [...this.selectedImages] : undefined;
+
+    // Add user message with images
+    const userMessage: ChatMessage = {
       id: this.generateId(),
       content: messageContent,
       isUser: true,
       timestamp: new Date(),
-      showThinking: false
-    });
+      showThinking: false,
+      images: imagesToSend,
+      isExpanded: false // Default to collapsed for long messages
+    };
+    this.messages.push(userMessage);
 
     // Clear form
     this.chatForm.patchValue({ message: '' });
     
-    // Execute agent with session ID
-    this.executeAgent(messageContent);
+    // Reset textarea height after clearing
+    setTimeout(() => this.autoResizeTextarea(), 0);
+    
+    // Execute agent with session ID and images (pass images before clearing)
+    this.executeAgent(messageContent, imagesToSend);
+    
+    // Clear selected images after starting the agent execution
+    this.clearSelectedImages();
+    
     this.scrollToBottom();
   }
 
-  private executeAgent(userMessage: string): void {
+  private executeAgent(userMessage: string, images?: ChatImage[]): void {
     if (!this.selectedAgent || !this.currentSessionId) return;
 
     this.isExecuting = true;
@@ -467,16 +508,30 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     // Create abort controller for cancellation
     this.abortController = new AbortController();
 
-    // Store the subscription for potential cancellation AND cleanup
-    this.currentStreamSubscription = this.chatService.sendMessageStream(userMessage, this.selectedAgent.id, this.currentSessionId, this.abortController.signal).subscribe({
+    // Convert images to DTO format (use passed images or fallback to selectedImages)
+    const imagesToUse = images || this.selectedImages;
+    const imageDtos = imagesToUse && imagesToUse.length > 0 ? imagesToUse.map(img => ({
+      data: img.data,
+      mimeType: img.mimeType,
+      name: img.name
+    })) : undefined;
+
+    console.log('[Frontend] Sending images count:', imageDtos?.length ?? 0);
+    console.log('[Frontend] Images passed to executeAgent:', images?.length ?? 0);
+    if (imageDtos && imageDtos.length > 0) {
+      console.log('[Frontend] First image MIME type:', imageDtos[0].mimeType);
+      console.log('[Frontend] First image data length:', imageDtos[0].data?.length ?? 0);
+    }
+
+    this.currentStreamSubscription = this.chatService.sendMessageStream(userMessage, this.selectedAgent.id, this.currentSessionId, imageDtos, this.abortController.signal).subscribe({
       next: (chunk: {type: string, data: string}) => {
         // Handle different types of streaming data
         if (chunk.type === 'content') {
-          // Content chunk - no longer thinking
+          // Content chunk - no longer thinking/reasoning
           streamingMessage.content += chunk.data;
           streamingMessage.isThinking = false;
         } else if (chunk.type === 'thinking') {
-          // Thinking chunk - actively thinking
+          // Thinking/Reasoning chunk - actively thinking/reasoning
           streamingMessage.thinking = (streamingMessage.thinking || '') + chunk.data;
           streamingMessage.isThinking = true;
         }
@@ -906,12 +961,12 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     return this.currentSessionId === sessionId;
   }
 
-  // Toggle thinking section visibility
+  // Toggle thinking/reasoning section visibility
   toggleThinking(message: ChatMessage): void {
     message.showThinking = !message.showThinking;
   }
 
-  // Get last thinking phrase for preview (ChatGPT style)
+  // Get last thinking/reasoning phrase for preview (ChatGPT style)
   public getLastThinkingPhrase(thinking: string | undefined): string {
     if (!thinking) return '';
     
@@ -937,6 +992,359 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return agentName.substring(0, 2).toUpperCase();
+  }
+
+  // Image upload handling
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      Array.from(input.files).forEach(file => {
+        this.processImageFile(file);
+      });
+      // Reset input to allow selecting the same file again
+      input.value = '';
+    }
+  }
+
+  // Process image file and add to selected images
+  private processImageFile(file: File): void {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        if (e.target?.result) {
+          const dataUrl = e.target.result as string;
+          const image: ChatImage = {
+            data: dataUrl,
+            mimeType: file.type,
+            name: file.name
+          };
+          this.selectedImages.push(image);
+          this.imagePreviewUrls.push(dataUrl);
+          this.cdr.detectChanges();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // Handle paste event - detect images and format text
+  onPaste(event: ClipboardEvent): void {
+    const clipboardData = event.clipboardData;
+    if (!clipboardData) return;
+
+    // Check if clipboard contains image
+    const items = Array.from(clipboardData.items);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+
+    if (imageItem) {
+      // Prevent default paste behavior
+      event.preventDefault();
+      
+      // Get image as file
+      const file = imageItem.getAsFile();
+      if (file) {
+        this.processImageFile(file);
+        this.notificationService.success('Image Pasted', 'Image has been added from clipboard', 3000);
+      }
+      return;
+    }
+
+    // Check if clipboard contains text
+    const pastedText = clipboardData.getData('text');
+    if (pastedText) {
+      // Check if text needs formatting
+      const formattedText = this.formatPastedText(pastedText);
+      
+      if (formattedText !== pastedText) {
+        // Prevent default paste and use formatted text
+        event.preventDefault();
+        
+        const currentValue = this.chatForm.get('message')?.value || '';
+        const newValue = currentValue + formattedText;
+        this.chatForm.patchValue({ message: newValue });
+        
+        // Auto-resize textarea after formatting
+        setTimeout(() => this.autoResizeTextarea(), 0);
+        
+        this.notificationService.success('Text Formatted', 'Pasted text has been formatted', 2000);
+      } else {
+        // Auto-resize even for unformatted text
+        setTimeout(() => this.autoResizeTextarea(), 0);
+      }
+    }
+  }
+
+  // Auto-resize textarea based on content
+  onTextareaInput(event: Event): void {
+    this.autoResizeTextarea();
+  }
+
+  // Handle keyboard events in textarea
+  onTextareaKeydown(event: KeyboardEvent): void {
+    // If Enter is pressed without Shift, submit the form
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault(); // Prevent new line
+      
+      // Only submit if form is valid and agent is selected
+      if (this.chatForm.valid && this.selectedAgent && !this.isExecuting) {
+        this.onSubmit();
+      }
+    }
+    // Shift+Enter will allow default behavior (new line)
+  }
+
+  private autoResizeTextarea(): void {
+    // Use ViewChild reference if available, otherwise fallback to querySelector
+    const textarea = this.messageTextarea?.nativeElement || 
+                     (document.querySelector('textarea[formControlName="message"]') as HTMLTextAreaElement);
+    
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      // Set height based on content, with min and max constraints
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 48), 320); // 48px min (3rem), 320px max (20rem)
+      textarea.style.height = newHeight + 'px';
+      
+      // Only show scrollbar if content exceeds max height
+      if (textarea.scrollHeight > 320) {
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.overflowY = 'hidden';
+      }
+    }
+  }
+
+  // Format pasted text based on content type
+  private formatPastedText(text: string): string {
+    const trimmed = text.trim();
+    
+    // Check if it's JSON
+    if (this.isJson(trimmed)) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return text;
+      }
+    }
+
+    // Check if it's HTML
+    if (this.isHtml(trimmed)) {
+      // For HTML, try to format with basic indentation
+      return this.formatHtml(trimmed);
+    }
+
+    // Check if it's XML
+    if (this.isXml(trimmed)) {
+      return this.formatXml(trimmed);
+    }
+
+    // Check if it's a URL
+    if (this.isUrl(trimmed)) {
+      return trimmed; // URLs should stay as is
+    }
+
+    // Check if it's very long (more than 500 characters)
+    if (trimmed.length > 500) {
+      // For long text, add line breaks every 100 characters at word boundaries
+      return this.addLineBreaks(trimmed, 100);
+    }
+
+    return text;
+  }
+
+  // Check if text is valid JSON
+  private isJson(text: string): boolean {
+    if (!text.startsWith('{') && !text.startsWith('[')) {
+      return false;
+    }
+    try {
+      JSON.parse(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Check if text is HTML
+  private isHtml(text: string): boolean {
+    const htmlRegex = /<[a-z][\s\S]*>/i;
+    return htmlRegex.test(text);
+  }
+
+  // Add line breaks to long text at word boundaries
+  private addLineBreaks(text: string, maxLength: number): string {
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    const words = text.split(' ');
+    let result = '';
+    let currentLine = '';
+
+    for (const word of words) {
+      if ((currentLine + word).length > maxLength && currentLine.length > 0) {
+        result += currentLine.trim() + '\n';
+        currentLine = word + ' ';
+      } else {
+        currentLine += word + ' ';
+      }
+    }
+
+    if (currentLine.trim().length > 0) {
+      result += currentLine.trim();
+    }
+
+    return result;
+  }
+
+  // Check if text is XML
+  private isXml(text: string): boolean {
+    if (!text.startsWith('<')) {
+      return false;
+    }
+    // Basic XML detection - check for XML declaration or common XML tags
+    return /^<\?xml|^<[a-z]+[\s>]/i.test(text);
+  }
+
+  // Format XML with basic indentation
+  private formatXml(xml: string): string {
+    // Simple XML formatting - add line breaks after tags
+    let formatted = xml.replace(/>\s*</g, '>\n<');
+    // Add indentation
+    const lines = formatted.split('\n');
+    let indent = 0;
+    const indentSize = 2;
+    
+    return lines.map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      
+      if (trimmed.startsWith('</')) {
+        indent--;
+      }
+      
+      const indented = ' '.repeat(Math.max(0, indent * indentSize)) + trimmed;
+      
+      if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && !trimmed.includes('<?')) {
+        indent++;
+      }
+      
+      return indented;
+    }).join('\n');
+  }
+
+  // Format HTML with basic indentation
+  private formatHtml(html: string): string {
+    // Simple HTML formatting - add line breaks after tags
+    let formatted = html.replace(/>\s*</g, '>\n<');
+    // Add basic indentation
+    const lines = formatted.split('\n');
+    let indent = 0;
+    const indentSize = 2;
+    
+    return lines.map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      
+      // Decrease indent for closing tags
+      if (trimmed.startsWith('</')) {
+        indent = Math.max(0, indent - 1);
+      }
+      
+      const indented = ' '.repeat(indent * indentSize) + trimmed;
+      
+      // Increase indent for opening tags (but not self-closing or void elements)
+      if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && 
+          !trimmed.match(/<(br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)/i)) {
+        indent++;
+      }
+      
+      return indented;
+    }).join('\n');
+  }
+
+  // Check if text is a URL
+  private isUrl(text: string): boolean {
+    try {
+      const url = new URL(text);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  removeImage(index: number): void {
+    this.selectedImages.splice(index, 1);
+    this.imagePreviewUrls.splice(index, 1);
+    this.cdr.detectChanges();
+  }
+
+  clearSelectedImages(): void {
+    this.selectedImages = [];
+    this.imagePreviewUrls = [];
+    this.cdr.detectChanges();
+  }
+
+  // Image modal methods
+  openImageModal(imageSrc: string): void {
+    this.selectedImageForModal = imageSrc;
+    this.isImageModalOpen = true;
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeImageModal(): void {
+    this.isImageModalOpen = false;
+    this.selectedImageForModal = null;
+    // Restore body scroll
+    document.body.style.overflow = '';
+  }
+
+  // Handle ESC key to close modal
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscapeKey(event: KeyboardEvent): void {
+    if (this.isImageModalOpen) {
+      this.closeImageModal();
+    }
+  }
+
+  // Check if message is long enough to show preview
+  isLongMessage(message: ChatMessage): boolean {
+    if (!message.content) return false;
+    const lineCount = message.content.split('\n').length;
+    return message.content.length > this.MESSAGE_PREVIEW_LENGTH || lineCount > this.MESSAGE_PREVIEW_LINES;
+  }
+
+  // Get preview text for long messages
+  getMessagePreview(message: ChatMessage): string {
+    if (!message.content) return '';
+    if (!this.isLongMessage(message)) return message.content;
+    
+    // Try to cut at a word boundary or line break
+    const preview = message.content.substring(0, this.MESSAGE_PREVIEW_LENGTH);
+    const lastSpace = preview.lastIndexOf(' ');
+    const lastNewline = preview.lastIndexOf('\n');
+    const cutPoint = Math.max(lastSpace, lastNewline);
+    
+    // If we found a good break point (within 70% of target length), use it
+    if (cutPoint > this.MESSAGE_PREVIEW_LENGTH * 0.7) {
+      return message.content.substring(0, cutPoint).trim() + '...';
+    }
+    return preview.trim() + '...';
+  }
+
+  // Get the remaining text length after preview
+  getRemainingLength(message: ChatMessage): number {
+    if (!message.content || !this.isLongMessage(message)) return 0;
+    const preview = this.getMessagePreview(message);
+    return message.content.length - preview.length + 3; // +3 for "..."
+  }
+
+  // Toggle message expansion
+  toggleMessageExpansion(message: ChatMessage): void {
+    message.isExpanded = !message.isExpanded;
+    this.cdr.detectChanges();
   }
 }
 

@@ -265,7 +265,16 @@
             <!-- User Message -->
             <div *ngIf="message.isUser" class="flex justify-end">
               <div class="max-w-4xl w-full">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl px-6 py-4 shadow-lg break-words overflow-hidden">
+                <div class="group relative bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl px-6 py-4 shadow-lg break-words overflow-hidden">
+                  <button
+                    (click)="copyMessageContent(message.content)"
+                    class="absolute top-2 right-2 p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+                    title="Copy message"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                  </button>
                   <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                       <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -274,7 +283,44 @@
                     </div>
                     <div class="flex-1 min-w-0 overflow-hidden">
                       <p class="text-sm font-medium">You</p>
-                      <p class="text-sm mt-1 leading-relaxed break-words whitespace-pre-wrap">{{ message.content }}</p>
+                      <!-- Images -->
+                      <div *ngIf="message.images && message.images.length > 0" class="mt-2 mb-2 flex flex-wrap gap-2">
+                        <img 
+                          *ngFor="let image of message.images" 
+                          [src]="image.data" 
+                          [alt]="image.name || 'Image'" 
+                          class="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border-2 border-white/20 object-cover cursor-pointer hover:opacity-80 transition-opacity duration-200 shadow-md"
+                          (click)="openImageModal(image.data)"
+                          title="Click to view larger"
+                        >
+                      </div>
+                      <!-- Message Content with Preview/Expand -->
+                      <div class="mt-1">
+                        <p *ngIf="!isLongMessage(message) || message.isExpanded" class="text-sm leading-relaxed break-words whitespace-pre-wrap">{{ message.content }}</p>
+                        <div *ngIf="isLongMessage(message) && !message.isExpanded" class="space-y-2">
+                          <p class="text-sm leading-relaxed break-words whitespace-pre-wrap text-white/90">{{ getMessagePreview(message) }}</p>
+                          <button
+                            (click)="toggleMessageExpansion(message)"
+                            class="group flex items-center gap-1.5 text-xs font-medium text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/20 hover:border-white/30"
+                          >
+                            <span>Show more</span>
+                            <span class="text-[10px] text-white/60 group-hover:text-white/80">({{ getRemainingLength(message) }} more characters)</span>
+                            <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                          </button>
+                        </div>
+                        <button
+                          *ngIf="isLongMessage(message) && message.isExpanded"
+                          (click)="toggleMessageExpansion(message)"
+                          class="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/20 hover:border-white/30"
+                        >
+                          <span>Show less</span>
+                          <svg class="w-3.5 h-3.5 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div class="text-xs text-blue-100 mt-2 text-right">
@@ -325,7 +371,7 @@
                             <div class="flex-1 min-w-0">
                               <div class="flex items-center space-x-2">
                                 <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                  Thinking
+                                  Thinking/Reasoning
                                 </span>
                                 <span *ngIf="message.isThinking" class="text-xs text-blue-600 dark:text-blue-400 font-mono animate-pulse">
                                   ...
@@ -513,15 +559,64 @@
         </div>
 
         <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-2xl shadow-lg">
-          <form [formGroup]="chatForm" (ngSubmit)="onSubmit()" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 p-4">
-            <div class="flex-1 relative">
-              <input
-                type="text"
+          <!-- Image Preview Section -->
+          <div *ngIf="selectedImages.length > 0" class="px-4 pt-4 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+            <div class="flex flex-wrap gap-2">
+              <div *ngFor="let previewUrl of imagePreviewUrls; let i = index" class="relative group">
+                <img 
+                  [src]="previewUrl" 
+                  alt="Preview" 
+                  class="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border-2 border-slate-300 dark:border-slate-600 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+                  (click)="openImageModal(previewUrl)"
+                  title="Click to view larger"
+                >
+                <button
+                  (click)="removeImage(i); $event.stopPropagation()"
+                  class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 opacity-0 group-hover:opacity-100 z-10"
+                  title="Remove image"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <form [formGroup]="chatForm" (ngSubmit)="onSubmit()" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 p-4 sm:items-start">
+            <div class="flex-1 relative flex items-start space-x-2">
+              <!-- Image Upload Button -->
+              <label
+                class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl cursor-pointer transition-all duration-200 border border-slate-300 dark:border-slate-600 mt-1"
+                [class.opacity-50]="!selectedAgent || isExecuting"
+                [class.cursor-not-allowed]="!selectedAgent || isExecuting"
+                title="Upload image"
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  (change)="onImageSelected($event)"
+                  [disabled]="!selectedAgent || isExecuting"
+                  class="hidden"
+                />
+                <svg class="w-6 h-6 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </label>
+
+              <textarea
+                #messageTextarea
                 formControlName="message"
-                placeholder="Type your message..."
-                class="w-full px-6 py-4 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                rows="1"
+                class="flex-1 px-6 py-4 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto min-h-[3rem] max-h-[20rem] scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-transparent hover:scrollbar-thumb-slate-500"
+                style="scrollbar-width: thin; scrollbar-color: rgb(148 163 184) transparent;"
                 [disabled]="!selectedAgent || isExecuting"
-              />
+                (paste)="onPaste($event)"
+                (input)="onTextareaInput($event)"
+                (keydown)="onTextareaKeydown($event)"
+              ></textarea>
               <div *ngIf="!selectedAgent" class="absolute inset-0 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center">
                 <span class="text-slate-500 dark:text-slate-400 text-sm">
                   Please select an agent to start chatting
@@ -534,7 +629,7 @@
               *ngIf="!isExecuting"
               type="submit"
               [disabled]="!selectedAgent || chatForm.invalid"
-              class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 active:scale-95"
+              class="flex-shrink-0 inline-flex items-center justify-center px-8 py-4 h-12 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 active:scale-95 sm:self-start"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -547,7 +642,7 @@
               *ngIf="isExecuting"
               type="button"
               (click)="stopStreaming()"
-              class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 transform hover:scale-105 active:scale-95"
+              class="flex-shrink-0 inline-flex items-center justify-center px-8 py-4 h-12 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 transform hover:scale-105 active:scale-95 sm:self-start"
               title="Stop message generation"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,6 +653,38 @@
             </button>
           </form>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div 
+    *ngIf="isImageModalOpen" 
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+    (click)="closeImageModal()"
+  >
+    <div class="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center p-4">
+      <!-- Close Button -->
+      <button
+        (click)="closeImageModal()"
+        class="absolute top-4 right-4 z-10 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm"
+        title="Close (ESC)"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Image Container -->
+      <div 
+        class="relative max-w-full max-h-full"
+        (click)="$event.stopPropagation()"
+      >
+        <img 
+          [src]="selectedImageForModal" 
+          alt="Full size image"
+          class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        />
       </div>
     </div>
   </div>

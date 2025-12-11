@@ -27,10 +27,17 @@ export interface ChatResponse {
   responseTime?: number;
 }
 
+export interface ChatImageDto {
+  data: string; // base64 encoded image data (with data URI prefix)
+  mimeType: string;
+  name?: string;
+}
+
 export interface CreateChatMessageDto {
   content: string;
   agentId: string;
   sessionId?: string;
+  images?: ChatImageDto[];
 }
 
 export interface ChatSessionDto {
@@ -81,6 +88,7 @@ export interface ChatHistoryDto {
   toolResult?: string;
   toolResults: ToolExecutionLogDto[];
   thinking?: string;
+  images?: ChatImageDto[];
 }
 
 @Injectable({
@@ -130,12 +138,13 @@ export class ChatService {
     return this.apiService.post<ChatResponse>('/chat', message);
   }
 
-  // Send streaming message with optional session ID and abort signal
-  sendMessageStream(content: string, agentId: string, sessionId?: string, abortSignal?: AbortSignal): Observable<{type: string, data: string}> {
+  // Send streaming message with optional session ID, images, and abort signal
+  sendMessageStream(content: string, agentId: string, sessionId?: string, images?: ChatImageDto[], abortSignal?: AbortSignal): Observable<{type: string, data: string}> {
     const message: CreateChatMessageDto = {
       content,
       agentId,
-      sessionId
+      sessionId,
+      images
     };
 
     return new Observable<{type: string, data: string}>(observer => {
