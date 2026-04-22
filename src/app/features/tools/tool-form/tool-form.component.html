@@ -200,6 +200,9 @@
           <div *ngIf="isFieldInvalid('endpoint')" class="mt-1 text-sm text-error-600">
             {{ getFieldError('endpoint') }}
           </div>
+          <p *ngIf="showMcpFields()" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            For MCP servers, paste the server URL (for example <code class="text-xs">…/sse</code> or <code class="text-xs">…/mcp</code>). Transport is detected automatically.
+          </p>
         </div>
 
         <!-- Method (for API type) -->
@@ -222,28 +225,8 @@
           </div>
         </div>
 
-        <!-- MCP Type (for MCP type) -->
-        <div *ngIf="showMcpTypeField()">
-          <label for="mcpType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            MCP Type *
-          </label>
-          <select
-            id="mcpType"
-            formControlName="mcpType"
-            class="input-field"
-            [class.error]="isFieldInvalid('mcpType')"
-          >
-            <option *ngFor="let mcpType of mcpTypes" [value]="mcpType">
-              {{ mcpType }}
-            </option>
-          </select>
-          <div *ngIf="isFieldInvalid('mcpType')" class="mt-1 text-sm text-error-600">
-            {{ getFieldError('mcpType') }}
-          </div>
-        </div>
-
         <!-- MCP Name (for MCP type) -->
-        <div *ngIf="showMcpTypeField()">
+        <div *ngIf="showMcpFields()">
           <label for="mcpName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             MCP Name
           </label>
@@ -302,7 +285,7 @@
     </div>
 
     <!-- MCP Tool Selection (only for MCP tools) -->
-    <div *ngIf="showMcpTypeField()" class="card">
+    <div *ngIf="showMcpFields()" class="card">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">MCP Tool Selection</h2>
       <div class="space-y-4">
         <!-- Loading State -->

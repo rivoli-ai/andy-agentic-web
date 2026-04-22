@@ -213,8 +213,12 @@ export class ToolService {
     );
   }
 
-  discoverMcpTools(url: string): Observable<McpToolDiscoveryResponse> {
-    const params = this.apiService.createParams({ url });
+  discoverMcpTools(url: string, transport?: string): Observable<McpToolDiscoveryResponse> {
+    const paramRecord: { [key: string]: string | number | boolean } = { url };
+    if (transport) {
+      paramRecord['transport'] = transport;
+    }
+    const params = this.apiService.createParams(paramRecord);
     return this.apiService.get<McpToolDiscoveryResponse>('/tools/discover-mcp', params).pipe(
       catchError(error => {
         console.error('Error discovering MCP tools:', error);
@@ -223,8 +227,11 @@ export class ToolService {
     );
   }
 
-  discoverMcpToolsAsEntities(url: string): Observable<Tool[]> {
-    const request = { url };
+  discoverMcpToolsAsEntities(url: string, transport?: string): Observable<Tool[]> {
+    const request: { url: string; transport?: string } = { url };
+    if (transport) {
+      request.transport = transport;
+    }
     return this.apiService.post<ToolDto[]>('/tools/discover-mcp-tools', request).pipe(
       map(dtos => dtos.map(dto => this.mapToolDto(dto))),
       catchError(error => {

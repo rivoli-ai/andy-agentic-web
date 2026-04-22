@@ -18,8 +18,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   toolTypes = Object.values(ToolType);
   authenticationTypes = ['none', 'api_key', 'bearer', 'basic', 'oauth2', 'azure_oauth2'];
   httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-  mcpTypes = ['SSE', 'HTTP Streaming'];
-  
+
   // Predefined internal tool names
   internalToolNames = [
     { value: 'Search', description: 'Search functionality for finding information' },
@@ -59,7 +58,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         this.onEndpointChange(endpoint);
       })
     );
-    
+
     if (this.isEditMode) {
       this.loadToolForEdit();
     } else {
@@ -82,7 +81,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       isActive: [true],
       endpoint: [''], // Remove required validator - will be set based on tool type
       method: ['GET'],
-      mcpType: ['SSE'],
       mcpName: [''],
       // Simplification de l'authentification - on utilise des champs simples
       authType: ['none'], // Remove required validator - will be set based on tool type
@@ -130,10 +128,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     console.log('populateForm - tool.type:', tool.type);
     console.log('populateForm - tool:', tool);
     
-    // Parse configuration to extract endpoint, method, mcpType, and mcpName
+    // Parse configuration to extract endpoint, method, and mcpName
     let endpoint = '';
     let method = 'GET';
-    let mcpType = 'SSE';
     let mcpName = '';
     
     if (tool.configuration) {
@@ -141,7 +138,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         const config = JSON.parse(tool.configuration);
         endpoint = config.endpoint || '';
         method = config.method || 'GET';
-        mcpType = config.mcpType || 'SSE';
         mcpName = config.name || '';
       } catch (e) {
         // If configuration is not valid JSON, keep defaults
@@ -158,7 +154,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       isActive: tool.isActive,
       endpoint: endpoint,
       method: method,
-      mcpType: mcpType,
       mcpName: mcpName,
       internalToolName: tool.type === ToolType.INTERNAL ? tool.name : ''
     });
@@ -394,7 +389,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   onToolTypeChange(): void {
     const toolType = this.toolForm.get('type')?.value;
     const methodControl = this.toolForm.get('method');
-    const mcpTypeControl = this.toolForm.get('mcpType');
     const endpointControl = this.toolForm.get('endpoint');
     const authTypeControl = this.toolForm.get('authType');
     const descriptionControl = this.toolForm.get('description');
@@ -405,7 +399,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     
     if (toolType === ToolType.API) {
       methodControl?.setValidators([Validators.required]);
-      mcpTypeControl?.clearValidators();
       endpointControl?.setValidators([Validators.required]);
       authTypeControl?.setValidators([Validators.required]);
       descriptionControl?.setValidators([Validators.required, Validators.minLength(10), Validators.maxLength(1000)]);
@@ -413,16 +406,14 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       internalToolNameControl?.clearValidators();
     } else if (toolType === ToolType.MCP) {
       methodControl?.clearValidators();
-      mcpTypeControl?.setValidators([Validators.required]);
       endpointControl?.setValidators([Validators.required]);
       authTypeControl?.setValidators([Validators.required]);
       descriptionControl?.setValidators([Validators.required, Validators.minLength(10), Validators.maxLength(1000)]);
       nameControl?.setValidators([Validators.required, Validators.minLength(3), Validators.maxLength(100)]);
       internalToolNameControl?.clearValidators();
     } else if (toolType === ToolType.INTERNAL) {
-      // Internal tools don't need method, MCP type, endpoint, or auth type validation
+      // Internal tools don't need method, endpoint, or auth type validation
       methodControl?.clearValidators();
-      mcpTypeControl?.clearValidators();
       endpointControl?.clearValidators();
       authTypeControl?.clearValidators();
       
@@ -445,7 +436,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
           authType: 'none',
           authRequired: false,
           method: 'GET',
-          mcpType: 'SSE',
           endpoint: '',
           internalToolName: 'Search' // Set default internal tool name
         });
@@ -458,7 +448,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     }
     
     methodControl?.updateValueAndValidity();
-    mcpTypeControl?.updateValueAndValidity();
     endpointControl?.updateValueAndValidity();
     authTypeControl?.updateValueAndValidity();
     descriptionControl?.updateValueAndValidity();
@@ -619,7 +608,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       } else if (formValue.type === ToolType.MCP) {
         configuration = {
           endpoint: formValue.endpoint,
-          mcpType: formValue.mcpType
+          mcpType: 'auto'
         };
         if (formValue.mcpName) {
           configuration.name = formValue.mcpName;
@@ -761,11 +750,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     return toolType === ToolType.API;
   }
 
-  showMcpTypeField(): boolean {
-    const toolType = this.toolForm.get('type')?.value;
-    return toolType === ToolType.MCP;
-  }
-
   showInternalToolFields(): boolean {
     const toolType = this.toolForm.get('type')?.value;
     return toolType === ToolType.INTERNAL;
@@ -865,7 +849,6 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         name: this.selectedMcpTool.name,
         description: truncatedDescription,
         type: ToolType.MCP,
-        mcpType: 'SSE',
         mcpName: this.selectedMcpTool.name // Set the MCP name
       });
 
