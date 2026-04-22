@@ -9,6 +9,7 @@ import { ToolService } from '../../core/services/tool.service';
 import { RoleService } from '../../core/services/role.service';
 
 @Component({
+  standalone: false,
   selector: 'app-tools',
   templateUrl: './tools.component.html',
   styleUrls: ['./tools.component.css']

@@ -1,3 +1,27 @@
+/* Fill routed outlet (app shell uses flex); keeps chat full height */
+:host {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.chat-shell {
+  @apply min-h-0 min-w-0;
+  flex: 1 1 0;
+  width: 100%;
+}
+
+.chat-sidebar__list {
+  scrollbar-gutter: stable;
+}
+
+.chat-main__scroll {
+  scrollbar-gutter: stable;
+}
+
 /* Modern Chatbot Styles */
 .chat-container {
   height: calc(100vh - 200px);
@@ -5,10 +29,9 @@
   width: 100%;
 }
 
-/* Full width chat layout */
+/* Height only — width:100% on every .h-full breaks sidebar + main flex row */
 .h-full {
   height: 100%;
-  width: 100%;
 }
 
 /* Ensure messages take full available width */

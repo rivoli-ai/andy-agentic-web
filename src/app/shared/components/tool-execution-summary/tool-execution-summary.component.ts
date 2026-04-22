@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ToolExecution } from '../tool-execution-display/tool-execution-display.component';
 
 @Component({
+  standalone: true,
+  imports: [CommonModule],
   selector: 'app-tool-execution-summary',
   templateUrl: './tool-execution-summary.component.html',
   styleUrls: ['./tool-execution-summary.component.css']

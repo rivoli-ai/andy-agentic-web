@@ -23,6 +23,8 @@ export interface ToolExecution {
 }
 
 @Component({
+  standalone: true,
+  imports: [CommonModule],
   selector: 'app-tool-execution-display',
   templateUrl: './tool-execution-display.component.html',
   styleUrls: ['./tool-execution-display.component.css']
@@ -184,7 +186,7 @@ export class ToolExecutionDisplayComponent implements OnInit {
   }
 
   getStatusColor(success: boolean): string {
-    return success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+    return success ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300';
   }
 
   getStatusIcon(success: boolean): string {
@@ -196,27 +198,27 @@ export class ToolExecutionDisplayComponent implements OnInit {
     
     switch (type) {
       case 'mcptool':
-        return 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30';
+        return 'text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-950/40';
       case 'apitool':
-        return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30';
+        return 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950/35';
       case 'function':
-        return 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30';
+        return 'text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-950/40';
       case 'http':
-        return 'text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30';
+        return 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950/35';
       case 'websocket':
-        return 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30';
+        return 'text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-950/35';
       case 'database':
-        return 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30';
+        return 'text-primary-800 dark:text-primary-200 bg-primary-50 dark:bg-primary-950/30';
       case 'file':
-        return 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-900/30';
+        return 'text-pink-700 dark:text-pink-300 bg-pink-100 dark:bg-pink-950/35';
       case 'email':
-        return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30';
+        return 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/35';
       case 'sms':
-        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30';
+        return 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/35';
       case 'webhook':
-        return 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30';
+        return 'text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/35';
       default:
-        return 'text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-600';
+        return 'text-ink-secondary bg-surface-hover border border-line-light';
     }
   }
 

@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { RoleService } from '../../core/services/role.service';
 
 @Component({
+  standalone: false,
   selector: 'app-llm',
   templateUrl: './llm.component.html',
   styleUrls: ['./llm.component.css']

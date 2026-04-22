@@ -8,7 +8,6 @@ import { Theme } from '../../models/theme.model';
 export class ThemeService {
   private currentThemeSubject = new BehaviorSubject<Theme>('light');
   public currentTheme$: Observable<Theme> = this.currentThemeSubject.asObservable();
-  private currentThemeLink: HTMLLinkElement | null = null;
   private autoThemeEnabled = false;
 
   constructor() {
@@ -16,16 +15,12 @@ export class ThemeService {
   }
 
   private initializeTheme(): void {
-    // Check localStorage for saved theme
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
       this.setTheme(savedTheme);
     } else {
-      // Check system preference
       this.checkSystemTheme();
     }
-
-    // Listen for system theme changes
     this.listenForSystemThemeChanges();
   }
 
@@ -40,7 +35,7 @@ export class ThemeService {
   private listenForSystemThemeChanges(): void {
     if (window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', (e) => {
+      mediaQuery.addEventListener('change', e => {
         if (this.autoThemeEnabled) {
           this.setTheme(e.matches ? 'dark' : 'light');
         }
@@ -73,16 +68,19 @@ export class ThemeService {
 
   private applyTheme(theme: Theme): void {
     const root = document.documentElement;
-    
+    root.setAttribute('data-theme', theme);
+
     if (theme === 'dark') {
       root.classList.add('dark');
-
+      document.body.classList.add('dark-theme');
+      document.body.classList.remove('light-theme');
     } else {
       root.classList.remove('dark');
-      this.setPrismTheme('assets/prism.css');
+      document.body.classList.add('light-theme');
+      document.body.classList.remove('dark-theme');
     }
-    this.setPrismTheme(theme);
 
+    this.setPrismTheme(theme);
   }
 
   getCurrentTheme(): Theme {
@@ -93,22 +91,22 @@ export class ThemeService {
     return this.autoThemeEnabled;
   }
 
-
   setPrismTheme(themeName: string): void {
     const linkId = 'prism-theme';
     let link = document.getElementById(linkId) as HTMLLinkElement;
-    
+
     if (link) {
       link.remove();
     }
-    
+
     link = document.createElement('link');
     link.id = linkId;
     link.rel = 'stylesheet';
-    link.href = themeName === 'dark' 
-      ? 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css'
-      : 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css';
-    
+    link.href =
+      themeName === 'dark'
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css';
+
     document.head.appendChild(link);
   }
 }

@@ -16,6 +16,7 @@ import { TagService } from '../../../core/services/tag.service';
 import { SignalRService, DocumentRagStatusUpdate } from '../../../core/services/signalr.service';
 
 @Component({
+  standalone: false,
   selector: 'app-agent-form',
   templateUrl: './agent-form.component.html',
   styleUrls: ['./agent-form.component.css']

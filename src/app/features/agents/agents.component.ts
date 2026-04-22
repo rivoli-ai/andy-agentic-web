@@ -7,6 +7,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { RoleService } from '../../core/services/role.service';
 
 @Component({
+  standalone: false,
   selector: 'app-agents',
   templateUrl: './agents.component.html',
   styleUrls: ['./agents.component.css']

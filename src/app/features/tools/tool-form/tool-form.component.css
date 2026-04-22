@@ -1,10 +1,10 @@
 /* Styles spécifiques au formulaire d'outil */
 .card {
-  @apply bg-white dark:bg-gray-800 shadow rounded-lg p-6;
+  @apply bg-surface-card border border-line-light shadow-card rounded-lg p-6 text-ink;
 }
 
 .input-field {
-  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+  @apply w-full px-3 py-2 border border-line rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-surface-card dark:bg-surface-elevated text-ink placeholder:text-ink-muted;
 }
 
 .input-field:focus {
@@ -13,16 +13,16 @@
 
 /* Boutons */
 .btn-primary {
-  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
+  @apply inline-flex items-center px-4 py-2 border border-line text-sm font-medium rounded-md text-ink-secondary bg-surface-card dark:bg-surface-elevated hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 transition-colors duration-200;
 }
 
 /* FormArrays */
 .form-array-item {
-  @apply border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900;
+  @apply border border-line-light rounded-lg p-4 bg-surface-hover;
 }
 
 .form-array-header {
@@ -30,7 +30,7 @@
 }
 
 .form-array-title {
-  @apply text-lg font-medium text-gray-900 dark:text-white;
+  @apply text-lg font-medium text-ink;
 }
 
 .form-array-remove-btn {
@@ -112,25 +112,7 @@
   }
 }
 
-/* Focus states */
-.input-field:focus-within {
-  @apply ring-2 ring-primary-500 border-primary-500;
-}
-
 /* Hover effects */
 .form-array-item:hover {
   @apply shadow-md transition-shadow duration-200;
-}
-
-/* Dark mode adjustments */
-.dark .input-field {
-  @apply bg-gray-700 border-gray-600 text-white placeholder-gray-400;
-}
-
-.dark .form-array-item {
-  @apply bg-gray-900 border-gray-700;
-}
-
-.dark .card {
-  @apply bg-gray-800;
 }

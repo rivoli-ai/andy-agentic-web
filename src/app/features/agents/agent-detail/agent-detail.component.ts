@@ -8,6 +8,7 @@ import { RoleService } from '../../../core/services/role.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
+  standalone: false,
   selector: 'app-agent-detail',
   templateUrl: './agent-detail.component.html',
   styleUrls: ['./agent-detail.component.css']

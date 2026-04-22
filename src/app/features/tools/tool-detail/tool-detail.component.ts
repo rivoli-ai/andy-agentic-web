@@ -7,6 +7,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { RoleService } from '../../../core/services/role.service';
 
 @Component({
+  standalone: false,
   selector: 'app-tool-detail',
   templateUrl: './tool-detail.component.html',
   styleUrls: ['./tool-detail.component.css']

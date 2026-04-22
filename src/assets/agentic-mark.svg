@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Agentic">
+  <defs>
+    <linearGradient id="agenticGrad" x1="5" y1="4" x2="27" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#agenticGrad)"/>
+  <!-- AI agent bot: antenna + face (simple, reads like assistant products) -->
+  <circle cx="16" cy="7.25" r="2" fill="#ffffff"/>
+  <rect x="7.5" y="10" width="17" height="14.5" rx="5.5" fill="#ffffff"/>
+  <circle cx="12.25" cy="15.25" r="2" fill="#4f46e5"/>
+  <circle cx="19.75" cy="15.25" r="2" fill="#4f46e5"/>
+  <path
+    fill="none"
+    stroke="#6366f1"
+    stroke-width="1.85"
+    stroke-linecap="round"
+    d="M12.75 19.75c.85 1.15 2.15 1.75 3.25 1.75s2.4-.6 3.25-1.75"
+  />
+</svg>

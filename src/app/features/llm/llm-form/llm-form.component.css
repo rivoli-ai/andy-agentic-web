@@ -1,18 +1,18 @@
 /* Styles spécifiques au formulaire LLM */
 .card {
-  @apply bg-white dark:bg-gray-800 shadow rounded-lg p-6;
+  @apply bg-surface-card border border-line-light shadow-card rounded-lg p-6 text-ink;
 }
 
 .card h2 {
-  @apply text-xl font-semibold text-gray-900 dark:text-white mb-6;
+  @apply text-xl font-semibold text-ink mb-6;
 }
 
 .card label {
-  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+  @apply block text-sm font-medium text-ink-secondary mb-2;
 }
 
 .input-field {
-  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+  @apply w-full px-3 py-2 border border-line rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-surface-card dark:bg-surface-elevated text-ink placeholder:text-ink-muted;
 }
 
 .input-field:focus {
@@ -25,7 +25,7 @@
 
 /* Checkbox styling */
 .card input[type="checkbox"] {
-  @apply w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600;
+  @apply w-4 h-4 text-primary-600 bg-surface-hover border-line rounded focus:ring-primary-500 dark:focus:ring-primary-600 focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground dark:bg-surface-elevated dark:border-line;
 }
 
 /* Special input types */
@@ -74,11 +74,11 @@
 
 /* Button styles */
 .btn-primary {
-  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
+  @apply inline-flex items-center px-4 py-2 border border-line text-sm font-medium rounded-md text-ink-secondary bg-surface-card dark:bg-surface-elevated hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 transition-colors duration-200;
 }
 
 /* Form validation visual feedback */

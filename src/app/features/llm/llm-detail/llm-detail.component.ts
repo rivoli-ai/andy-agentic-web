@@ -7,6 +7,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { RoleService } from '../../../core/services/role.service';
 
 @Component({
+  standalone: false,
   selector: 'app-llm-detail',
   templateUrl: './llm-detail.component.html',
   styleUrls: ['./llm-detail.component.css']
@@ -137,7 +138,6 @@ export class LLMDetailComponent implements OnInit, OnDestroy {
     
     switch (providerStr) {
       case '0':
-      case 'openai':
       case 'openai':
         return 'OpenAI';
       case '1':

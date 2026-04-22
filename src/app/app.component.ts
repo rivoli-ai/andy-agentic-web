@@ -10,11 +10,14 @@ import { Theme } from './models/theme.model';
 // Prism.js imports will be added later when needed
 
 @Component({
+  standalone: false,
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private static readonly SIDEBAR_COLLAPSED_KEY = 'agentic-sidebar-collapsed';
+
   title = 'Agentic';
   currentTheme: Theme = 'light';
   isSidebarOpen = true;
@@ -77,6 +80,13 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    try {
+      const v = localStorage.getItem(AppComponent.SIDEBAR_COLLAPSED_KEY);
+      this.isSidebarCollapsed = v === '1' || v === 'true';
+    } catch {
+      /* ignore */
+    }
+
     // Start initialization process
     this.initializeApp();
 
@@ -158,6 +168,26 @@ export class AppComponent implements OnInit, OnDestroy {
 
   toggleSidebarCollapse(): void {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
+    try {
+      localStorage.setItem(
+        AppComponent.SIDEBAR_COLLAPSED_KEY,
+        this.isSidebarCollapsed ? '1' : '0'
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  closeMobileSidebar(): void {
+    this.isSidebarOpen = false;
+  }
+
+  getShellClasses(): string {
+    const parts = ['app-container'];
+    if (this.isSidebarCollapsed) {
+      parts.push('app-sidebar-collapsed');
+    }
+    return parts.join(' ');
   }
 
   toggleUserMenu(): void {

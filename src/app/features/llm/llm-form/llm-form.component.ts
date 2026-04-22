@@ -8,6 +8,7 @@ import { NotificationService } from '../../../core/services/notification.service
 
 
 @Component({
+  standalone: false,
   selector: 'app-llm-form',
   templateUrl: './llm-form.component.html',
   styleUrls: ['./llm-form.component.css']

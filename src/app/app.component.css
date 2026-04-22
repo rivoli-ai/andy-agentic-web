@@ -1,113 +1,109 @@
-/* App component specific styles */
-.translate-x-0 {
-  transform: translateX(0);
-}
-
-.-translate-x-full {
-  transform: translateX(-100%);
-}
-
-/* Height management for full-height layout */
-.h-full {
-  height: 100%;
-}
-
-/* Ensure smooth transitions */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Sidebar height consistency */
-aside {
-  height: 100%;
-}
-
-/* Main content height */
-main {
-  height: 100%;
-  /* Prevent main from scrolling - only content area scrolls */
+.app-container {
+  display: flex;
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
   overflow: hidden;
+  background: var(--surface-ground);
+  transition: background-color var(--duration-slow) var(--ease-out);
 }
 
-/* Ensure content doesn't overflow horizontally */
-.min-w-0 {
+.app-content {
+  flex: 1 1 0;
+  margin-left: var(--sidebar-width);
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Espace pour le header fixe — évite margin-top sur main qui cassait la hauteur flex + scroll */
+  padding-top: var(--header-height);
+  box-sizing: border-box;
+  transition: margin-left var(--duration-slow) var(--ease-out);
+  position: relative;
 }
 
-/* Content area scrolling */
+.app-container.app-sidebar-collapsed .app-content {
+  margin-left: var(--sidebar-collapsed);
+}
+
+.main-content {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content.chatbot-route {
+  padding: 0;
+}
+
 .content-area {
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem;
+  padding: var(--space-8);
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Ensure sidebar content doesn't scroll */
-aside .flex-1 {
-  overflow: hidden;
-}
-
-/* Sidebar navigation items */
-.sidebar-item {
-  @apply flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md transition-colors duration-200;
-}
-
-.sidebar-item:hover {
-  @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white;
-}
-
-.sidebar-item.active {
-  @apply bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300;
-}
-
-/* Ensure sidebar stays visible on desktop */
-@media (min-width: 768px) {
-  aside {
-    position: relative !important;
-    transform: none !important;
-  }
-  
-  aside.translate-x-0 {
-    transform: none !important;
-  }
-  
-  aside.-translate-x-full {
-    transform: none !important;
-  }
-}
-
-/* Custom scrollbar for content area */
-.content-area::-webkit-scrollbar {
-  width: 8px;
-}
-
-.content-area::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.content-area::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.3);
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.6);
-}
-
-/* Dark mode scrollbar for content area */
-.dark .content-area::-webkit-scrollbar-thumb {
-  background: rgba(75, 85, 99, 0.3);
-}
-
-.dark .content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 0.6);
-}
-
-/* Chatbot route specific styling */
-.chatbot-route {
+.content-area.chatbot-route {
+  padding: 0;
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    --header-height: calc(64px + env(safe-area-inset-top, 0px));
+  }
+
+  .app-content {
+    margin-left: 0 !important;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .app-container.app-sidebar-collapsed .app-content {
+    margin-left: 0 !important;
+  }
+
+  .content-area {
+    padding: var(--space-4);
+    padding-left: max(var(--space-4), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-4), env(safe-area-inset-right, 0px));
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: var(--z-mobile-sidebar-overlay);
+    animation: fadeIn var(--duration-base) var(--ease-out);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

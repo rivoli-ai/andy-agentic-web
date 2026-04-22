@@ -8,7 +8,6 @@ import { ToolDetailComponent } from './features/tools/tool-detail/tool-detail.co
 import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { LLMDetailComponent } from './features/llm/llm-detail/llm-detail.component';
-import { SettingsComponent } from './features/settings/settings.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { LoginComponent } from './core/auth/components/login/login.component';
 import { LogoutComponent } from './core/auth/components/logout/logout.component';
@@ -36,7 +35,6 @@ const routes: Routes = [
   { path: 'llm/new', component: LLMFormComponent, canActivate: [AuthGuard, ApiStatusGuard, WriteRoleGuard] },
   { path: 'llm/:id', component: LLMDetailComponent, canActivate: [AuthGuard, ApiStatusGuard] },
   { path: 'llm/:id/edit', component: LLMFormComponent, canActivate: [AuthGuard, ApiStatusGuard, WriteRoleGuard] },
-  { path: 'settings', component: SettingsComponent, canActivate: [AuthGuard, ApiStatusGuard] },
   { path: 'chatbot', component: ChatbotComponent, canActivate: [AuthGuard, ApiStatusGuard] },
   { path: 'chatbot/:agentId', component: ChatbotComponent, canActivate: [AuthGuard, ApiStatusGuard] },
   { path: '**', redirectTo: '/agents' }

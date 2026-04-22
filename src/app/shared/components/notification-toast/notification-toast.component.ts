@@ -5,17 +5,24 @@ import { NotificationService } from '../../../core/services/notification.service
 import { Notification, NotificationType } from '../../../models/notification.model';
 
 @Component({
+  standalone: false,
   selector: 'app-notification-toast',
   templateUrl: './notification-toast.component.html',
   styleUrls: ['./notification-toast.component.css'],
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
-        style({ transform: 'translateX(100%)', opacity: 0 }),
-        animate('300ms ease-out', style({ transform: 'translateX(0)', opacity: 1 }))
+        style({ transform: 'translateY(calc(100% + 12px))', opacity: 0 }),
+        animate(
+          '320ms cubic-bezier(0.16, 1, 0.3, 1)',
+          style({ transform: 'translateY(0)', opacity: 1 })
+        )
       ]),
       transition(':leave', [
-        animate('300ms ease-in', style({ transform: 'translateX(100%)', opacity: 0 }))
+        animate(
+          '240ms cubic-bezier(0.4, 0, 1, 1)',
+          style({ transform: 'translateY(12px)', opacity: 0 })
+        )
       ])
     ])
   ]
@@ -46,22 +53,21 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
   }
 
   getNotificationClasses(type: NotificationType): string {
-    const baseClasses = 'notification-toast';
-    return `${baseClasses} ${type}`;
+    return `notification-toast w-full max-w-md ${type}`;
   }
 
   getProgressBarClasses(type: NotificationType): string {
     switch (type) {
       case NotificationType.SUCCESS:
-        return 'bg-green-500';
+        return 'bg-success-500';
       case NotificationType.ERROR:
-        return 'bg-red-500';
+        return 'bg-error-500';
       case NotificationType.WARNING:
-        return 'bg-yellow-500';
+        return 'bg-warning-500';
       case NotificationType.INFO:
-        return 'bg-blue-500';
+        return 'bg-primary-500';
       default:
-        return 'bg-gray-500';
+        return 'bg-ink-muted';
     }
   }
 

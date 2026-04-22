@@ -7,17 +7,55 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        /* DevPilot brand: indigo → violet (aligned with design-system.css) */
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+          950: '#1e1b4b',
+        },
+        /* Semantic surfaces / text / borders → CSS variables (light + dark) */
+        surface: {
+          ground: 'var(--surface-ground)',
+          card: 'var(--surface-card)',
+          elevated: 'var(--surface-elevated)',
+          hover: 'var(--surface-hover)',
+        },
+        ink: {
+          DEFAULT: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
+          muted: 'var(--text-muted)',
+        },
+        line: {
+          light: 'var(--border-light)',
+          DEFAULT: 'var(--border-default)',
+          hover: 'var(--border-hover)',
+        },
+        brand: {
+          primary: 'var(--brand-primary)',
+          secondary: 'var(--brand-secondary)',
+          accent: 'var(--brand-accent)',
+        },
+        violet: {
+          50: '#f5f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#a78bfa',
+          500: '#8b5cf6',
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
+          950: '#2e1065',
         },
         secondary: {
           50: '#f8fafc',
@@ -66,7 +104,15 @@ module.exports = {
           700: '#b91c1c',
           800: '#991b1b',
           900: '#7f1d1d',
-        }
+        },
+      },
+      boxShadow: {
+        card: 'var(--shadow-card)',
+      },
+      ringOffsetColor: {
+        DEFAULT: 'var(--surface-ground)',
+        ground: 'var(--surface-ground)',
+        card: 'var(--surface-card)',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',

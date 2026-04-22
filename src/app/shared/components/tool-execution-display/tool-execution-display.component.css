@@ -44,7 +44,7 @@
 }
 
 /* Specific constraints for compact expanded view in chat messages */
-.tool-execution-container .expanded-view .bg-slate-50 {
+.tool-execution-container .expanded-view .tool-execution-code-panel {
   @apply max-w-full;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -113,17 +113,17 @@
 
 .tool-execution-container .max-h-20::-webkit-scrollbar-track,
 .tool-execution-container .max-h-24::-webkit-scrollbar-track {
-  @apply bg-slate-200 dark:bg-slate-700 rounded;
+  @apply bg-line-light dark:bg-surface-elevated rounded;
 }
 
 .tool-execution-container .max-h-20::-webkit-scrollbar-thumb,
 .tool-execution-container .max-h-24::-webkit-scrollbar-thumb {
-  @apply bg-slate-400 dark:bg-slate-500 rounded;
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded;
 }
 
 .tool-execution-container .max-h-20::-webkit-scrollbar-thumb:hover,
 .tool-execution-container .max-h-24::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-500 dark:bg-slate-400;
+  @apply bg-secondary-400 dark:bg-secondary-500;
 }
 
 .compact-view {
@@ -165,15 +165,15 @@ pre::-webkit-scrollbar {
 }
 
 pre::-webkit-scrollbar-track {
-  @apply bg-slate-200 dark:bg-slate-700 rounded;
+  @apply bg-line-light dark:bg-surface-elevated rounded;
 }
 
 pre::-webkit-scrollbar-thumb {
-  @apply bg-slate-400 dark:bg-slate-500 rounded;
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded;
 }
 
 pre::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-500 dark:bg-slate-400;
+  @apply bg-secondary-400 dark:bg-secondary-500;
 }
 
 /* Hover effects for interactive elements */
@@ -190,14 +190,14 @@ button {
 
 /* Remove tool icon hover effects - no hover effects needed */
 
-/* Professional status indicators */
+/* Professional status indicators (optional utility) */
 .status-success {
-  @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300;
+  @apply bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300;
   animation: pulse 2s infinite;
 }
 
 .status-error {
-  @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300;
+  @apply bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300;
 }
 
 /* Professional card styling */
@@ -219,15 +219,15 @@ button {
 }
 
 .tool-execution-container .expanded-view pre::-webkit-scrollbar-track {
-  @apply bg-slate-100 dark:bg-slate-700 rounded;
+  @apply bg-surface-hover dark:bg-surface-elevated rounded;
 }
 
 .tool-execution-container .expanded-view pre::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-600 rounded;
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded;
 }
 
 .tool-execution-container .expanded-view pre::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-slate-500;
+  @apply bg-secondary-400 dark:bg-secondary-500;
 }
 
 /* Line clamp support for better text display */
@@ -284,7 +284,13 @@ button {
 
 /* Gradient background animation */
 .gradient-bg {
-  background: linear-gradient(-45deg, #f0f9ff, #e0f2fe, #f0f9ff, #e0f2fe);
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--brand-primary) 14%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 12%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-primary) 14%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 12%, var(--surface-card))
+  );
   background-size: 400% 400%;
   animation: gradientShift 8s ease infinite;
 }
@@ -303,7 +309,13 @@ button {
 
 /* Dark mode gradient */
 .dark .gradient-bg {
-  background: linear-gradient(-45deg, #1e3a8a, #1e40af, #1e3a8a, #1e40af);
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--brand-primary) 28%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 22%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-primary) 28%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 22%, var(--surface-card))
+  );
   background-size: 400% 400%;
 }
 
@@ -314,15 +326,6 @@ button {
 
 .group:hover .copy-button {
   @apply opacity-100;
-}
-
-/* Tool execution status colors */
-.status-success {
-  @apply text-green-600 dark:text-green-400;
-}
-
-.status-error {
-  @apply text-red-600 dark:text-red-400;
 }
 
 /* Parameter and result formatting */
@@ -346,26 +349,26 @@ button {
 }
 
 /* Ensure tab content doesn't exceed container height */
-.tool-execution-container .expanded-view .bg-slate-50 {
+.tool-execution-container .expanded-view .tool-execution-code-panel {
   max-height: 12rem;
   overflow-y: auto;
 }
 
 /* Custom scrollbar for tab content */
-.tool-execution-container .expanded-view .bg-slate-50::-webkit-scrollbar {
+.tool-execution-container .expanded-view .tool-execution-code-panel::-webkit-scrollbar {
   width: 4px;
 }
 
-.tool-execution-container .expanded-view .bg-slate-50::-webkit-scrollbar-track {
-  @apply bg-slate-200 dark:bg-slate-700 rounded;
+.tool-execution-container .expanded-view .tool-execution-code-panel::-webkit-scrollbar-track {
+  @apply bg-line-light dark:bg-surface-elevated rounded;
 }
 
-.tool-execution-container .expanded-view .bg-slate-50::-webkit-scrollbar-thumb {
-  @apply bg-slate-400 dark:bg-slate-500 rounded;
+.tool-execution-container .expanded-view .tool-execution-code-panel::-webkit-scrollbar-thumb {
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded;
 }
 
-.tool-execution-container .expanded-view .bg-slate-50::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-500 dark:bg-slate-400;
+.tool-execution-container .expanded-view .tool-execution-code-panel::-webkit-scrollbar-thumb:hover {
+  @apply bg-secondary-400 dark:bg-secondary-500;
 }
 
 /* Responsive design */
@@ -386,7 +389,7 @@ button {
     max-height: 14rem;
   }
   
-  .tool-execution-container .expanded-view .bg-slate-50 {
+  .tool-execution-container .expanded-view .tool-execution-code-panel {
     max-height: 10rem;
   }
 }

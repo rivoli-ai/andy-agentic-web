@@ -5,6 +5,7 @@ import { Subject, Subscription } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
+  standalone: false,
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']

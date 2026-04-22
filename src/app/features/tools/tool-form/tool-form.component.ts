@@ -7,6 +7,7 @@ import { ToolService } from '../../../core/services/tool.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
+  standalone: false,
   selector: 'app-tool-form',
   templateUrl: './tool-form.component.html',
   styleUrls: ['./tool-form.component.css']

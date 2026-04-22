@@ -1,6 +1,6 @@
 /* Styles spécifiques à la vue détaillée d'un agent */
 .card {
-  @apply bg-white dark:bg-gray-800 shadow rounded-lg p-6;
+  @apply bg-surface-card border border-line-light shadow-card rounded-lg p-6 text-ink;
 }
 
 .btn-primary {
@@ -8,7 +8,7 @@
 }
 
 .btn-secondary {
-  @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
+  @apply inline-flex items-center px-4 py-2 border border-line text-sm font-medium rounded-md text-ink-secondary bg-surface-card dark:bg-surface-elevated hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 transition-colors duration-200;
 }
 
 .btn-danger {
@@ -238,18 +238,14 @@
   @apply ring-2 ring-offset-2;
 }
 
-/* Dark mode adjustments */
-.dark .card {
-  @apply bg-gray-800;
-}
-
+/* Dark mode — borders / nested surfaces (card uses design tokens via .card) */
 .dark .prompt-item,
 .dark .tool-item,
 .dark .mcp-item,
 .dark .execution-item {
-  @apply border-gray-700;
+  @apply border-line-light;
 }
 
 .dark .variable-item {
-  @apply bg-gray-700;
+  @apply bg-surface-elevated;
 }

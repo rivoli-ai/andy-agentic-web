@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { AuthService, User } from '../../services/auth.service';
 
 @Component({
+  standalone: false,
   selector: 'app-user-profile',
   templateUrl: './user-profile.component.html',
   styleUrls: ['./user-profile.component.css']

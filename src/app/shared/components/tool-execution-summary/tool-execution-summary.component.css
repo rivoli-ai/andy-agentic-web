@@ -16,15 +16,15 @@
 }
 
 .tool-execution-summary .expanded-view::-webkit-scrollbar-track {
-  @apply bg-slate-100 dark:bg-slate-800 rounded-full;
+  @apply bg-surface-hover dark:bg-surface-elevated rounded-full;
 }
 
 .tool-execution-summary .expanded-view::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded-full;
 }
 
 .tool-execution-summary .expanded-view::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-slate-500;
+  @apply bg-secondary-400 dark:bg-secondary-500;
 }
 
 .animate-fade-in {
@@ -63,7 +63,13 @@ button:hover {
 
 /* Gradient background animation */
 .gradient-bg {
-  background: linear-gradient(-45deg, #f0f9ff, #e0f2fe, #f0f9ff, #e0f2fe);
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--brand-primary) 14%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 12%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-primary) 14%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 12%, var(--surface-card))
+  );
   background-size: 400% 400%;
   animation: gradientShift 8s ease infinite;
 }
@@ -82,7 +88,13 @@ button:hover {
 
 /* Dark mode gradient */
 .dark .gradient-bg {
-  background: linear-gradient(-45deg, #1e3a8a, #1e40af, #1e3a8a, #1e40af);
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--brand-primary) 28%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 22%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-primary) 28%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 22%, var(--surface-card))
+  );
   background-size: 400% 400%;
 }
 

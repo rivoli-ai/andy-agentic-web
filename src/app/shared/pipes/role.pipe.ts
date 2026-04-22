@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { RoleService, UserRole } from '../../core/services/role.service';
 
 @Pipe({
+  standalone: false,
   name: 'hasRole',
   pure: false
 })
@@ -16,6 +17,7 @@ export class HasRolePipe implements PipeTransform {
 }
 
 @Pipe({
+  standalone: false,
   name: 'hasAnyRole',
   pure: false
 })
@@ -29,6 +31,7 @@ export class HasAnyRolePipe implements PipeTransform {
 }
 
 @Pipe({
+  standalone: false,
   name: 'hasWritePermission',
   pure: false
 })
@@ -42,6 +45,7 @@ export class HasWritePermissionPipe implements PipeTransform {
 }
 
 @Pipe({
+  standalone: false,
   name: 'hasReadPermission',
   pure: false
 })

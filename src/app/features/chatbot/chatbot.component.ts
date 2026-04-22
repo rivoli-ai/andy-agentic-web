@@ -7,10 +7,8 @@ import { AgentService } from '../../core/services/agent.service';
 import { ChatService, ChatMessage as ChatMessageInterface, ChatResponse, ChatSessionDto, ChatHistoryDto, ToolExecutionLogDto } from '../../core/services/chat.service';
 import { MarkdownService } from '../../core/services/markdown.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { MermaidAPI } from 'ngx-markdown';
+import type { MermaidAPI } from 'ngx-markdown';
 import { ThemeService } from 'src/app/core/services/theme.service';
-import { ToolExecutionDisplayComponent } from '../../shared/components/tool-execution-display/tool-execution-display.component';
-import { ToolExecutionSummaryComponent } from '../../shared/components/tool-execution-summary/tool-execution-summary.component';
 
 interface ChatImage {
   data: string; // base64 encoded image data
@@ -57,6 +55,7 @@ interface ToolExecution {
 }
 
 @Component({
+  standalone: false,
   selector: 'app-chatbot',
   templateUrl: './chatbot.component.html',
   styleUrls: ['./chatbot.component.css']
@@ -104,8 +103,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   selectedImageForModal: string | null = null;
   isImageModalOpen = false;
 
-  public options: MermaidAPI.Config = {
-    theme: MermaidAPI.Theme.Base,
+  public options: MermaidAPI.MermaidConfig = {
+    theme: 'base',
   };
 
   constructor(
@@ -423,8 +422,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private updateMermaidOptions(theme: 'light' | 'dark'): void {
     this.options = {
       fontFamily: '"trebuchet ms", verdana, arial, sans-serif',
-      logLevel: MermaidAPI.LogLevel.Info,
-      theme: theme === 'dark' ? MermaidAPI.Theme.Dark : MermaidAPI.Theme.Default,
+      logLevel: 'info',
+      theme: theme === 'dark' ? 'dark' : 'default',
     };
   }
 
