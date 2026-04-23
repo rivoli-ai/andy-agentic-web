@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { APP_INITIALIZER, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -38,6 +38,11 @@ import { LLMDetailComponent } from './features/llm/llm-detail/llm-detail.compone
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { highlight } from 'prismjs';
 import { HashLocationStrategy, LocationStrategy } from '@angular/common';
+import { AppConfigService } from './core/config/app-config.service';
+
+export function initAppConfig(appConfig: AppConfigService): () => Promise<void> {
+  return () => appConfig.load();
+}
 
 @NgModule({
   declarations: [
@@ -83,6 +88,12 @@ import { HashLocationStrategy, LocationStrategy } from '@angular/common';
   ],
   providers: [
     ThemeService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initAppConfig,
+      deps: [AppConfigService],
+      multi: true
+    },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

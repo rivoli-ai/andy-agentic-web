@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, interval, timer } from 'rxjs';
 import { Router } from '@angular/router';
-import { environment } from '../../../environments/environment';
+import { AppConfigService } from '../config/app-config.service';
 
 export interface ApiStatus {
   isOnline: boolean;
@@ -28,7 +28,10 @@ export class ApiStatusService {
   private readonly CHECK_INTERVAL = 30000; // 30 seconds
   private readonly MAINTENANCE_REDIRECT_DELAY = 5000; // 5 seconds
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private appConfig: AppConfigService
+  ) {
     // Start monitoring immediately
     this.startMonitoring();
   }
@@ -45,7 +48,7 @@ export class ApiStatusService {
 
   private async checkApiStatus(): Promise<void> {
     try {
-      const response = await fetch(`${environment.apiUrl}/health`, {
+      const response = await fetch(`${this.appConfig.apiUrl}/health`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

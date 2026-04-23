@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { MsalService } from '@azure/msal-angular';
-import { environment } from '../../../../environments/environment';
+import { AppConfigService } from '../../config/app-config.service';
 
 export interface User {
   id: string;
@@ -37,11 +37,10 @@ export class AuthService {
   
   private isAuthLoadingSubject = new BehaviorSubject<boolean>(true);
   public isAuthLoading$ = this.isAuthLoadingSubject.asObservable();
-  private readonly apiUrl = environment.apiUrl;
-
   constructor(
     private http: HttpClient,
-    private msalService: MsalService
+    private msalService: MsalService,
+    private appConfig: AppConfigService
   ) {
     // Initialize MSAL and check authentication status
     this.initializeAuth().catch(error => {
@@ -156,7 +155,7 @@ export class AuthService {
    * Get user information from backend
    */
   getUser(): Observable<User | null> {
-    return this.http.get<AuthResponse>(`${this.apiUrl}/auth/me`).pipe(
+    return this.http.get<AuthResponse>(`${this.appConfig.apiUrl}/auth/me`).pipe(
       map(response => response.user || null),
       tap(user => this.currentUserSubject.next(user)),
       catchError(() => {
@@ -191,7 +190,7 @@ export class AuthService {
       const token = await this.getAccessToken();
       console.log('AuthService: Token for sync:', token ? 'Available' : 'Not available');
       
-      const response = await this.http.post<AuthResponse>(`${this.apiUrl}/auth/sync`, {}).toPromise();
+      const response = await this.http.post<AuthResponse>(`${this.appConfig.apiUrl}/auth/sync`, {}).toPromise();
       
       if (response?.user) {
         console.log('AuthService: User sync successful:', response.user);
@@ -233,7 +232,7 @@ export class AuthService {
    * Get authentication status
    */
   getAuthStatus(): Observable<AuthResponse> {
-    return this.http.get<AuthResponse>(`${this.apiUrl}/auth/status`);
+    return this.http.get<AuthResponse>(`${this.appConfig.apiUrl}/auth/status`);
   }
 
   /**

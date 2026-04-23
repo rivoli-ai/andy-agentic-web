@@ -4,7 +4,7 @@ import { filter } from 'rxjs/operators';
 import { ThemeService } from './core/services/theme.service';
 import { AuthService, User } from './core/auth/services/auth.service';
 import { ApiStatusService, ApiStatus } from './core/services/api-status.service';
-import { environment } from '../environments/environment';
+import { AppConfigService } from './core/config/app-config.service';
 import { Theme } from './models/theme.model';
 
 // Prism.js imports will be added later when needed
@@ -73,7 +73,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private authService: AuthService,
     private apiStatusService: ApiStatusService,
-    private router: Router
+    private router: Router,
+    private appConfig: AppConfigService
   ) {
     // Apply theme immediately to prevent FOUC
     this.themeService.setTheme(this.themeService.getCurrentTheme());
@@ -282,7 +283,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private async checkInitialApiHealth(): Promise<boolean> {
     try {
-      const response = await fetch(`${environment.apiUrl}/health`, {
+      const response = await fetch(`${this.appConfig.apiUrl}/health`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

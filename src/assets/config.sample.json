@@ -1,0 +1,10 @@
+{
+  "production": true,
+  "apiUrl": "https://your-api-host.example/api",
+  "signalRUrl": "https://your-api-host.example/documentRagHub",
+  "azureAd": {
+    "clientId": "your-app-registration-client-id",
+    "tenantId": "your-tenant-id",
+    "redirectUri": "https://your-spa-host.example"
+  }
+}

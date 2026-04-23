@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { AppConfigService } from '../config/app-config.service';
 
 export interface DocumentRagStatusUpdate {
   documentId: string;
@@ -18,7 +18,7 @@ export class SignalRService {
   private connectionStateSubject = new BehaviorSubject<HubConnectionState>(HubConnectionState.Disconnected);
   private documentRagStatusSubject = new BehaviorSubject<DocumentRagStatusUpdate | null>(null);
 
-  constructor() {}
+  constructor(private appConfig: AppConfigService) {}
 
   /**
    * Starts the SignalR connection
@@ -29,7 +29,7 @@ export class SignalRService {
     }
 
     this.hubConnection = new HubConnectionBuilder()
-      .withUrl(environment.signalRUrl)
+      .withUrl(this.appConfig.signalRUrl)
       .withAutomaticReconnect()
       .build();
 

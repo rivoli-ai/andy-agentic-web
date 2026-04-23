@@ -5,7 +5,7 @@ import { Agent, AgentExecutionResult, LLMProviderType } from '../../../models/ag
 import { AgentService } from '../../../core/services/agent.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { RoleService } from '../../../core/services/role.service';
-import { environment } from '../../../../environments/environment';
+import { AppConfigService } from '../../../core/config/app-config.service';
 
 @Component({
   standalone: false,
@@ -29,10 +29,11 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router,
+    public router: Router,
     private agentService: AgentService,
     private notificationService: NotificationService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private appConfig: AppConfigService
   ) {
     this.hasWritePermission = this.roleService.hasWritePermission();
   }
@@ -303,7 +304,7 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
     if (!this.agent) return '';
     const agentName = this.agent.name.toLowerCase().replace(/\s+/g, '_');
     // Origin of the API (strip trailing /api). MCP legacy transport is NOT under /api.
-    const baseUrl = environment.apiUrl.replace(/\/api\/?$/, '');
+    const baseUrl = this.appConfig.apiUrl.replace(/\/api\/?$/, '');
 
     return `// MCP Server Configuration
 // Add this to your MCP settings file (e.g. claude_desktop_config.json).
@@ -328,7 +329,7 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
 
   private getRestApiIntegrationCode(): string {
     if (!this.agent) return '';
-    const apiUrl = environment.apiUrl;
+    const apiUrl = this.appConfig.apiUrl;
     return `// REST API Integration (Server-Sent Events)
 // Stream responses from the agent in real-time
 

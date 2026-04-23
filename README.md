@@ -152,15 +152,11 @@ The `tailwind.config.js` file contains:
 - Dark mode support
 - Plugins for forms and typography
 
-### Environment Variables
-Create a `src/environments/environment.ts` file:
-```typescript
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:3000/api',
-  // Other configurations...
-};
-```
+### Runtime configuration (`assets/config.json`)
+Settings are loaded at startup from **`src/assets/config.json`** (served as `/assets/config.json`). Edit that file for local dev; for each deployment, replace it with the correct API base URL, SignalR hub URL, and Azure AD values.
+
+- See **`src/assets/config.sample.json`** for the expected shape.
+- Do not rely on Angular `environment.ts` file replacements—production and dev both use the same build; only `config.json` changes per environment.
 
 ## 🧪 Testing
 

@@ -3,7 +3,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { AppConfigService } from '../config/app-config.service';
 import { MsalService } from '@azure/msal-angular';
 
 export interface ChatMessage {
@@ -95,7 +95,12 @@ export interface ChatHistoryDto {
   providedIn: 'root'
 })
 export class ChatService {
-  constructor(private apiService: ApiService, private http: HttpClient, private msalService: MsalService) {}
+  constructor(
+    private apiService: ApiService,
+    private http: HttpClient,
+    private msalService: MsalService,
+    private appConfig: AppConfigService
+  ) {}
 
   // Get access token for API requests
   private async getAccessToken(): Promise<string | null> {
@@ -155,7 +160,7 @@ export class ChatService {
         }
 
         // Use fetch with proper authentication headers and abort signal
-        fetch(`${environment.apiUrl}/chat/stream`, {
+        fetch(`${this.appConfig.apiUrl}/chat/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

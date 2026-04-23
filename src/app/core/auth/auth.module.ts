@@ -11,15 +11,16 @@ import { AuthGuard } from './guards/auth.guard';
 import { LoginComponent } from './components/login/login.component';
 import { LogoutComponent } from './components/logout/logout.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
-import { environment } from '../../../environments/environment';
+import { AppConfigService } from '../config/app-config.service';
 
-// MSAL configuration
-export function MSALInstanceFactory(): IPublicClientApplication {
+// MSAL configuration (reads assets/config.json loaded in APP_INITIALIZER)
+export function MSALInstanceFactory(config: AppConfigService): IPublicClientApplication {
+  const ad = config.azureAd;
   return new PublicClientApplication({
     auth: {
-      clientId: environment.azureAd.clientId,
-      authority: `https://login.microsoftonline.com/${environment.azureAd.tenantId}`,
-      redirectUri: environment.azureAd.redirectUri
+      clientId: ad.clientId,
+      authority: `https://login.microsoftonline.com/${ad.tenantId}`,
+      redirectUri: ad.redirectUri
     },
     cache: {
       cacheLocation: 'localStorage',
@@ -47,7 +48,8 @@ export function MSALInstanceFactory(): IPublicClientApplication {
     AuthGuard,
     {
       provide: MSAL_INSTANCE,
-      useFactory: MSALInstanceFactory
+      useFactory: MSALInstanceFactory,
+      deps: [AppConfigService]
     },
     MsalService
   ],
