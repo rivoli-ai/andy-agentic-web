@@ -1,4 +1,4 @@
-import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { APP_INITIALIZER, Injector, NgModule } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -42,13 +42,16 @@ import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 import { AppConfigService } from './core/config/app-config.service';
 import { MsalService } from '@azure/msal-angular';
 
-export function initAppConfig(appConfig: AppConfigService): () => Promise<void> {
-  return () => appConfig.load();
-}
-
-/** MSAL must be initialized before any HTTP call that uses acquireTokenSilent (avoids internal errors on server builds). */
-export function initMsal(msal: MsalService): () => Promise<void> {
-  return () => firstValueFrom(msal.initialize());
+/**
+ * Load runtime config before anything touches AppConfigService (e.g. MSAL factory).
+ * Must not inject MsalService in APP_INITIALIZER deps: that constructs MSAL before config.load().
+ */
+export function initApplication(injector: Injector): () => Promise<void> {
+  return () =>
+    injector
+      .get(AppConfigService)
+      .load()
+      .then(() => firstValueFrom(injector.get(MsalService).initialize()));
 }
 
 @NgModule({
@@ -97,14 +100,8 @@ export function initMsal(msal: MsalService): () => Promise<void> {
     ThemeService,
     {
       provide: APP_INITIALIZER,
-      useFactory: initAppConfig,
-      deps: [AppConfigService],
-      multi: true
-    },
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initMsal,
-      deps: [MsalService],
+      useFactory: initApplication,
+      deps: [Injector],
       multi: true
     },
     {
