@@ -3,17 +3,13 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "sh -c 'PIDS=$(lsof -tiTCP:4200 -sTCP:LISTEN 2>/dev/null); [ -n \"$PIDS\" ] && kill -9 $PIDS 2>/dev/null || true; exec ng serve'",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --maxWorkers=50%",
-    "lint": "ng lint",
-    "format": "prettier --write \"src/**/*.{ts,html,css,scss,json,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,html,css,scss,json,md}\"",
-    "prepare": "husky install"
+    "test:watch": "jest --watch",
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
