@@ -302,10 +302,16 @@ export class AgentDetailComponent implements OnInit, OnDestroy {
   private getMcpIntegrationCode(): string {
     if (!this.agent) return '';
     const agentName = this.agent.name.toLowerCase().replace(/\s+/g, '_');
-    const baseUrl = environment.apiUrl.replace('/api', ''); // Remove /api suffix
-    
+    // Origin of the API (strip trailing /api). MCP legacy transport is NOT under /api.
+    const baseUrl = environment.apiUrl.replace(/\/api\/?$/, '');
+
     return `// MCP Server Configuration
-// Add this to your MCP settings file (e.g., claude_desktop_config.json)
+// Add this to your MCP settings file (e.g. claude_desktop_config.json).
+//
+// The "url" must reach the ASP.NET app that hosts MapMcp() — same host/port you use for the API
+// origin, but paths /sse and /message must be proxied to that app (not only /api).
+// Example: if the API is https://host:5001/api, use https://host:5001/sse below.
+// If you get 404 on /sse, enable legacy SSE on the server (EnableLegacySse) and fix reverse-proxy routes.
 
 {
   "mcpServers": {

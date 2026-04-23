@@ -54,6 +54,13 @@ interface ToolExecution {
   usedParameters?: Record<string, any>;
 }
 
+/** Tool chip in chat header: category + catalog name */
+interface ChatNavToolChip {
+  category: string;
+  name: string;
+  title: string;
+}
+
 @Component({
   standalone: false,
   selector: 'app-chatbot',
@@ -61,11 +68,15 @@ interface ToolExecution {
   styleUrls: ['./chatbot.component.css']
 })
 export class ChatbotComponent implements OnInit, OnDestroy {
+  private static readonly CHATBOT_PREFS_KEY = 'chatbot-preferences';
+
   @ViewChild('chatContainer') chatContainer!: ElementRef;
   @ViewChild('messageTextarea', { static: false }) messageTextarea!: ElementRef<HTMLTextAreaElement>;
   
   chatForm: FormGroup;
   selectedAgent: Agent | null = null;
+  /** Tools linked to the current agent (chat navbar): category + name. */
+  navToolChips: ChatNavToolChip[] = [];
   messages: ChatMessage[] = [];
   isLoading = false;
   isExecuting = false;
@@ -130,7 +141,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('ChatbotComponent: ngOnInit called');
-    
+    this.loadChatbotPreferences();
+
     this.subscription.add(
       this.themeService.currentTheme$.subscribe((theme: any) => {
         this.updateMermaidOptions(theme);
@@ -188,6 +200,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           console.log('ChatbotComponent: Agent loaded:', agent);
           if (agent) {
             this.selectedAgent = agent;
+            this.syncNavToolLabels(agent);
             this.chatForm.setValue({ 
               agentId: agent.id, 
               message: '' 
@@ -804,11 +817,69 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
   toggleToolExecutions(): void {
     this.showToolExecutions = !this.showToolExecutions;
+    this.persistShowToolExecutionsPreference();
+  }
+
+  private loadChatbotPreferences(): void {
+    try {
+      const raw = localStorage.getItem(ChatbotComponent.CHATBOT_PREFS_KEY);
+      if (!raw) return;
+      const prefs = JSON.parse(raw) as { showToolExecutions?: unknown };
+      if (typeof prefs.showToolExecutions === 'boolean') {
+        this.showToolExecutions = prefs.showToolExecutions;
+      }
+    } catch {
+      /* ignore invalid storage */
+    }
+  }
+
+  private persistShowToolExecutionsPreference(): void {
+    try {
+      let prefs: Record<string, unknown> = {};
+      const raw = localStorage.getItem(ChatbotComponent.CHATBOT_PREFS_KEY);
+      if (raw) {
+        try {
+          prefs = JSON.parse(raw) as Record<string, unknown>;
+        } catch {
+          prefs = {};
+        }
+      }
+      prefs['showToolExecutions'] = this.showToolExecutions;
+      localStorage.setItem(ChatbotComponent.CHATBOT_PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      /* ignore quota / private mode */
+    }
   }
 
   getAgentAvatar(agent: Agent): string {
     // Generate initials from agent name
     return agent.name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+  }
+
+  private syncNavToolLabels(agent: Agent): void {
+    if (!agent.tools?.length) {
+      this.navToolChips = [];
+      return;
+    }
+    const seen = new Set<string>();
+    this.navToolChips = agent.tools
+      .filter(t => t.isActive !== false)
+      .map(t => {
+        const name = (t.tool?.name || t.toolId || '').trim();
+        const category = (t.tool?.category || '').trim() || 'Uncategorized';
+        const title = `${category} · ${name}`;
+        const dedupeKey = (t.toolId || '').trim() || `${category}|${name}`;
+        return { category, name, title, dedupeKey };
+      })
+      .filter(x => x.name.length > 0)
+      .filter(x => {
+        if (seen.has(x.dedupeKey)) {
+          return false;
+        }
+        seen.add(x.dedupeKey);
+        return true;
+      })
+      .map(({ category, name, title }) => ({ category, name, title }));
   }
 
   getAvatarFromName(name: string): string {

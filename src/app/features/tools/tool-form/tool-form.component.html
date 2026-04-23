@@ -30,62 +30,32 @@
           Cancel
         </button>
         <button
+          type="button"
           (click)="onSubmit()"
-          [disabled]="toolForm.invalid"
+          [disabled]="toolForm.invalid || isSavingBulkMcp"
           class="btn-primary"
-          [class.opacity-50]="toolForm.invalid"
+          [class.opacity-50]="toolForm.invalid || isSavingBulkMcp"
         >
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
           </svg>
-          {{ isEditMode ? 'Update' : 'Create' }}
+          <span *ngIf="isSavingBulkMcp">Creating…</span>
+          <span *ngIf="!isSavingBulkMcp">{{ isEditMode ? 'Update' : (isMcpBulkCreateMode() ? ('Create ' + mcpBulkEnabledCreateCount + ' tools') : 'Create') }}</span>
         </button>
       </div>
     </div>
 
   <!-- Form -->
   <form [formGroup]="toolForm" (ngSubmit)="onSubmit()" class="space-y-8">
-             <!-- Basic Information -->
+    <!-- Basic Information (tool type first, then category & details) -->
     <div class="card">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+      <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        Start with <strong class="text-ink">tool type</strong>, then fill in the fields below (name, category, and details).
+      </p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <!-- Name -->
-        <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tool Name *
-          </label>
-          
-          <!-- Internal Tool Name Dropdown -->
-          <div *ngIf="showInternalToolFields()">
-            <select
-              id="internalToolName"
-              formControlName="internalToolName"
-              (change)="onInternalToolNameChange($any($event.target).value)"
-              class="input-field"
-            >
-              <option value="">Select an internal tool...</option>
-              <option *ngFor="let tool of internalToolNames" [value]="tool.value">
-                {{ tool.value }}
-              </option>
-            </select>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Predefined internal tools with specific functionality
-            </div>
-          </div>
-          
-          <!-- Regular Name Input for other tool types -->
-          <input
-            *ngIf="!showInternalToolFields()"
-            id="name"
-            type="text"
-            formControlName="name"
-            class="input-field"
-            placeholder="Ex: Data Processing API"
-          />
-        </div>
-
-        <!-- Type -->
-        <div>
+        <!-- Type (first: drives the rest of the form) -->
+        <div class="md:col-span-2">
           <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Tool Type *
           </label>
@@ -94,15 +64,91 @@
             formControlName="type"
             (change)="onToolTypeChange()"
             class="input-field"
+            [class.error]="isFieldInvalid('type')"
           >
             <option *ngFor="let type of toolTypes" [value]="type">
               {{ type | titlecase }}
             </option>
           </select>
+          <div *ngIf="isFieldInvalid('type')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+            {{ getFieldError('type') }}
+          </div>
         </div>
 
-        <!-- Description -->
-        <div class="md:col-span-2">
+        <!-- Tool name (right after type: catalog name or internal preset) -->
+        <div
+          *ngIf="showInternalToolFields() || (!showMcpFields() || isEditMode)"
+          class="md:col-span-2"
+        >
+          <div class="max-w-xl">
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              [attr.for]="showInternalToolFields() ? 'internalToolName' : 'name'"
+            >
+              <span *ngIf="showInternalToolFields()">Internal tool *</span>
+              <span *ngIf="!showInternalToolFields()">Tool name *</span>
+            </label>
+            <div *ngIf="showInternalToolFields()">
+              <select
+                id="internalToolName"
+                formControlName="internalToolName"
+                (change)="onInternalToolNameChange($any($event.target).value)"
+                class="input-field"
+                [class.error]="isFieldInvalid('internalToolName')"
+              >
+                <option value="">Select an internal tool...</option>
+                <option *ngFor="let tool of internalToolNames" [value]="tool.value">
+                  {{ tool.value }}
+                </option>
+              </select>
+              <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Predefined internal tools with specific functionality
+              </div>
+              <div *ngIf="isFieldInvalid('internalToolName')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+                {{ getFieldError('internalToolName') }}
+              </div>
+            </div>
+            <ng-container *ngIf="!showInternalToolFields()">
+              <input
+                id="name"
+                type="text"
+                formControlName="name"
+                class="input-field"
+                [class.error]="isFieldInvalid('name')"
+                placeholder="Ex: Data Processing API"
+              />
+              <div *ngIf="isFieldInvalid('name')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+                {{ getFieldError('name') }}
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Category (required; matches catalog grouping) -->
+        <div *ngIf="showCategoryField()">
+          <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Category *
+          </label>
+          <input
+            id="category"
+            type="text"
+            formControlName="category"
+            class="input-field"
+            [class.error]="isFieldInvalid('category')"
+            [attr.maxlength]="toolCategoryMaxLength"
+            placeholder="e.g. Communication, Data, Files"
+            autocomplete="off"
+          />
+          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {{ (toolForm.get('category')?.value || '').length }} / {{ toolCategoryMaxLength }} characters
+          </div>
+          <div *ngIf="isFieldInvalid('category')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+            {{ getFieldError('category') }}
+          </div>
+        </div>
+
+        <!-- Description: hidden for MCP create (per-tool descriptions below) -->
+        <div *ngIf="!showInternalToolFields() && (!showMcpFields() || isEditMode)" class="md:col-span-2">
           <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Description *
           </label>
@@ -111,8 +157,16 @@
             formControlName="description"
             rows="3"
             class="input-field"
+            [class.error]="isFieldInvalid('description')"
+            [attr.maxlength]="toolDescriptionMaxLength"
             placeholder="Describe the role and capabilities of your tool..."
           ></textarea>
+          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {{ (toolForm.get('description')?.value || '').length }} / {{ toolDescriptionMaxLength }}
+          </div>
+          <div *ngIf="isFieldInvalid('description')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+            {{ getFieldError('description') }}
+          </div>
         </div>
 
         <!-- Internal Tool Configuration Fields -->
@@ -142,7 +196,11 @@
                   formControlName="key"
                   placeholder="Key (e.g., apiUrl)"
                   class="input-field text-sm"
+                  [class.error]="isControlInvalid(field.get('key'))"
                 />
+                <div *ngIf="isControlInvalid(field.get('key'))" class="mt-1 text-xs text-error-600 dark:text-error-400">
+                  {{ getControlErrorMessage(field.get('key')) }}
+                </div>
               </div>
               <div class="flex-1">
                 <input
@@ -150,7 +208,11 @@
                   formControlName="value"
                   placeholder="Value (e.g., https://localhost)"
                   class="input-field text-sm"
+                  [class.error]="isControlInvalid(field.get('value'))"
                 />
+                <div *ngIf="isControlInvalid(field.get('value'))" class="mt-1 text-xs text-error-600 dark:text-error-400">
+                  {{ getControlErrorMessage(field.get('value')) }}
+                </div>
               </div>
               <button
                 type="button"
@@ -168,20 +230,6 @@
               No configuration fields. Click "Add Field" to add configuration (e.g., apiUrl for Export tool).
             </div>
           </div>
-        </div>
-
-        <!-- Category -->
-        <div *ngIf="showCategoryField()" class="md:col-span-2">
-          <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Category
-          </label>
-          <input
-            id="category"
-            type="text"
-            formControlName="category"
-            class="input-field"
-            placeholder="e.g., Communication, Data Processing, File Management"
-          />
         </div>
 
         <!-- Endpoint (for API and MCP tools) -->
@@ -225,26 +273,29 @@
           </div>
         </div>
 
-        <!-- MCP Name (for MCP type) -->
-        <div *ngIf="showMcpFields()">
-          <label for="mcpName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            MCP Name
+        <!-- JSON body for API (POST, PUT, PATCH, DELETE) -->
+        <div *ngIf="showApiRequestBodyField()" class="md:col-span-2">
+          <label for="apiRequestBody" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Request body (JSON, optional)
           </label>
-          <input
-            id="mcpName"
-            type="text"
-            formControlName="mcpName"
-            class="input-field"
-            [class.error]="isFieldInvalid('mcpName')"
-            placeholder="Optional name for the MCP connection"
-          />
-          <div *ngIf="isFieldInvalid('mcpName')" class="mt-1 text-sm text-error-600">
-            {{ getFieldError('mcpName') }}
-          </div>
-          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            💡 Optional identifier for the MCP connection
+          <textarea
+            id="apiRequestBody"
+            formControlName="apiRequestBody"
+            rows="8"
+            class="input-field font-mono text-sm"
+            [class.error]="isFieldInvalid('apiRequestBody')"
+            placeholder='e.g. { "name": "example", "count": 1 }'
+            spellcheck="false"
+          ></textarea>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Static JSON sent with the request. When the tool defines parameters, the model can override or add keys in this object (must be a JSON object for merging).
+          </p>
+          <div *ngIf="isFieldInvalid('apiRequestBody')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+            {{ getFieldError('apiRequestBody') }}
           </div>
         </div>
+
+        <!-- MCP: configuration.name (remote tool name) comes from discovery rows or existing config — not edited here -->
 
         <!-- Internal Tool Info -->
         <div *ngIf="showInternalToolFields()" class="md:col-span-2">
@@ -284,11 +335,10 @@
       </div>
     </div>
 
-    <!-- MCP Tool Selection (only for MCP tools) -->
+    <!-- MCP: discover once, then configure every tool (create mode) -->
     <div *ngIf="showMcpFields()" class="card">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">MCP Tool Selection</h2>
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">MCP tools from server</h2>
       <div class="space-y-4">
-        <!-- Loading State -->
         <div *ngIf="isDiscoveringMcpTools" class="flex items-center justify-center py-8">
           <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -296,7 +346,6 @@
           <span class="text-gray-600 dark:text-gray-400">Discovering tools from MCP server...</span>
         </div>
 
-        <!-- Error Message -->
         <div *ngIf="mcpDiscoveryError" class="bg-red-50 border border-red-200 rounded-md p-3">
           <div class="flex">
             <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,36 +355,122 @@
           </div>
         </div>
 
-        <!-- Tool Selection Dropdown -->
-        <div *ngIf="discoveredMcpTools.length > 0 && !isDiscoveringMcpTools">
-          <label for="mcpToolSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Select MCP Tool *
-          </label>
-          <select
-            id="mcpToolSelect"
-            (change)="onMcpToolSelected($any($event.target).value)"
-            class="input-field w-full"
-            style="max-width: 100%; overflow: hidden; text-overflow: ellipsis;"
+        <p *ngIf="!isEditMode && discoveredMcpTools.length > 0 && !isDiscoveringMcpTools" class="text-sm text-gray-600 dark:text-gray-400">
+          Each row is one tool registered in the catalog. Authentication and headers below apply to <strong>all</strong> of them. Uncheck a row to skip creating that tool.
+        </p>
+
+        <div *ngIf="!isEditMode && mcpBulkToolsArray.length > 0 && !isDiscoveringMcpTools" class="space-y-6" formArrayName="mcpBulkTools">
+          <div
+            *ngFor="let draftCtrl of mcpBulkToolsArray.controls; let ti = index"
+            [formGroupName]="ti"
+            class="rounded-xl border border-line-light bg-surface-hover/50 p-4 space-y-4"
           >
-            <option value="">Choose a tool...</option>
-            <option *ngFor="let tool of discoveredMcpTools" [value]="tool.name" [title]="tool.description">
-              {{ tool.name }}
-            </option>
-          </select>
-          
-          <!-- Selected Tool Info -->
-          <div *ngIf="selectedMcpTool" class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md">
-            <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">{{ selectedMcpTool.name }}</h4>
-            <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">{{ selectedMcpTool.description }}</p>
-            <div *ngIf="selectedMcpTool.inputSchema?.properties" class="mt-2">
-              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
-                {{ getObjectKeys(selectedMcpTool.inputSchema?.properties || {}).length }} parameters
-              </span>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-3 min-w-0">
+                <label class="flex items-center gap-2 text-sm font-medium text-ink shrink-0">
+                  <input type="checkbox" formControlName="enabled" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                  Include
+                </label>
+                <span class="text-xs text-ink-muted truncate" title="Name on the MCP server">MCP: <code class="text-ink">{{ draftCtrl.get('mcpToolName')?.value }}</code></span>
+              </div>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catalog name *</label>
+                <input
+                  type="text"
+                  formControlName="displayName"
+                  class="input-field"
+                  [class.error]="draftCtrl.get('displayName')?.invalid && draftCtrl.get('displayName')?.touched"
+                  placeholder="letters_numbers_only"
+                  title="Letters, numbers, and underscores only. Must be unique in your catalog."
+                  autocomplete="off"
+                />
+                <p class="mt-1 text-xs text-ink-muted">
+                  Use only <strong>letters</strong>, <strong>numbers</strong>, and <strong>underscores</strong>. Must be unique in your catalog (including tools already created).
+                </p>
+                <p
+                  *ngIf="draftCtrl.get('displayName')?.invalid && draftCtrl.get('displayName')?.touched"
+                  class="mt-1 text-xs text-error-600 dark:text-error-400 space-y-0.5"
+                >
+                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['required']">Catalog name is required.</span>
+                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['minlength']">At least 3 characters.</span>
+                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['maxlength']">At most 100 characters.</span>
+                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['pattern']">Only alphanumeric characters and underscores are allowed.</span>
+                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['nameTaken']">This name is already used—pick another or uncheck if the tool already exists.</span>
+                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['duplicateInBatch']">Another enabled row uses this name.</span>
+                </p>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description *</label>
+                <textarea
+                  formControlName="description"
+                  rows="2"
+                  class="input-field"
+                  [class.error]="draftCtrl.get('description')?.invalid && draftCtrl.get('description')?.touched"
+                  [attr.maxlength]="toolDescriptionMaxLength"
+                  placeholder="What this tool does"
+                ></textarea>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ (draftCtrl.get('description')?.value || '').length }} / {{ toolDescriptionMaxLength }}
+                </div>
+                <p
+                  *ngIf="draftCtrl.get('description')?.invalid && draftCtrl.get('description')?.touched"
+                  class="mt-1 text-xs text-error-600 dark:text-error-400 space-y-0.5"
+                >
+                  <span *ngIf="draftCtrl.get('description')?.errors?.['required']">Description is required.</span>
+                  <span *ngIf="draftCtrl.get('description')?.errors?.['minlength'] as me"
+                    >At least {{ me.requiredLength }} characters.</span
+                  >
+                  <span *ngIf="draftCtrl.get('description')?.errors?.['maxlength'] as xe"
+                    >At most {{ xe.requiredLength }} characters (API limit).</span
+                  >
+                </p>
+              </div>
+            </div>
+            <div *ngIf="getMcpBulkParametersArray(ti).length > 0" formArrayName="parameters">
+              <h3 class="text-sm font-semibold text-ink mb-2">Parameters</h3>
+              <div class="space-y-3">
+                <div
+                  *ngFor="let p of getMcpBulkParametersArray(ti).controls; let pi = index"
+                  [formGroupName]="pi"
+                  class="border border-line-light rounded-lg p-3 bg-surface-card"
+                >
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-ink-muted mb-1">Name</label>
+                      <input [formControl]="getMcpBulkParameterName(ti, pi)" class="input-field text-sm" readonly />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-ink-muted mb-1">Type</label>
+                      <select [formControl]="getMcpBulkParameterType(ti, pi)" class="input-field text-sm">
+                        <option value="string">String</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="object">Object</option>
+                        <option value="array">Array</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-ink-muted mb-1">Default</label>
+                      <input [formControl]="getMcpBulkParameterDefault(ti, pi)" class="input-field text-sm" placeholder="Default value" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-ink-muted mb-1">Description</label>
+                      <input [formControl]="getMcpBulkParameterDescription(ti, pi)" class="input-field text-sm" />
+                    </div>
+                  </div>
+                  <label class="mt-2 flex items-center gap-2 text-xs text-ink-secondary">
+                    <input type="checkbox" [formControl]="getMcpBulkParameterRequired(ti, pi)" class="rounded border-gray-300 text-primary-600" />
+                    Required
+                  </label>
+                </div>
+              </div>
+            </div>
+            <p *ngIf="getMcpBulkParametersArray(ti).length === 0" class="text-xs text-ink-muted">No parameters for this tool.</p>
           </div>
         </div>
 
-        <!-- No Tools Found -->
         <div *ngIf="discoveredMcpTools.length === 0 && !isDiscoveringMcpTools && !mcpDiscoveryError" class="text-center py-8">
           <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -359,6 +494,7 @@
              formControlName="authType"
              (change)="onAuthenticationTypeChange()"
              class="input-field"
+             [class.error]="isFieldInvalid('authType')"
            >
             <option *ngFor="let authType of authenticationTypes" [value]="authType">
               {{ authType === 'none' ? 'None' : 
@@ -369,6 +505,9 @@
                  authType === 'azure_oauth2' ? 'Azure OAuth2' : authType }}
             </option>
            </select>
+           <div *ngIf="isFieldInvalid('authType')" class="mt-1 text-sm text-error-600 dark:text-error-400">
+             {{ getFieldError('authType') }}
+           </div>
          </div>
 
          <!-- Authentication Required -->
@@ -633,7 +772,11 @@
                 [formControl]="getHeaderName(i)"
                 placeholder="Ex: Content-Type"
                 class="input-field"
+                [class.error]="isControlInvalid(getHeaderName(i))"
               />
+              <div *ngIf="isControlInvalid(getHeaderName(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
+                {{ getControlErrorMessage(getHeaderName(i)) }}
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -643,7 +786,11 @@
                 [formControl]="getHeaderValue(i)"
                 placeholder="Ex: application/json"
                 class="input-field"
+                [class.error]="isControlInvalid(getHeaderValue(i))"
               />
+              <div *ngIf="isControlInvalid(getHeaderValue(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
+                {{ getControlErrorMessage(getHeaderValue(i)) }}
+              </div>
             </div>
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -681,8 +828,8 @@
       </div>
     </div>
 
-    <!-- Paramètres (not for Internal tools) -->
-    <div *ngIf="!showInternalToolFields()" class="card">
+    <!-- Paramètres (API tools, or MCP edit — not MCP bulk create) -->
+    <div *ngIf="!showInternalToolFields() && !isMcpBulkCreateMode()" class="card">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Parameters</h2>
         <button
@@ -724,7 +871,11 @@
                 [formControl]="getParameterName(i)"
                 placeholder="Ex: query"
                 class="input-field"
+                [class.error]="isControlInvalid(getParameterName(i))"
               />
+              <div *ngIf="isControlInvalid(getParameterName(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
+                {{ getControlErrorMessage(getParameterName(i)) }}
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -733,6 +884,7 @@
               <select
                 [formControl]="getParameterType(i)"
                 class="input-field"
+                [class.error]="isControlInvalid(getParameterType(i))"
               >
                 <option value="string">String</option>
                 <option value="number">Number</option>
@@ -740,6 +892,9 @@
                 <option value="object">Object</option>
                 <option value="array">Array</option>
               </select>
+              <div *ngIf="isControlInvalid(getParameterType(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
+                {{ getControlErrorMessage(getParameterType(i)) }}
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

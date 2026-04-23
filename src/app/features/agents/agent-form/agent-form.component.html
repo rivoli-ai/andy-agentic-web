@@ -452,30 +452,97 @@
             </button>
           </div>
 
-          <!-- Tool Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <!-- Tool Selection (searchable) -->
+          <div class="relative">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" [attr.for]="'agent-tool-search-' + i">
               Select an existing tool *
             </label>
-            <select
-              [formControl]="getToolToolId(i)"
-              (change)="onToolSelectChange($event, i)"
-              class="input-field"
-              [class.border-red-300]="getToolToolId(i).invalid && getToolToolId(i).touched"
+            <div
+              *ngIf="getResolvedToolForRow(i) as picked"
+              class="mb-2 flex flex-wrap items-center gap-2"
             >
-              <option 
-                *ngFor="let tool of availableTools; trackBy: trackByToolId" 
-                [value]="tool.id"
-                [selected]="getToolToolId(i).value === tool.id"
+              <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Selected</span>
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-normal text-ink-secondary bg-surface-hover border border-line-light"
               >
-                {{ tool.name }} ({{ tool.category || 'General' }})
-              </option>
-            </select>
-            
-            <!-- Debug info (remove in production) -->
-            <small class="text-gray-500 text-xs mt-1">
-              Current value {{i}}: {{ getToolToolId(i).value }}
-            </small>
+                {{ formatToolCategory(picked.category) }}
+              </span>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ picked.name }}</span>
+            </div>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input
+                  type="text"
+                  class="input-field w-full pr-9"
+                  [id]="'agent-tool-search-' + i"
+                  [ngModel]="getToolPickerValue(i)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setToolPickerValue(i, $event)"
+                  (focus)="onToolPickerFocus(i)"
+                  (blur)="onToolPickerBlur(i)"
+                  [placeholder]="
+                    getResolvedToolForRow(i)
+                      ? 'Filter or pick another tool…'
+                      : 'Filter by category, name, or description…'
+                  "
+                  autocomplete="off"
+                  [class.border-red-300]="getToolToolId(i).invalid && getToolToolId(i).touched"
+                />
+                <button
+                  type="button"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  (mousedown)="clearToolPickerRow(i, $event)"
+                  title="Clear selection"
+                  aria-label="Clear tool selection"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+                <ul
+                  *ngIf="toolPickerOpen[i] && availableTools.length > 0"
+                  class="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg py-1"
+                  role="listbox"
+                >
+                  <li
+                    *ngFor="let tool of getFilteredToolsForPicker(i); trackBy: trackByToolId"
+                    role="option"
+                    class="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                    (mousedown)="pickToolForRow(tool, i, $event)"
+                  >
+                    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span
+                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide text-ink-secondary bg-surface-hover border border-line-light shrink-0"
+                      >
+                        {{ formatToolCategory(tool.category) }}
+                      </span>
+                      <span class="text-sm font-medium text-gray-900 dark:text-white">{{ tool.name }}</span>
+                    </div>
+                    <p *ngIf="tool.description" class="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                      {{ tool.description }}
+                    </p>
+                    <p *ngIf="!tool.description" class="mt-1 text-xs text-gray-400 dark:text-gray-500 italic">No description</p>
+                  </li>
+                  <li *ngIf="getFilteredToolsForPicker(i).length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    No tools match your search.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <p *ngIf="availableTools.length === 0" class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              No tools available in the catalog. Create tools first.
+            </p>
+            <!-- Keep toolId bound for validation (hidden from layout) -->
+            <input type="hidden" [formControl]="getToolToolId(i)" />
+          </div>
+
+          <!-- Selected tool description -->
+          <div
+            *ngIf="getSelectedToolForRow(i) as sel"
+            class="mt-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 px-3 py-2"
+          >
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Description</p>
+            <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{{ sel.description || '—' }}</p>
           </div>
 
           <!-- Tool Status -->

@@ -51,6 +51,10 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   isLoadingTools = false;
   isLoadingLLMConfigs = false;
   isLoadingTags = false;
+
+  /** Per tool-row: search text while typing in tool picker (undefined = show form selection) */
+  toolPickerDraft: Record<number, string> = {};
+  toolPickerOpen: Record<number, boolean> = {};
   
   private subscription = new Subscription();
 
@@ -527,6 +531,129 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     return (this.toolsArray.at(index) as FormGroup).get('toolId') as FormControl;
   }
 
+  formatToolCategory(category?: string | null): string {
+    const s = (category || '').trim();
+    return s || 'Uncategorized';
+  }
+
+  getToolDisplayLine(tool: Tool): string {
+    return `${this.formatToolCategory(tool.category)} · ${tool.name}`;
+  }
+
+  private toolIdsEqual(a: unknown, b: unknown): boolean {
+    if (a == null || b == null) {
+      return false;
+    }
+    return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+  }
+
+  /**
+   * Prefer catalog list; fall back to embedded `tool` on the row (edit mode / id format mismatch).
+   */
+  getResolvedToolForRow(rowIndex: number): Tool | null {
+    const id = this.getToolToolId(rowIndex).value;
+    if (id == null || String(id).trim() === '') {
+      return null;
+    }
+    const fromList = this.availableTools.find(t => this.toolIdsEqual(t.id, id));
+    if (fromList) {
+      return fromList;
+    }
+    const embedded = this.getToolGroup(rowIndex).get('tool')?.value as Tool | null | undefined;
+    if (embedded && this.toolIdsEqual(embedded.id, id)) {
+      return embedded;
+    }
+    return null;
+  }
+
+  getToolPickerValue(rowIndex: number): string {
+    if (this.toolPickerDraft[rowIndex] !== undefined) {
+      return this.toolPickerDraft[rowIndex];
+    }
+    const t = this.getResolvedToolForRow(rowIndex);
+    return t ? this.getToolDisplayLine(t) : '';
+  }
+
+  setToolPickerValue(rowIndex: number, value: string): void {
+    this.toolPickerDraft[rowIndex] = value;
+    this.toolPickerOpen[rowIndex] = true;
+  }
+
+  onToolPickerFocus(rowIndex: number): void {
+    this.toolPickerOpen[rowIndex] = true;
+  }
+
+  onToolPickerBlur(rowIndex: number): void {
+    setTimeout(() => {
+      this.toolPickerOpen[rowIndex] = false;
+      delete this.toolPickerDraft[rowIndex];
+      this.cdr.markForCheck();
+    }, 200);
+  }
+
+  getFilteredToolsForPicker(rowIndex: number): Tool[] {
+    const raw = this.toolPickerDraft[rowIndex];
+    const q = (raw ?? '').trim().toLowerCase();
+    let list = [...this.availableTools];
+    if (q) {
+      list = list.filter(
+        t =>
+          t.name.toLowerCase().includes(q) ||
+          (t.category || '').toLowerCase().includes(q) ||
+          (t.description || '').toLowerCase().includes(q)
+      );
+    }
+    list.sort((a, b) => {
+      const ca = (a.category || '').trim().toLowerCase() || '\uffff';
+      const cb = (b.category || '').trim().toLowerCase() || '\uffff';
+      if (ca !== cb) {
+        return ca.localeCompare(cb);
+      }
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+    return list;
+  }
+
+  pickToolForRow(tool: Tool, rowIndex: number, event?: Event): void {
+    event?.preventDefault();
+    delete this.toolPickerDraft[rowIndex];
+    this.toolPickerOpen[rowIndex] = false;
+    this.onToolSelect(tool.id, rowIndex);
+    this.getToolToolId(rowIndex).markAsTouched();
+  }
+
+  clearToolPickerRow(rowIndex: number, event?: Event): void {
+    event?.stopPropagation();
+    delete this.toolPickerDraft[rowIndex];
+    this.toolPickerOpen[rowIndex] = false;
+    this.resetToolFields(rowIndex);
+    this.getToolToolId(rowIndex).markAsTouched();
+  }
+
+  getSelectedToolForRow(rowIndex: number): Tool | null {
+    return this.getResolvedToolForRow(rowIndex);
+  }
+
+  private shiftPickerStateAfterRemove(removedIndex: number): void {
+    const shift = <T>(src: Record<number, T>): Record<number, T> => {
+      const out: Record<number, T> = {};
+      Object.keys(src).forEach(k => {
+        const idx = Number(k);
+        if (Number.isNaN(idx)) {
+          return;
+        }
+        if (idx < removedIndex) {
+          out[idx] = src[idx];
+        } else if (idx > removedIndex) {
+          out[idx - 1] = src[idx];
+        }
+      });
+      return out;
+    };
+    this.toolPickerDraft = shift(this.toolPickerDraft);
+    this.toolPickerOpen = shift(this.toolPickerOpen);
+  }
+
 
   getToolIsActive(index: number): FormControl { 
     const control = this.getToolGroup(index)?.get('isActive');
@@ -651,15 +778,6 @@ export class AgentFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  onToolSelectChange(event: Event, toolIndex: number): void {
-    const target = event.target as HTMLSelectElement;
-    if (target && target.value) {
-      this.onToolSelect(target.value, toolIndex);
-    } else {
-      this.resetToolFields(toolIndex);
-    }
-  }
-
   private resetToolFields(toolIndex: number): void {
     const toolGroup = this.toolsArray.at(toolIndex);
     toolGroup.patchValue({
@@ -681,6 +799,7 @@ export class AgentFormComponent implements OnInit, OnDestroy {
   }
 
   removeTool(index: number): void {
+    this.shiftPickerStateAfterRemove(index);
     this.toolsArray.removeAt(index);
   }
 

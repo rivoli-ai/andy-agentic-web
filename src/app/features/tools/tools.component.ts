@@ -24,13 +24,13 @@ export class ToolsComponent implements OnInit, OnDestroy {
   selectedType = '';
   selectedStatus = '';
   
-  // View and sorting options
-  viewMode: 'grid' | 'list' = 'grid';
-  sortBy: 'name' | 'createdAt' | 'updatedAt' | 'type' = 'updatedAt';
+  // View and sorting options (defaults; `tools-preferences` in localStorage may override)
+  viewMode: 'grid' | 'list' = 'list';
+  sortBy: 'name' | 'createdAt' | 'updatedAt' | 'type' | 'category' = 'updatedAt';
   sortOrder: 'asc' | 'desc' = 'desc';
   
-  // Grouping
-  groupByType = false;
+  /** `none` = flat list; `type` / `category` = grouped headers */
+  groupByMode: 'none' | 'type' | 'category' = 'category';
   groupedTools = new Map<string, Tool[]>();
   collapsedGroups = new Set<string>();
   
@@ -74,13 +74,15 @@ export class ToolsComponent implements OnInit, OnDestroy {
           this.viewMode = prefs.viewMode;
         }
         
-        // Load grouping preference
-        if (typeof prefs.groupByType === 'boolean') {
-          this.groupByType = prefs.groupByType;
+        // Load grouping preference (migrate legacy groupByType)
+        if (prefs.groupByMode && ['none', 'type', 'category'].includes(prefs.groupByMode)) {
+          this.groupByMode = prefs.groupByMode;
+        } else if (typeof prefs.groupByType === 'boolean') {
+          this.groupByMode = prefs.groupByType ? 'type' : 'none';
         }
         
         // Load sort preferences
-        if (prefs.sortBy && ['name', 'createdAt', 'updatedAt', 'type'].includes(prefs.sortBy)) {
+        if (prefs.sortBy && ['name', 'createdAt', 'updatedAt', 'type', 'category'].includes(prefs.sortBy)) {
           this.sortBy = prefs.sortBy;
         }
         
@@ -115,7 +117,7 @@ export class ToolsComponent implements OnInit, OnDestroy {
     try {
       const preferences = {
         viewMode: this.viewMode,
-        groupByType: this.groupByType,
+        groupByMode: this.groupByMode,
         sortBy: this.sortBy,
         sortOrder: this.sortOrder,
         selectedType: this.selectedType,
@@ -178,7 +180,7 @@ export class ToolsComponent implements OnInit, OnDestroy {
     this.savePreferences();
   }
 
-  onSortChange(sortBy: 'name' | 'createdAt' | 'updatedAt' | 'type'): void {
+  onSortChange(sortBy: 'name' | 'createdAt' | 'updatedAt' | 'type' | 'category'): void {
     if (this.sortBy === sortBy) {
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
@@ -195,8 +197,7 @@ export class ToolsComponent implements OnInit, OnDestroy {
     this.savePreferences();
   }
 
-  toggleGrouping(): void {
-    this.groupByType = !this.groupByType;
+  onGroupByModeChange(): void {
     this.applyFilters();
     this.savePreferences();
   }
@@ -218,7 +219,8 @@ export class ToolsComponent implements OnInit, OnDestroy {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(tool =>
         tool.name.toLowerCase().includes(query) ||
-        tool.description.toLowerCase().includes(query)
+        tool.description.toLowerCase().includes(query) ||
+        this.formatCategoryDisplay(tool.category).toLowerCase().includes(query)
       );
     }
 
@@ -255,6 +257,10 @@ export class ToolsComponent implements OnInit, OnDestroy {
           aValue = a.type.toLowerCase();
           bValue = b.type.toLowerCase();
           break;
+        case 'category':
+          aValue = this.formatCategoryDisplay(a.category).toLowerCase();
+          bValue = this.formatCategoryDisplay(b.category).toLowerCase();
+          break;
         default:
           return 0;
       }
@@ -270,10 +276,8 @@ export class ToolsComponent implements OnInit, OnDestroy {
 
     this.filteredTools = filtered;
 
-    // Group tools by type if grouping is enabled
-    if (this.groupByType) {
-      this.groupedTools.clear();
-      
+    this.groupedTools.clear();
+    if (this.groupByMode === 'type') {
       filtered.forEach(tool => {
         const typeKey = tool.type || 'Unknown';
         if (!this.groupedTools.has(typeKey)) {
@@ -281,14 +285,61 @@ export class ToolsComponent implements OnInit, OnDestroy {
         }
         this.groupedTools.get(typeKey)!.push(tool);
       });
-      
-      // Sort groups by type name
       const sortedGroups = new Map<string, Tool[]>();
-      Array.from(this.groupedTools.keys()).sort().forEach(key => {
-        sortedGroups.set(key, this.groupedTools.get(key)!);
+      Array.from(this.groupedTools.keys())
+        .sort()
+        .forEach(key => sortedGroups.set(key, this.groupedTools.get(key)!));
+      this.groupedTools = sortedGroups;
+    } else if (this.groupByMode === 'category') {
+      filtered.forEach(tool => {
+        const catKey = this.categoryGroupKey(tool.category);
+        if (!this.groupedTools.has(catKey)) {
+          this.groupedTools.set(catKey, []);
+        }
+        this.groupedTools.get(catKey)!.push(tool);
       });
+      const sortedGroups = new Map<string, Tool[]>();
+      const keys = Array.from(this.groupedTools.keys()).sort((a, b) => {
+        if (a === 'Uncategorized') {
+          return 1;
+        }
+        if (b === 'Uncategorized') {
+          return -1;
+        }
+        return a.localeCompare(b, undefined, { sensitivity: 'base' });
+      });
+      keys.forEach(key => sortedGroups.set(key, this.groupedTools.get(key)!));
       this.groupedTools = sortedGroups;
     }
+  }
+
+  formatCategoryDisplay(category?: string | null): string {
+    const s = (category || '').trim();
+    return s || 'Uncategorized';
+  }
+
+  private categoryGroupKey(category?: string | null): string {
+    const s = (category || '').trim();
+    return s || 'Uncategorized';
+  }
+
+  groupHeaderDotColor(groupKey: string): string {
+    if (this.groupByMode === 'type') {
+      return this.getTypeColor(groupKey);
+    }
+    return this.getCategoryGroupColor(groupKey);
+  }
+
+  private getCategoryGroupColor(label: string): string {
+    if (label === 'Uncategorized') {
+      return '#9ca3af';
+    }
+    let h = 0;
+    for (let i = 0; i < label.length; i++) {
+      h = (h * 31 + label.charCodeAt(i)) >>> 0;
+    }
+    const hue = h % 360;
+    return `hsl(${hue}, 42%, 48%)`;
   }
 
   createNewTool(): void {

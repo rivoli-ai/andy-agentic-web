@@ -21,12 +21,13 @@ export class AgentsComponent implements OnInit, OnDestroy {
   selectedTag = '';
   agentTypes = Object.values(AgentType);
   isLoading = true;
-  viewMode: 'grid' | 'list' = 'grid';
+  /** Default: table (list) with groups by tag; localStorage `agents-preferences` may override. */
+  viewMode: 'grid' | 'list' = 'list';
   sortBy: 'name' | 'createdAt' | 'updatedAt' | 'executionCount' = 'updatedAt';
   sortOrder: 'asc' | 'desc' = 'desc';
   
   // Grouping
-  groupByTags = false;
+  groupByTags = true;
   groupedAgents = new Map<string, Agent[]>();
   collapsedGroups = new Set<string>();
   
@@ -372,8 +373,8 @@ export class AgentsComponent implements OnInit, OnDestroy {
     this.savePreferences();
   }
 
-  viewAgent(agentId: string): void {
-    this.router.navigate(['/agents', agentId]);
+  navigateToChat(agentId: string): void {
+    this.router.navigate(['/chatbot', agentId]);
   }
 
   duplicateAgent(agentId: string, event?: Event): void {

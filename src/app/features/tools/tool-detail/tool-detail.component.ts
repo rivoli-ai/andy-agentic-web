@@ -60,6 +60,11 @@ export class ToolDetailComponent implements OnInit, OnDestroy {
     );
   }
 
+  formatCategoryDisplay(category?: string | null): string {
+    const s = (category || '').trim();
+    return s || 'Uncategorized';
+  }
+
   goBack(): void {
     this.router.navigate(['/tools']);
   }

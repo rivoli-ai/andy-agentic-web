@@ -54,7 +54,9 @@
 }
 
 .content-area.chatbot-route {
-  padding: 0;
+  /* Inset from shell like other routes; inner chat still uses flex + min-h-0 for scroll */
+  padding: var(--space-8);
+  box-sizing: border-box;
   height: 100%;
   overflow: hidden;
   display: flex;
@@ -82,6 +84,12 @@
   }
 
   .content-area {
+    padding: var(--space-4);
+    padding-left: max(var(--space-4), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-4), env(safe-area-inset-right, 0px));
+  }
+
+  .content-area.chatbot-route {
     padding: var(--space-4);
     padding-left: max(var(--space-4), env(safe-area-inset-left, 0px));
     padding-right: max(var(--space-4), env(safe-area-inset-right, 0px));

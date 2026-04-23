@@ -144,12 +144,12 @@ export class AppComponent implements OnInit, OnDestroy {
     // Redirect callbacks are handled automatically by the auth service initialization
     // No need to call handleRedirectCallback separately
 
-    // Listen to route changes to detect chatbot route
+    // Chat uses full-height shell (no content-area padding). Match /chatbot and /chatbot/:agentId.
+    this.syncChatbotRouteFromUrl(this.router.url);
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event) => {
-      const navigationEvent = event as NavigationEnd;
-      this.isChatbotRoute = navigationEvent.urlAfterRedirects === '/chatbot' || navigationEvent.urlAfterRedirects.startsWith('/chatbot?');
+      this.syncChatbotRouteFromUrl((event as NavigationEnd).urlAfterRedirects);
     });
 
     this.checkScreenSize();
@@ -160,6 +160,11 @@ export class AppComponent implements OnInit, OnDestroy {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => this.checkScreenSize(), 150);
     });
+  }
+
+  private syncChatbotRouteFromUrl(url: string): void {
+    const path = url.split('?')[0].split('#')[0];
+    this.isChatbotRoute = path === '/chatbot' || path.startsWith('/chatbot/');
   }
 
   toggleSidebar(): void {

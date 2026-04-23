@@ -140,23 +140,51 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Sessions sidebar — design tokens + soft brand tint (reads vs main chat, not loud) */
+.chat-sidebar {
+  border-right: 1px solid var(--sidebar-border);
+  background: color-mix(in srgb, var(--brand-primary) 5%, var(--surface-ground));
+}
+
+.dark .chat-sidebar {
+  background: color-mix(in srgb, var(--brand-primary) 9%, var(--surface-card));
+}
+
+.chat-sidebar__header,
+.chat-sidebar__agent {
+  border-bottom: 1px solid var(--sidebar-border);
+  background: var(--surface-card);
+}
+
+.dark .chat-sidebar__header,
+.dark .chat-sidebar__agent {
+  background: var(--surface-elevated);
+}
+
+.chat-sidebar__toggle:hover {
+  color: var(--text-primary);
+  background: var(--sidebar-item-hover);
+}
+
+.chat-sidebar__session-desc {
+  background: color-mix(in srgb, var(--brand-primary) 7%, var(--surface-card));
+}
+
+.dark .chat-sidebar__session-desc {
+  background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface-elevated));
+}
+
 /* Session item hover effects */
 .session-item {
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.15s ease;
 }
 
-.session-item:hover {
-  transform: translateX(2px);
+.chat-sidebar .session-item:hover {
+  background: var(--sidebar-item-hover) !important;
 }
 
-.session-item.current-session {
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-}
-
-/* Dark mode session highlighting */
-.dark .session-item.current-session {
-  background-color: rgba(30, 58, 138, 0.2) !important;
-  border-color: rgb(29, 78, 216) !important;
+.dark .chat-sidebar .session-item:hover {
+  background: var(--sidebar-item-hover) !important;
 }
 
 /* Line clamp for session descriptions */
@@ -785,10 +813,13 @@ code[class*="language-"] {
   }
 }
 
-/* Current session highlighting */
-.current-session {
-  border-left: 4px solid #3b82f6;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
+.chat-sidebar .current-session {
+  border-left: 3px solid var(--brand-primary);
+  background: var(--sidebar-item-active) !important;
+}
+
+.dark .chat-sidebar .current-session {
+  border-left-color: var(--brand-secondary);
 }
 
 /* Custom scrollbar */

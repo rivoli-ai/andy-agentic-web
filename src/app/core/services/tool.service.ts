@@ -145,9 +145,9 @@ export class ToolService {
 
     return this.apiService.post<ToolDto>('/tools', dto).pipe(
       map(responseDto => this.mapToolDto(responseDto)),
-      catchError(error => {
+      catchError((error: unknown) => {
         console.error('Error creating tool:', error);
-        return throwError(() => new Error('Failed to create tool'));
+        return throwError(() => error);
       })
     );
   }
