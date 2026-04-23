@@ -1,29 +1,70 @@
-import { TestBed } from '@angular/core/testing';
+/* eslint-env jest */
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { of } from 'rxjs';
 import { AppComponent } from './app.component';
+import { AuthService } from './core/auth/services/auth.service';
+import { AppConfigService } from './core/config/app-config.service';
+import { ApiStatusService } from './core/services/api-status.service';
+import { ThemeService } from './core/services/theme.service';
 
 describe('AppComponent', () => {
-  beforeEach(() => TestBed.configureTestingModule({
-    imports: [RouterTestingModule],
-    declarations: [AppComponent]
-  }));
+  let fixture: ComponentFixture<AppComponent>;
+
+  beforeEach(async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    } as Response);
+
+    await TestBed.configureTestingModule({
+      imports: [RouterTestingModule],
+      declarations: [AppComponent],
+      schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        {
+          provide: ThemeService,
+          useValue: {
+            setTheme: jest.fn(),
+            getCurrentTheme: () => 'light' as const,
+            currentTheme$: of('light' as const),
+          },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser$: of(null),
+            isLoggingOut$: of(false),
+            isAuthLoading$: of(false),
+            logout: jest.fn().mockResolvedValue(undefined),
+            resetLogoutState: jest.fn(),
+          },
+        },
+        {
+          provide: ApiStatusService,
+          useValue: {
+            status$: of({
+              isOnline: false,
+              lastCheck: new Date(),
+              consecutiveFailures: 0,
+              isMaintenanceMode: false,
+            }),
+            forceRetry: jest.fn(),
+          },
+        },
+        { provide: AppConfigService, useValue: { apiUrl: 'http://localhost:5000' } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AppComponent);
+  });
 
   it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it(`should have as title 'agentic-app'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('agentic-app');
-  });
-
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('agentic-app app is running!');
+  it(`should have title 'Agentic'`, () => {
+    expect(fixture.componentInstance.title).toBe('Agentic');
   });
 });

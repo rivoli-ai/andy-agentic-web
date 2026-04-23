@@ -5,6 +5,7 @@
   "azureAd": {
     "clientId": "your-app-registration-client-id",
     "tenantId": "your-tenant-id",
-    "redirectUri": "https://your-spa-host.example"
+    "redirectUri": "https://your-spa-host.example",
+    "scope": "api://your-api-app-id/Api.Access"
   }
 }

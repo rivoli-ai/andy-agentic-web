@@ -3,10 +3,14 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/c
 import { Observable, from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { MsalService } from '@azure/msal-angular';
+import { AppConfigService } from '../config/app-config.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  constructor(private msalService: MsalService) {}
+  constructor(
+    private msalService: MsalService,
+    private appConfig: AppConfigService
+  ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Only add token to API requests
@@ -61,7 +65,7 @@ export class AuthInterceptor implements HttpInterceptor {
       }
 
       const tokenRequest = {
-        scopes: ['api://andy-back/Api.Access'],
+        scopes: [this.appConfig.azureAd.scope],
         account: account
       };
 

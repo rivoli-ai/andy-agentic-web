@@ -3,6 +3,8 @@ export interface AzureAdConfig {
   clientId: string;
   tenantId: string;
   redirectUri: string;
+  /** Backend API scope for acquireTokenSilent (e.g. api://{app-id}/Api.Access). */
+  scope: string;
 }
 
 export interface AppConfig {

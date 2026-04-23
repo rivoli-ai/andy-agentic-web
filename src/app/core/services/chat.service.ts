@@ -120,7 +120,7 @@ export class ChatService {
       }
 
       const tokenRequest = {
-        scopes: ['api://andy-back/Api.Access'],
+        scopes: [this.appConfig.azureAd.scope],
         account: account
       };
 
