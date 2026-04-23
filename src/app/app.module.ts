@@ -1,4 +1,5 @@
 import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -39,9 +40,15 @@ import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { highlight } from 'prismjs';
 import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 import { AppConfigService } from './core/config/app-config.service';
+import { MsalService } from '@azure/msal-angular';
 
 export function initAppConfig(appConfig: AppConfigService): () => Promise<void> {
   return () => appConfig.load();
+}
+
+/** MSAL must be initialized before any HTTP call that uses acquireTokenSilent (avoids internal errors on server builds). */
+export function initMsal(msal: MsalService): () => Promise<void> {
+  return () => firstValueFrom(msal.initialize());
 }
 
 @NgModule({
@@ -92,6 +99,12 @@ export function initAppConfig(appConfig: AppConfigService): () => Promise<void> 
       provide: APP_INITIALIZER,
       useFactory: initAppConfig,
       deps: [AppConfigService],
+      multi: true
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initMsal,
+      deps: [MsalService],
       multi: true
     },
     {

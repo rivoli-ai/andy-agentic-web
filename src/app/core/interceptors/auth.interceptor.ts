@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
-import { Observable, from } from 'rxjs';
+import { Observable, from, firstValueFrom } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { MsalService } from '@azure/msal-angular';
 import { AppConfigService } from '../config/app-config.service';
@@ -70,7 +70,7 @@ export class AuthInterceptor implements HttpInterceptor {
       };
 
       console.log('AuthInterceptor: Requesting token with scopes:', tokenRequest.scopes);
-      const response = await this.msalService.acquireTokenSilent(tokenRequest).toPromise();
+      const response = await firstValueFrom(this.msalService.acquireTokenSilent(tokenRequest));
       console.log('AuthInterceptor: Token response:', response ? 'Success' : 'Failed');
       
       return response?.accessToken || null;

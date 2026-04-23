@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, throwError, firstValueFrom } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -124,7 +124,7 @@ export class ChatService {
         account: account
       };
 
-      const response = await this.msalService.acquireTokenSilent(tokenRequest).toPromise();
+      const response = await firstValueFrom(this.msalService.acquireTokenSilent(tokenRequest));
       return response?.accessToken || null;
     } catch (error) {
       console.error('Failed to get access token:', error);

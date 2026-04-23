@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, of, firstValueFrom } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { MsalService } from '@azure/msal-angular';
 import { AppConfigService } from '../../config/app-config.service';
@@ -190,7 +190,9 @@ export class AuthService {
       const token = await this.getAccessToken();
       console.log('AuthService: Token for sync:', token ? 'Available' : 'Not available');
       
-      const response = await this.http.post<AuthResponse>(`${this.appConfig.apiUrl}/auth/sync`, {}).toPromise();
+      const response = await firstValueFrom(
+        this.http.post<AuthResponse>(`${this.appConfig.apiUrl}/auth/sync`, {})
+      );
       
       if (response?.user) {
         console.log('AuthService: User sync successful:', response.user);
@@ -248,7 +250,7 @@ export class AuthService {
         account: account
       };
 
-      const response = await this.msalService.acquireTokenSilent(tokenRequest).toPromise();
+      const response = await firstValueFrom(this.msalService.acquireTokenSilent(tokenRequest));
       return response?.accessToken || null;
     } catch (error) {
       console.error('Failed to get access token:', error);
@@ -262,7 +264,7 @@ export class AuthService {
   async handleRedirectCallback(): Promise<void> {
     try {
       // Don't set loading state here as it's managed by the caller
-      const result = await this.msalService.handleRedirectObservable().toPromise();
+      const result = await firstValueFrom(this.msalService.handleRedirectObservable());
       
       if (result && result.account) {
         console.log('AuthService: Redirect callback successful, setting active account');
