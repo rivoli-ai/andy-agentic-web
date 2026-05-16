@@ -85,23 +85,17 @@ andy-agentic-web/
 ├── src/
 │   └── Andy.Agentic.Web/         # Main ASP.NET Core MVC application
 │       ├── Controllers/          # MVC controllers
-│       ├── Models/              # Data models
 │       ├── Views/               # Razor views
 │       │   ├── Home/            # Home controller views
 │       │   ├── Shared/          # Shared layouts and partials
 │       │   ├── _ViewImports.cshtml
 │       │   └── _ViewStart.cshtml
 │       ├── wwwroot/             # Static files
-│       │   ├── css/             # Stylesheets
-│       │   ├── js/              # JavaScript files
-│       │   └── lib/             # Client libraries
-│       ├── Services/            # Business logic
+│       ├── Properties/          # launchSettings.json
 │       ├── appsettings.json     # Configuration
 │       └── Program.cs           # Application entry point
 ├── tests/
 │   └── Andy.Agentic.Web.Tests/  # Unit and integration tests
-├── docs/                         # Documentation
-├── assets/                       # Project assets
 └── .github/
     └── workflows/
         └── ci.yml               # CI/CD pipeline
