@@ -12,7 +12,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, merge } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
-import { Tool, ToolType, McpToolDiscovery } from '../../../models/tool.model';
+import { Tool, ToolType, McpToolDiscovery, McpToolInputSchema } from '../../../models/tool.model';
 import { ToolService } from '../../../core/services/tool.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -1416,18 +1416,28 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
     const runDiscover = () => {
       this.subscription.add(
-        this.toolService.discoverMcpToolsAsEntities(endpoint, undefined, authentication).subscribe({
-          next: tools => {
-            console.log('discoverMcpTools - received tools:', tools);
+        this.toolService.discoverMcpTools(endpoint, undefined, authentication).subscribe({
+          next: response => {
+            const success =
+              response.success ?? (response as { Success?: boolean }).Success ?? false;
+            if (!success) {
+              this.mcpDiscoveryError =
+                response.error ??
+                (response as { Error?: string }).Error ??
+                'Failed to discover MCP tools';
+              this.isDiscoveringMcpTools = false;
+              this.notificationService.error('MCP Discovery Failed', this.mcpDiscoveryError);
+              this.cdr.detectChanges();
+              return;
+            }
 
-            this.discoveredMcpTools = tools.map(tool => {
-              const inputSchema = this.parseToolParameters(tool.parameters);
-              return {
-                name: tool.name,
-                description: tool.description,
-                inputSchema: inputSchema,
-              };
-            });
+            const tools =
+              response.tools ?? (response as { Tools?: typeof response.tools }).Tools ?? [];
+            this.discoveredMcpTools = tools.map(tool => ({
+              name: tool.name,
+              description: tool.description ?? '',
+              inputSchema: tool.inputSchema,
+            }));
 
             this.isDiscoveringMcpTools = false;
             if (!this.isEditMode) {
@@ -1437,6 +1447,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
               'MCP Discovery',
               `Discovered ${this.discoveredMcpTools.length} tools from MCP server`
             );
+            this.cdr.detectChanges();
           },
           error: (error: unknown) => {
             const err = error as { message?: string; error?: { message?: string } };
@@ -1444,6 +1455,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
               err?.error?.message || err?.message || 'Failed to discover MCP tools';
             this.isDiscoveringMcpTools = false;
             this.notificationService.error('MCP Discovery Failed', this.mcpDiscoveryError);
+            this.cdr.detectChanges();
           },
         })
       );
@@ -1621,50 +1633,55 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  private parseToolParameters(parameters?: any): any {
-    console.log('parseToolParameters called with parameters:', parameters);
-
+  private parseToolParameters(parameters?: unknown): McpToolInputSchema | undefined {
     if (!parameters) {
-      console.log('No parameters provided, returning undefined');
       return undefined;
     }
 
     try {
       const params = typeof parameters === 'string' ? JSON.parse(parameters) : parameters;
-      console.log('Parsed params:', params);
-      console.log('Is array?', Array.isArray(params));
 
       if (Array.isArray(params)) {
-        const properties: { [key: string]: any } = {};
+        const properties: Record<
+          string,
+          { type: string; description?: string; default?: unknown }
+        > = {};
         const required: string[] = [];
 
-        params.forEach((param: any) => {
-          console.log('Processing param:', param);
-          if (param.name) {
-            properties[param.name] = {
-              type: param.type || 'string',
-              description: param.description,
-              default: param.default || param.defaultValue, // Handle both field names for backward compatibility
+        params.forEach((param: Record<string, unknown>) => {
+          const name = param['name'];
+          if (typeof name === 'string' && name.length > 0) {
+            properties[name] = {
+              type: (param['type'] as string) || 'string',
+              description: param['description'] as string | undefined,
+              default: param['default'] ?? param['defaultValue'],
             };
-            if (param.required) {
-              required.push(param.name);
+            if (param['required']) {
+              required.push(name);
             }
           }
         });
 
-        const result = {
-          type: 'object',
-          properties,
-          required,
+        return { type: 'object', properties, required };
+      }
+
+      if (
+        params &&
+        typeof params === 'object' &&
+        'properties' in params &&
+        typeof (params as { properties?: unknown }).properties === 'object'
+      ) {
+        const schema = params as McpToolInputSchema;
+        return {
+          type: schema.type || 'object',
+          properties: schema.properties,
+          required: schema.required,
         };
-        console.log('parseToolParameters result:', result);
-        return result;
       }
     } catch (error) {
       console.warn('Failed to parse tool parameters:', error);
     }
 
-    console.log('parseToolParameters returning undefined');
     return undefined;
   }
 

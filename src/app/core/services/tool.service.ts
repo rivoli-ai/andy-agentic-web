@@ -5,7 +5,9 @@ import {
   Tool,
   ToolType,
   ToolAuthentication,
+  ToolParameter,
   McpToolDiscoveryResponse,
+  McpToolInputSchema,
 } from '../../models/tool.model';
 import { ApiService } from './api.service';
 
@@ -47,6 +49,34 @@ interface UpdateToolDto extends CreateToolDto {}
 export class ToolService {
   constructor(private apiService: ApiService) {}
 
+  private normalizeToolParameters(raw?: string): ToolParameter[] {
+    if (!raw) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      if (parsed?.properties && typeof parsed.properties === 'object') {
+        const required: string[] = Array.isArray(parsed.required) ? parsed.required : [];
+        return Object.entries(parsed.properties).map(([name, def]) => {
+          const prop = def as { type?: string; description?: string; default?: unknown };
+          return {
+            name,
+            type: (prop.type || 'string') as ToolParameter['type'],
+            required: required.includes(name),
+            description: prop.description,
+            default: prop.default,
+          };
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to parse tool parameters:', error);
+    }
+    return [];
+  }
+
   // Convert backend DTOs to frontend models
   private mapToolDto(dto: ToolDto): Tool {
     return {
@@ -58,7 +88,7 @@ export class ToolService {
       isActive: dto.isActive,
       configuration: dto.configuration,
       authentication: dto.authentication || '{"type":"none","required":false}', // Keep as JSON string
-      parameters: dto.parameters ? JSON.parse(dto.parameters) : [],
+      parameters: this.normalizeToolParameters(dto.parameters),
       headers: dto.headers ? JSON.parse(dto.headers) : [],
       createdAt: new Date(dto.createdAt),
       updatedAt: new Date(dto.updatedAt),
@@ -111,6 +141,7 @@ export class ToolService {
       case 'apitool':
         return ToolType.API;
       case 'mcptool':
+      case 'mcp':
         return ToolType.MCP;
       case 'internaltool':
         return ToolType.INTERNAL;

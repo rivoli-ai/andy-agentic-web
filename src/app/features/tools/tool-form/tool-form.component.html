@@ -482,6 +482,22 @@
           </div>
 
           <p
+            *ngIf="isEditMode && discoveredMcpTools.length > 0 && !isDiscoveringMcpTools"
+            class="text-sm text-gray-600 dark:text-gray-400"
+          >
+            {{ discoveredMcpTools.length }} tool(s) available on this MCP server:
+          </p>
+          <ul
+            *ngIf="isEditMode && discoveredMcpTools.length > 0 && !isDiscoveringMcpTools"
+            class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1"
+          >
+            <li *ngFor="let t of discoveredMcpTools">
+              <code class="text-xs">{{ t.name }}</code>
+              <span *ngIf="t.description"> — {{ t.description }}</span>
+            </li>
+          </ul>
+
+          <p
             *ngIf="!isEditMode && discoveredMcpTools.length > 0 && !isDiscoveringMcpTools"
             class="text-sm text-gray-600 dark:text-gray-400"
           >
