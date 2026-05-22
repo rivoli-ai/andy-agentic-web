@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, catchError, map } from 'rxjs/operators';
-import { Tool, ToolType, ToolAuthentication, McpToolDiscoveryResponse } from '../../models/tool.model';
+import {
+  Tool,
+  ToolType,
+  ToolAuthentication,
+  McpToolDiscoveryResponse,
+} from '../../models/tool.model';
 import { ApiService } from './api.service';
 
 // Backend DTOs
@@ -37,7 +42,7 @@ interface CreateToolDto {
 interface UpdateToolDto extends CreateToolDto {}
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ToolService {
   constructor(private apiService: ApiService) {}
@@ -58,7 +63,7 @@ export class ToolService {
       createdAt: new Date(dto.createdAt),
       updatedAt: new Date(dto.updatedAt),
       createdByUserId: dto.createdByUserId,
-      isPublic: dto.isPublic
+      isPublic: dto.isPublic,
     };
   }
 
@@ -66,13 +71,14 @@ export class ToolService {
     if (!authString) {
       return { type: 'none' };
     }
-    
+
     try {
       const parsed = JSON.parse(authString);
       // S'assurer que la structure correspond à ToolAuthentication
       const auth: ToolAuthentication = {
         type: parsed.type || 'none',
         apiKey: parsed.apiKey,
+        key: parsed.key,
         username: parsed.username,
         password: parsed.password,
         token: parsed.token,
@@ -84,15 +90,15 @@ export class ToolService {
         resource: parsed.resource,
         scopes: parsed.scopes,
         headers: parsed.headers || {},
-        required: parsed.required || false
+        required: parsed.required || false,
       };
-      
+
       // Validation des types d'authentification
       if (!['api_key', 'basic', 'bearer', 'oauth2', 'azure_oauth2', 'none'].includes(auth.type)) {
         console.warn(`Invalid authentication type: ${auth.type}, defaulting to 'none'`);
         auth.type = 'none';
       }
-      
+
       return auth;
     } catch (error) {
       console.warn('Failed to parse authentication JSON:', error);
@@ -140,7 +146,7 @@ export class ToolService {
       configuration: tool.configuration || undefined,
       authentication: tool.authentication || undefined,
       parameters: tool.parameters || undefined,
-      headers: tool.headers || undefined
+      headers: tool.headers || undefined,
     };
 
     return this.apiService.post<ToolDto>('/tools', dto).pipe(
@@ -158,7 +164,7 @@ export class ToolService {
       configuration: tool.configuration || undefined,
       authentication: tool.authentication || undefined,
       parameters: tool.parameters || undefined,
-      headers: tool.headers || undefined
+      headers: tool.headers || undefined,
     };
 
     return this.apiService.put<ToolDto>(`/tools/${id}`, dto).pipe(
@@ -213,30 +219,54 @@ export class ToolService {
     );
   }
 
-  discoverMcpTools(url: string, transport?: string): Observable<McpToolDiscoveryResponse> {
+  discoverMcpTools(
+    url: string,
+    transport?: string,
+    authentication?: string
+  ): Observable<McpToolDiscoveryResponse> {
     const paramRecord: { [key: string]: string | number | boolean } = { url };
     if (transport) {
       paramRecord['transport'] = transport;
+    }
+    if (authentication) {
+      paramRecord['authentication'] = authentication;
     }
     const params = this.apiService.createParams(paramRecord);
     return this.apiService.get<McpToolDiscoveryResponse>('/tools/discover-mcp', params).pipe(
       catchError(error => {
         console.error('Error discovering MCP tools:', error);
-        return throwError(() => new Error('Failed to discover MCP tools'));
+        const message =
+          error?.error?.message ||
+          error?.error?.error ||
+          error?.message ||
+          'Failed to discover MCP tools';
+        return throwError(() => new Error(message));
       })
     );
   }
 
-  discoverMcpToolsAsEntities(url: string, transport?: string): Observable<Tool[]> {
-    const request: { url: string; transport?: string } = { url };
+  discoverMcpToolsAsEntities(
+    url: string,
+    transport?: string,
+    authentication?: string
+  ): Observable<Tool[]> {
+    const request: { url: string; transport?: string; authentication?: string } = { url };
     if (transport) {
       request.transport = transport;
+    }
+    if (authentication) {
+      request.authentication = authentication;
     }
     return this.apiService.post<ToolDto[]>('/tools/discover-mcp-tools', request).pipe(
       map(dtos => dtos.map(dto => this.mapToolDto(dto))),
       catchError(error => {
         console.error('Error discovering MCP tools as entities:', error);
-        return throwError(() => new Error('Failed to discover MCP tools as entities'));
+        const message =
+          error?.error?.message ||
+          error?.error?.error ||
+          error?.message ||
+          'Failed to discover MCP tools';
+        return throwError(() => new Error(message));
       })
     );
   }

@@ -10,7 +10,9 @@ export class AppConfigService {
     return fetch('assets/config.json', { cache: 'no-store' })
       .then(res => {
         if (!res.ok) {
-          throw new Error(`Failed to load assets/config.json (${res.status}). Ensure the file exists under src/assets/.`);
+          throw new Error(
+            `Failed to load assets/config.json (${res.status}). Ensure the file exists under src/assets/.`
+          );
         }
         return res.json() as Promise<AppConfig>;
       })
@@ -36,9 +38,5 @@ export class AppConfigService {
 
   get signalRUrl(): string {
     return this.requireConfig().signalRUrl;
-  }
-
-  get azureAd(): AppConfig['azureAd'] {
-    return this.requireConfig().azureAd;
   }
 }

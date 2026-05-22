@@ -13,7 +13,7 @@ import { Theme } from './models/theme.model';
   standalone: false,
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
 })
 export class AppComponent implements OnInit, OnDestroy {
   private static readonly SIDEBAR_COLLAPSED_KEY = 'agentic-sidebar-collapsed';
@@ -29,24 +29,25 @@ export class AppComponent implements OnInit, OnDestroy {
   isAuthenticated = false;
   isLoggingOut = false;
   isAuthLoading = true;
-  
+  isPublicAuthRoute = false;
+
   // Navbar functionality
   searchQuery = '';
   hasNotifications = false;
   isNotificationsOpen = false;
   isQuickActionsOpen = false;
-  
+
   // API connectivity
   apiStatus: ApiStatus = {
     isOnline: false, // Start as offline until initialization completes
     lastCheck: new Date(),
     consecutiveFailures: 0,
-    isMaintenanceMode: false
+    isMaintenanceMode: false,
   };
-  
+
   // Track initialization state
   private isInitializing = true;
-  
+
   // Loading progress states
   authProgress = 0;
   authSteps = [
@@ -54,19 +55,19 @@ export class AppComponent implements OnInit, OnDestroy {
     'Checking API connectivity',
     'Verifying user credentials',
     'Loading user profile',
-    'Setting up workspace'
+    'Setting up workspace',
   ];
   authCurrentStep = 0;
-  
+
   logoutProgress = 0;
   logoutSteps = [
     'Clearing session data',
     'Signing out from Microsoft',
     'Cleaning up resources',
-    'Redirecting to login'
+    'Redirecting to login',
   ];
   logoutCurrentStep = 0;
-  
+
   private progressInterval?: number;
 
   constructor(
@@ -97,7 +98,7 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     // Close dropdowns when clicking outside
-    document.addEventListener('click', (event) => {
+    document.addEventListener('click', event => {
       const target = event.target as HTMLElement;
       if (!target.closest('.dropdown-container')) {
         this.isNotificationsOpen = false;
@@ -110,16 +111,13 @@ export class AppComponent implements OnInit, OnDestroy {
       // Only update API status after initialization is complete
       if (!this.isInitializing) {
         this.apiStatus = status;
-        
       }
     });
 
     // Subscribe to authentication changes
     this.authService.currentUser$.subscribe(user => {
-      console.log('AppComponent: User state changed:', user);
       this.currentUser = user;
-      this.isAuthenticated = !!user;
-      console.log('AppComponent: isAuthenticated set to:', this.isAuthenticated);
+      this.isAuthenticated = this.authService.isLoggedIn();
     });
 
     // Subscribe to logout state
@@ -147,14 +145,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Chat uses full-height shell (no content-area padding). Match /chatbot and /chatbot/:agentId.
     this.syncChatbotRouteFromUrl(this.router.url);
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event) => {
-      this.syncChatbotRouteFromUrl((event as NavigationEnd).urlAfterRedirects);
+    this.syncPublicAuthRouteFromUrl(this.router.url);
+    this.router.events.pipe(filter(event => event instanceof NavigationEnd)).subscribe(event => {
+      const url = (event as NavigationEnd).urlAfterRedirects;
+      this.syncChatbotRouteFromUrl(url);
+      this.syncPublicAuthRouteFromUrl(url);
     });
 
     this.checkScreenSize();
-    
+
     // Debounce resize events to avoid excessive calls
     let resizeTimeout: any;
     window.addEventListener('resize', () => {
@@ -168,6 +167,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isChatbotRoute = path === '/chatbot' || path.startsWith('/chatbot/');
   }
 
+  private syncPublicAuthRouteFromUrl(url: string): void {
+    const path = url.split('?')[0].split('#')[0];
+    this.isPublicAuthRoute =
+      path === '/login' || path.startsWith('/auth/callback/') || path === '/logout';
+  }
+
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
@@ -175,10 +180,7 @@ export class AppComponent implements OnInit, OnDestroy {
   toggleSidebarCollapse(): void {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
     try {
-      localStorage.setItem(
-        AppComponent.SIDEBAR_COLLAPSED_KEY,
-        this.isSidebarCollapsed ? '1' : '0'
-      );
+      localStorage.setItem(AppComponent.SIDEBAR_COLLAPSED_KEY, this.isSidebarCollapsed ? '1' : '0');
     } catch {
       /* ignore */
     }
@@ -232,43 +234,38 @@ export class AppComponent implements OnInit, OnDestroy {
       // Step 2: Check API connectivity
       this.updateAuthProgress(1);
       const isApiHealthy = await this.checkInitialApiHealth();
-      
+
       // Update API status based on health check result
       this.apiStatus = {
         isOnline: isApiHealthy,
         lastCheck: new Date(),
         consecutiveFailures: isApiHealthy ? 0 : 1,
-        isMaintenanceMode: false
+        isMaintenanceMode: false,
       };
-      
+
       if (!isApiHealthy) {
         // If API is not healthy, show error
         this.isInitializing = false;
         return;
       }
 
-
       // Step 3: Continue with authentication
       this.updateAuthProgress(2);
       await this.delay(300);
-
 
       // Step 4: Load user profile
       this.updateAuthProgress(3);
       await this.delay(200);
 
-
       // Step 5: Setup workspace
       this.updateAuthProgress(4);
       await this.delay(200);
 
-
       // Complete initialization
       this.updateAuthProgress(100);
-      
+
       // Mark initialization as complete - now API status service can take over
       this.isInitializing = false;
-      
     } catch (error) {
       console.error('App initialization failed:', error);
       // On error, mark initialization as complete
@@ -288,7 +285,7 @@ export class AppComponent implements OnInit, OnDestroy {
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
       return response.ok;
     } catch (error) {
@@ -338,12 +335,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.stopProgress();
     this.authProgress = 0;
     this.authCurrentStep = 0;
-    
+
     this.progressInterval = window.setInterval(() => {
       if (this.authProgress < 100) {
         const increment = Math.random() * 15; // Random increment for realistic progress
         this.authProgress = Math.min(this.authProgress + increment, 100);
-        
+
         // Update current step based on progress
         const stepProgress = this.authProgress / 100;
         this.authCurrentStep = Math.min(
@@ -358,12 +355,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.stopProgress();
     this.logoutProgress = 0;
     this.logoutCurrentStep = 0;
-    
+
     this.progressInterval = window.setInterval(() => {
       if (this.logoutProgress < 100) {
         const increment = Math.random() * 20; // Faster progress for logout
         this.logoutProgress = Math.min(this.logoutProgress + increment, 100);
-        
+
         // Update current step based on progress
         const stepProgress = this.logoutProgress / 100;
         this.logoutCurrentStep = Math.min(
@@ -380,6 +377,4 @@ export class AppComponent implements OnInit, OnDestroy {
       this.progressInterval = undefined;
     }
   }
-
-
 }

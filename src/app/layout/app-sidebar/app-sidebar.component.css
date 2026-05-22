@@ -1,6 +1,8 @@
 /* ─── Sidebar ────────────────────────────────────────────────────────────── */
 
-:host { display: contents; }
+:host {
+  display: contents;
+}
 
 .sidebar {
   --sb-nav-item-h: 2.875rem;
@@ -174,7 +176,9 @@
   padding: 0.5rem 0.25rem;
 }
 
-.nav-section { margin: 0; }
+.nav-section {
+  margin: 0;
+}
 
 .nav-section-title {
   margin: 0 0 0.625rem;
@@ -213,11 +217,7 @@
   line-height: 1.2;
   position: relative;
   cursor: pointer;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .nav-item:hover {
@@ -238,8 +238,7 @@
   );
   color: var(--sidebar-text);
   font-weight: 600;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--sb-accent) 22%, transparent),
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sb-accent) 22%, transparent),
     0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
 }
 
@@ -329,8 +328,7 @@
     color-mix(in srgb, var(--sb-accent) 16%, var(--sidebar-bg)) 0%,
     color-mix(in srgb, var(--sb-accent) 9%, var(--sidebar-bg)) 100%
   );
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--sb-accent) 28%, transparent),
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sb-accent) 28%, transparent),
     0 6px 16px -8px color-mix(in srgb, var(--sb-accent) 35%, transparent);
 }
 
@@ -439,7 +437,8 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .logout-button:hover {
@@ -482,8 +481,12 @@
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 
-.sidebar-nav::-webkit-scrollbar { width: 3px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar {
+  width: 3px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
 .sidebar-nav::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--sidebar-text-secondary) 25%, transparent);
   border-radius: 99px;
@@ -573,7 +576,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar, .nav-item, .sidebar-collapse-toggle, .logout-button {
+  .sidebar,
+  .nav-item,
+  .sidebar-collapse-toggle,
+  .logout-button {
     transition: none;
   }
 }

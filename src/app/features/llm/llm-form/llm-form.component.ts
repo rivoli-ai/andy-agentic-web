@@ -6,12 +6,11 @@ import { LLMConfig, LLMProvider, LLMProviderType } from '../../../models/agent.m
 import { LLMService } from '../../../core/services/llm.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
-
 @Component({
   standalone: false,
   selector: 'app-llm-form',
   templateUrl: './llm-form.component.html',
-  styleUrls: ['./llm-form.component.css']
+  styleUrls: ['./llm-form.component.css'],
 })
 export class LLMFormComponent implements OnInit, OnDestroy {
   llmForm: FormGroup;
@@ -29,8 +28,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private route: ActivatedRoute,
     private router: Router,
-    private cdr: ChangeDetectorRef,
-
+    private cdr: ChangeDetectorRef
   ) {
     this.llmForm = this.createForm();
   }
@@ -39,7 +37,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
     this.loadProviders();
     this.configId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.configId;
-    
+
     if (this.isEditMode) {
       this.loadConfigForEdit();
     }
@@ -52,32 +50,35 @@ export class LLMFormComponent implements OnInit, OnDestroy {
   private loadProviders(): void {
     this.subscription.add(
       this.llmService.getProviders().subscribe({
-        next: (providers) => {
+        next: providers => {
           this.providers = providers;
         },
-        error: (error) => {
+        error: error => {
           console.error('Error loading providers:', error);
-        }
+        },
       })
     );
   }
 
   private loadConfigForEdit(): void {
     if (!this.configId) return;
-    
+
     this.isLoading = true;
     this.subscription.add(
       this.llmService.getLLMConfigById(this.configId).subscribe({
-        next: (config) => {
+        next: config => {
           this.populateForm(config);
           this.isLoading = false;
           this.cdr.detectChanges();
         },
-        error: (error) => {
-          this.notificationService.error('Erreur', 'Impossible de charger la configuration pour édition');
+        error: error => {
+          this.notificationService.error(
+            'Erreur',
+            'Impossible de charger la configuration pour édition'
+          );
           console.error('Error loading config:', error);
           this.isLoading = false;
-        }
+        },
       })
     );
   }
@@ -94,14 +95,14 @@ export class LLMFormComponent implements OnInit, OnDestroy {
       temperature: [0.7, [Validators.min(0), Validators.max(2)]],
       topP: [1, [Validators.min(0), Validators.max(1)]],
       frequencyPenalty: [0, [Validators.min(-2), Validators.max(2)]],
-      presencePenalty: [0, [Validators.min(-2), Validators.max(2)]]
+      presencePenalty: [0, [Validators.min(-2), Validators.max(2)]],
     });
   }
 
   private populateForm(config: LLMConfig): void {
     // Convert enum provider to provider ID for form
     const providerId = this.getProviderIdFromEnum(config.provider);
-    
+
     this.llmForm.patchValue({
       name: config.name,
       baseUrl: config.baseUrl,
@@ -113,7 +114,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
       temperature: config.temperature || 0.7,
       topP: config.topP || 1,
       frequencyPenalty: config.frequencyPenalty || 0,
-      presencePenalty: config.presencePenalty || 0
+      presencePenalty: config.presencePenalty || 0,
     });
 
     // Set selected provider
@@ -145,7 +146,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
           return 'custom';
       }
     }
-    
+
     // Handle string-based enum values
     switch (providerEnum) {
       case LLMProviderType.OPENAI:
@@ -188,7 +189,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
   onProviderChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     if (!target) return;
-    
+
     const providerId = target.value;
     this.setProviderConfig(providerId);
   }
@@ -196,9 +197,9 @@ export class LLMFormComponent implements OnInit, OnDestroy {
   onModelSelectChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     if (!target) return;
-    
+
     const selectedValue = target.value;
-    
+
     if (selectedValue === 'custom') {
       this.isCustomModel = true;
       if (!this.hasCustomModel) {
@@ -221,14 +222,14 @@ export class LLMFormComponent implements OnInit, OnDestroy {
 
   private setProviderConfig(providerId: string): void {
     this.selectedProvider = this.providers.find(p => p.id === providerId) || null;
-    
+
     if (this.selectedProvider) {
       this.isCustomModel = false;
-      
+
       this.llmForm.patchValue({
         provider: this.selectedProvider.id,
         baseUrl: this.selectedProvider.baseUrl,
-        model: this.selectedProvider.models.length > 0 ? this.selectedProvider.models[0] : ''
+        model: this.selectedProvider.models.length > 0 ? this.selectedProvider.models[0] : '',
       });
 
       this.updateApiKeyValidation();
@@ -254,8 +255,14 @@ export class LLMFormComponent implements OnInit, OnDestroy {
   get hasCustomModel(): boolean {
     const currentModel = this.llmForm.get('model')?.value;
     if (!currentModel || !this.selectedProvider) return false;
-    
+
     return !this.selectedProvider.models.includes(currentModel);
+  }
+
+  get isKimiHybridModel(): boolean {
+    const model = (this.llmForm.get('model')?.value as string | null)?.toLowerCase() ?? '';
+    const baseUrl = (this.llmForm.get('baseUrl')?.value as string | null)?.toLowerCase() ?? '';
+    return model.includes('kimi') && baseUrl.includes('moonshot');
   }
 
   get modelSelectionStatus(): string {
@@ -269,20 +276,20 @@ export class LLMFormComponent implements OnInit, OnDestroy {
   getModelSelectValue(): string {
     const currentModel = this.llmForm.get('model')?.value;
     if (!currentModel) return '';
-    
+
     if (this.isCustomModel || this.hasCustomModel) {
       return 'custom';
     }
-    
+
     return currentModel;
   }
 
   onSubmit(): void {
     if (this.llmForm.valid) {
       const formValue = this.llmForm.value;
-      
+
       const configData = {
-        id : this.configId,
+        id: this.configId,
         name: formValue.name,
         baseUrl: formValue.baseUrl,
         apiKey: formValue.apiKey,
@@ -293,7 +300,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
         temperature: formValue.temperature,
         topP: formValue.topP,
         frequencyPenalty: formValue.frequencyPenalty,
-        presencePenalty: formValue.presencePenalty
+        presencePenalty: formValue.presencePenalty,
       };
 
       if (this.isEditMode && this.configId) {
@@ -303,38 +310,44 @@ export class LLMFormComponent implements OnInit, OnDestroy {
       }
     } else {
       this.markFormGroupTouched();
-      this.notificationService.error('Erreur de validation', 'Veuillez corriger les erreurs dans le formulaire');
+      this.notificationService.error(
+        'Erreur de validation',
+        'Veuillez corriger les erreurs dans le formulaire'
+      );
     }
   }
 
   private createConfig(configData: any): void {
     this.subscription.add(
       this.llmService.createLLMConfig(configData).subscribe({
-        next: (config) => {
+        next: config => {
           this.notificationService.success('Succès', 'Configuration LLM créée avec succès');
           this.router.navigate(['/llm']);
         },
-        error: (error) => {
+        error: error => {
           this.notificationService.error('Erreur', 'Impossible de créer la configuration LLM');
           console.error('Error creating config:', error);
-        }
+        },
       })
     );
   }
 
   private updateConfig(configData: any): void {
     if (!this.configId) return;
-    
+
     this.subscription.add(
       this.llmService.updateLLMConfig(this.configId, configData).subscribe({
-        next: (config) => {
+        next: config => {
           this.notificationService.success('Succès', 'Configuration LLM mise à jour avec succès');
           this.router.navigate(['/llm']);
         },
-        error: (error) => {
-          this.notificationService.error('Erreur', 'Impossible de mettre à jour la configuration LLM');
+        error: error => {
+          this.notificationService.error(
+            'Erreur',
+            'Impossible de mettre à jour la configuration LLM'
+          );
           console.error('Error updating config:', error);
-        }
+        },
       })
     );
   }
@@ -359,14 +372,14 @@ export class LLMFormComponent implements OnInit, OnDestroy {
     const field = this.llmForm.get(fieldName);
     if (field && field.errors) {
       if (field.errors['required']) return 'Ce champ est requis';
-      if (field.errors['minlength']) return `Minimum ${field.errors['minlength'].requiredLength} caractères`;
-      if (field.errors['maxlength']) return `Maximum ${field.errors['maxlength'].requiredLength} caractères`;
+      if (field.errors['minlength'])
+        return `Minimum ${field.errors['minlength'].requiredLength} caractères`;
+      if (field.errors['maxlength'])
+        return `Maximum ${field.errors['maxlength'].requiredLength} caractères`;
       if (field.errors['min']) return `Valeur minimum: ${field.errors['min'].min}`;
       if (field.errors['max']) return `Valeur maximum: ${field.errors['max'].max}`;
-      if (field.errors['pattern']) return 'Format d\'URL invalide';
+      if (field.errors['pattern']) return "Format d'URL invalide";
     }
     return '';
   }
-
-
 }

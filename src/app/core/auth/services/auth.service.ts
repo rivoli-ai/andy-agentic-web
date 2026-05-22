@@ -1,9 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, of, firstValueFrom } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
-import { MsalService } from '@azure/msal-angular';
 import { AppConfigService } from '../../config/app-config.service';
+import { AuthProviderConfig, AuthConfigResponse } from '../oidc-config.loader';
+import { authApiUrl } from '../auth-api-url';
 
 export interface User {
   id: string;
@@ -26,138 +28,196 @@ export interface AuthResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
-  
-  private isLoggingOutSubject = new BehaviorSubject<boolean>(false);
-  public isLoggingOut$ = this.isLoggingOutSubject.asObservable();
-  
-  private isAuthLoadingSubject = new BehaviorSubject<boolean>(true);
-  public isAuthLoading$ = this.isAuthLoadingSubject.asObservable();
+  private readonly tokenSignal = signal<string | null>(null);
+  private readonly userSignal = signal<User | null>(null);
+  readonly isAuthenticatedSignal = signal<boolean>(false);
+
+  readonly loggedIn = computed(() => this.isAuthenticatedSignal() && this.tokenSignal() !== null);
+
+  private readonly currentUserSubject = new BehaviorSubject<User | null>(null);
+  readonly currentUser$ = this.currentUserSubject.asObservable();
+
+  private readonly isLoggingOutSubject = new BehaviorSubject<boolean>(false);
+  readonly isLoggingOut$ = this.isLoggingOutSubject.asObservable();
+
+  private readonly isAuthLoadingSubject = new BehaviorSubject<boolean>(true);
+  readonly isAuthLoading$ = this.isAuthLoadingSubject.asObservable();
+
+  private readonly _providerConfigs = signal<AuthProviderConfig[]>([]);
+  private _configLoaded = false;
+
+  readonly providerConfigs = this._providerConfigs.asReadonly();
+  readonly frontendOidcProviders = computed(() =>
+    this._providerConfigs().filter(p => p.type === 'FrontendOidc')
+  );
+  readonly backendOAuthProviders = computed(() =>
+    this._providerConfigs().filter(p => p.type === 'BackendOAuth')
+  );
+  readonly localProviders = computed(() => this._providerConfigs().filter(p => p.type === 'Local'));
+  readonly isLocalEnabled = computed(() => this.localProviders().length > 0);
+
   constructor(
     private http: HttpClient,
-    private msalService: MsalService,
+    private router: Router,
     private appConfig: AppConfigService
   ) {
-    // Initialize MSAL and check authentication status
-    this.initializeAuth().catch(error => {
-      console.error('Auth initialization failed:', error);
-    });
-  }
-
-
-  /**
-   * Initialize MSAL and check authentication status
-   */
-  private async initializeAuth(): Promise<void> {
-    try {
-      // Set loading state
-      this.isAuthLoadingSubject.next(true);
-      
-      // Initialize MSAL if not already initialized
-      await this.msalService.initialize();
-      
-      // Handle redirect callbacks first
-      await this.handleRedirectCallback();
-      
-      // Set active account if one exists
-      const allAccounts = this.msalService.instance.getAllAccounts();
-      if (allAccounts.length > 0) {
-        console.log('AuthService: Setting active account from existing accounts');
-        this.msalService.instance.setActiveAccount(allAccounts[0]);
+    const savedToken = localStorage.getItem('auth_token');
+    const savedUser = localStorage.getItem('auth_user');
+    if (savedToken) {
+      if (this.isJwtExpired(savedToken)) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      } else {
+        this.tokenSignal.set(savedToken);
+        this.isAuthenticatedSignal.set(true);
       }
-      
-      // Check if user is already authenticated
-      await this.checkAuthStatus();
-      
-      // Only set loading to false after authentication check is complete
-      this.isAuthLoadingSubject.next(false);
-    } catch (error) {
-      console.error('MSAL initialization failed:', error);
-      // Set loading to false on error
-      this.isAuthLoadingSubject.next(false);
+    }
+    if (savedUser && this.tokenSignal() !== null) {
+      try {
+        const parsed = JSON.parse(savedUser) as User;
+        this.userSignal.set(parsed);
+        this.currentUserSubject.next(parsed);
+      } catch {
+        /* ignore */
+      }
     }
   }
 
-  /**
-   * Check if user is currently authenticated
-   */
-  get isAuthenticated(): boolean {
+  /** Called from APP_INITIALIZER after assets/config.json is loaded. */
+  async initializeAfterConfigLoad(): Promise<void> {
     try {
-      const account = this.msalService.instance.getActiveAccount();
-      const hasAccount = account !== null;
-      console.log('AuthService: isAuthenticated check - account:', account, 'hasAccount:', hasAccount);
-      return hasAccount;
+      this.isAuthLoadingSubject.next(true);
+      await this.loadProviderConfig(true);
+
+      if (this.isLoggedIn()) {
+        await this.syncUser();
+      }
     } catch (error) {
-      console.error('Error checking authentication status:', error);
-      return false;
+      console.error('Auth initialization failed:', error);
+    } finally {
+      this.isAuthLoadingSubject.next(false);
     }
   }
 
-  /**
-   * Get current user
-   */
+  get isAuthenticated(): boolean {
+    return this.loggedIn();
+  }
+
   get currentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  /**
-   * Login with Microsoft Entra using redirect flow
-   */
-  async login(): Promise<void> {
-    try {
-      // Ensure MSAL is initialized before attempting login
-      await this.msalService.initialize();
-      
-      const loginRequest = {
-        scopes: ['User.Read'],
-        prompt: 'select_account'
-      };
+  getToken(): string | null {
+    return this.tokenSignal();
+  }
 
-      // Use redirect instead of popup
-      this.msalService.loginRedirect(loginRequest);
-    } catch (error) {
-      console.error('Login redirect error:', error);
-      throw error;
+  isLoggedIn(): boolean {
+    return this.loggedIn();
+  }
+
+  getAuthConfigUrl(): string {
+    return authApiUrl(this.appConfig.apiUrl, '/auth/config');
+  }
+
+  private isJwtExpired(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return true;
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const exp: unknown = payload?.exp;
+      if (typeof exp !== 'number') return false;
+      const skewSeconds = 5;
+      return exp <= Math.floor(Date.now() / 1000) - skewSeconds;
+    } catch {
+      return true;
     }
   }
 
-  /**
-   * Logout from Microsoft Entra using redirect flow
-   */
+  clearSession(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    this.tokenSignal.set(null);
+    this.userSignal.set(null);
+    this.isAuthenticatedSignal.set(false);
+    this.currentUserSubject.next(null);
+  }
+
   async logout(): Promise<void> {
+    this.isLoggingOutSubject.next(true);
+    this.clearSession();
+    this.isLoggingOutSubject.next(false);
+    await this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  resetLogoutState(): void {
+    this.isLoggingOutSubject.next(false);
+  }
+
+  resetAuthLoadingState(): void {
+    this.isAuthLoadingSubject.next(false);
+  }
+
+  async loadProviderConfig(force = false): Promise<AuthProviderConfig[]> {
+    if (this._configLoaded && !force) return this._providerConfigs();
+
+    const url = authApiUrl(this.appConfig.apiUrl, '/auth/config');
     try {
-      // Set logging out state immediately
-      this.isLoggingOutSubject.next(true);
-      
-      // Ensure MSAL is initialized before attempting logout
-      await this.msalService.initialize();
-      
-      // Use redirect instead of popup
-      this.msalService.logoutRedirect({
-        postLogoutRedirectUri: window.location.origin
-      });
-      
-      // Clear local state immediately
-      this.currentUserSubject.next(null);
-    } catch (error) {
-      console.error('Logout redirect failed:', error);
-      // Reset logging out state on error
-      this.isLoggingOutSubject.next(false);
-      throw error;
+      // Use fetch so bootstrap is not blocked by AuthInterceptor ↔ AuthService circular DI.
+      const response = await fetch(url, { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} loading ${url}`);
+      }
+      const data = (await response.json()) as AuthConfigResponse;
+      const providers = Array.isArray(data?.providers) ? data.providers : [];
+      this._providerConfigs.set(providers);
+      this._configLoaded = true;
+      return providers;
+    } catch (err) {
+      console.error('Failed to load auth provider config from', url, err);
+      this._configLoaded = false;
+      return [];
     }
   }
 
-  /**
-   * Get user information from backend
-   */
+  getProviderConfig(name: string): AuthProviderConfig | undefined {
+    return this._providerConfigs().find(p => p.name.toLowerCase() === name.toLowerCase());
+  }
+
+  handleOidcTokenLogin(
+    provider: string,
+    idToken: string,
+    accessToken?: string
+  ): Observable<{ token: string; user?: unknown }> {
+    return this.http
+      .post<{ token: string; user?: unknown }>(
+        authApiUrl(this.appConfig.apiUrl, `/auth/${provider}/token`),
+        {
+          idToken,
+          accessToken,
+        }
+      )
+      .pipe(
+        tap(response => this.setAuthState(response)),
+        tap(() => void this.syncUser())
+      );
+  }
+
+  async ensureUserLoaded(): Promise<void> {
+    if (this.isLoggedIn() && !this.currentUser) {
+      await this.syncUser();
+    }
+  }
+
   getUser(): Observable<User | null> {
     return this.http.get<AuthResponse>(`${this.appConfig.apiUrl}/auth/me`).pipe(
-      map(response => response.user || null),
-      tap(user => this.currentUserSubject.next(user)),
+      map(response => response.user ?? null),
+      tap(user => {
+        this.currentUserSubject.next(user);
+        if (user) localStorage.setItem('auth_user', JSON.stringify(user));
+      }),
       catchError(() => {
         this.currentUserSubject.next(null);
         return of(null);
@@ -165,138 +225,53 @@ export class AuthService {
     );
   }
 
-  /**
-   * Reset logout state (useful for error handling)
-   */
-  resetLogoutState(): void {
-    this.isLoggingOutSubject.next(false);
-  }
-
-  /**
-   * Reset authentication loading state (useful for error handling)
-   */
-  resetAuthLoadingState(): void {
-    this.isAuthLoadingSubject.next(false);
-  }
-
-  /**
-   * Sync user with backend after login
-   */
-  private async syncUser(): Promise<void> {
-    try {
-      console.log('AuthService: Syncing user with backend');
-      
-      // Get the access token manually to ensure it's available
-      const token = await this.getAccessToken();
-      console.log('AuthService: Token for sync:', token ? 'Available' : 'Not available');
-      
-      const response = await firstValueFrom(
-        this.http.post<AuthResponse>(`${this.appConfig.apiUrl}/auth/sync`, {})
-      );
-      
-      if (response?.user) {
-        console.log('AuthService: User sync successful:', response.user);
-        this.currentUserSubject.next(response.user);
-      }
-    } catch (error) {
-      console.error('AuthService: User sync failed:', error);
-      // Even if sync fails, we can still proceed with the login
-    }
-  }
-
-  /**
-   * Check authentication status
-   */
-  private async checkAuthStatus(): Promise<void> {
-    try {
-      // Ensure MSAL is initialized before checking auth status
-      await this.msalService.initialize();
-      
-      console.log('AuthService: Checking authentication status');
-      const account = this.msalService.instance.getActiveAccount();
-      console.log('AuthService: Active account:', account);
-      
-      if (account) {
-        console.log('AuthService: User is authenticated, syncing with backend');
-        await this.syncUser();
-        console.log('AuthService: User sync completed');
-      } else {
-        console.log('AuthService: No active account found');
-        this.currentUserSubject.next(null);
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      this.currentUserSubject.next(null);
-    }
-  }
-
-  /**
-   * Get authentication status
-   */
   getAuthStatus(): Observable<AuthResponse> {
     return this.http.get<AuthResponse>(`${this.appConfig.apiUrl}/auth/status`);
   }
 
-  /**
-   * Get access token for API calls
-   */
-  async getAccessToken(): Promise<string | null> {
+  extractRoles(token: string | null = this.getToken()): string[] {
+    if (!token) return [];
     try {
-      const account = this.msalService.instance.getActiveAccount();
-      if (!account) return null;
-
-      const tokenRequest = {
-        scopes: ['User.Read'],
-        account: account
-      };
-
-      const response = await firstValueFrom(this.msalService.acquireTokenSilent(tokenRequest));
-      return response?.accessToken || null;
-    } catch (error) {
-      console.error('Failed to get access token:', error);
-      return null;
+      const parts = token.split('.');
+      if (parts.length < 2) return [];
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const candidates = [
+        payload?.['role'],
+        payload?.['roles'],
+        payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+      ];
+      const roles: string[] = [];
+      for (const c of candidates) {
+        if (Array.isArray(c)) roles.push(...c.filter((x: unknown) => typeof x === 'string'));
+        else if (typeof c === 'string') roles.push(c);
+      }
+      return roles;
+    } catch {
+      return [];
     }
   }
 
-  /**
-   * Handle redirect callback after authentication
-   */
-  async handleRedirectCallback(): Promise<void> {
+  private async syncUser(): Promise<void> {
     try {
-      // Don't set loading state here as it's managed by the caller
-      const result = await firstValueFrom(this.msalService.handleRedirectObservable());
-      
-      if (result && result.account) {
-        console.log('AuthService: Redirect callback successful, setting active account');
-        this.msalService.instance.setActiveAccount(result.account);
-        await this.syncUser();
-        console.log('AuthService: User sync completed after redirect');
-      } else {
-        console.log('AuthService: No result from redirect callback, checking existing accounts');
-        // Check if we have existing accounts after redirect
-        const accounts = this.msalService.instance.getAllAccounts();
-        if (accounts.length > 0) {
-          console.log('AuthService: Found existing accounts after redirect, setting active account');
-          this.msalService.instance.setActiveAccount(accounts[0]);
-          await this.syncUser();
-          console.log('AuthService: User sync completed after redirect');
-        }
+      const response = await firstValueFrom(
+        this.http.post<AuthResponse>(`${this.appConfig.apiUrl}/auth/sync`, {})
+      );
+      if (response?.user) {
+        this.userSignal.set(response.user);
+        this.currentUserSubject.next(response.user);
+        localStorage.setItem('auth_user', JSON.stringify(response.user));
       }
     } catch (error) {
-      console.error('Redirect callback handling failed:', error);
+      console.error('User sync failed:', error);
     }
   }
 
-  /**
-   * Ensure user is loaded if authenticated
-   */
-  async ensureUserLoaded(): Promise<void> {
-    if (this.isAuthenticated && !this.currentUser) {
-      try {
-        await this.syncUser();
-      } catch (error) {
-        console.error('Failed to load user:', error);
-      }
+  private setAuthState(response: { token: string; user?: unknown }): void {
+    this.tokenSignal.set(response.token);
+    this.isAuthenticatedSignal.set(true);
+    localStorage.setItem('auth_token', response.token);
+    if (response.user) {
+      localStorage.setItem('auth_user', JSON.stringify(response.user));
     }
   }
 }

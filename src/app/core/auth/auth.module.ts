@@ -2,61 +2,46 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import { MsalModule, MsalService, MSAL_INSTANCE } from '@azure/msal-angular';
-import { IPublicClientApplication, PublicClientApplication } from '@azure/msal-browser';
+import { HttpClient } from '@angular/common/http';
+import {
+  AuthModule as OidcAuthModule,
+  StsConfigHttpLoader,
+  StsConfigLoader,
+} from 'angular-auth-oidc-client';
 
 import { AuthService } from './services/auth.service';
-import { AuthGuard } from './guards/auth.guard';
 import { LoginComponent } from './components/login/login.component';
+import { CallbackComponent } from './components/callback/callback.component';
 import { LogoutComponent } from './components/logout/logout.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
 import { AppConfigService } from '../config/app-config.service';
+import { loadOidcConfigs } from './oidc-config.loader';
 
-// MSAL configuration (reads assets/config.json loaded in APP_INITIALIZER)
-export function MSALInstanceFactory(config: AppConfigService): IPublicClientApplication {
-  const ad = config.azureAd;
-  return new PublicClientApplication({
-    auth: {
-      clientId: ad.clientId,
-      authority: `https://login.microsoftonline.com/${ad.tenantId}`,
-      redirectUri: ad.redirectUri
-    },
-    cache: {
-      cacheLocation: 'localStorage',
-      storeAuthStateInCookie: false
-    }
-  });
+export function oidcConfigFactory(http: HttpClient, config: AppConfigService) {
+  return new StsConfigHttpLoader(loadOidcConfigs(http, config.apiUrl));
 }
 
 @NgModule({
-  declarations: [
-    LoginComponent,
-    LogoutComponent,
-    UserProfileComponent
-  ],
+  declarations: [LoginComponent, CallbackComponent, LogoutComponent, UserProfileComponent],
   imports: [
     CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
-    HttpClientModule,
-    MsalModule
-  ],
-  providers: [
-    AuthService,
-    AuthGuard,
-    {
-      provide: MSAL_INSTANCE,
-      useFactory: MSALInstanceFactory,
-      deps: [AppConfigService]
-    },
-    MsalService
+    OidcAuthModule.forRoot({
+      loader: {
+        provide: StsConfigLoader,
+        useFactory: oidcConfigFactory,
+        deps: [HttpClient, AppConfigService],
+      },
+    }),
   ],
   exports: [
     LoginComponent,
+    CallbackComponent,
     LogoutComponent,
-    UserProfileComponent
-  ]
+    UserProfileComponent,
+    OidcAuthModule,
+  ],
 })
-export class AuthModule { }
+export class AuthModule {}

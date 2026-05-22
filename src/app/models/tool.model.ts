@@ -1,7 +1,7 @@
 export enum ToolType {
   API = 'ApiTool',
   MCP = 'McpTool',
-  INTERNAL = 'InternalTool'
+  INTERNAL = 'InternalTool',
 }
 
 export interface ToolParameter {
@@ -22,6 +22,8 @@ export interface ToolHeader {
 export interface ToolAuthentication {
   type: 'api_key' | 'basic' | 'bearer' | 'oauth2' | 'none';
   apiKey?: string;
+  /** HTTP header name when type is api_key (defaults to X-API-Key). */
+  key?: string;
   username?: string;
   password?: string;
   token?: string;
@@ -29,8 +31,8 @@ export interface ToolAuthentication {
   clientId?: string;
   clientSecret?: string;
   tokenUrl?: string;
-  tenantId?: string;  // For Azure OAuth2
-  resource?: string;  // For Azure OAuth2 resource/scope
+  tenantId?: string; // For Azure OAuth2
+  resource?: string; // For Azure OAuth2 resource/scope
   scopes?: string;
   headers?: Record<string, string>;
   required?: boolean;
@@ -44,7 +46,7 @@ export interface Tool {
   category?: string;
   isActive: boolean;
   configuration?: string;
-  authentication: string | ToolAuthentication;  // Can be JSON string or object
+  authentication: string | ToolAuthentication; // Can be JSON string or object
   parameters?: ToolParameter[];
   headers?: ToolHeader[];
   createdAt: Date;

@@ -2,7 +2,9 @@
   <!-- Loading State -->
   <div *ngIf="isLoadingTool" class="flex items-center justify-center py-12">
     <div class="text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"
+      ></div>
       <p class="text-gray-600 dark:text-gray-400">Loading tool data...</p>
     </div>
   </div>
@@ -16,16 +18,20 @@
           {{ isEditMode ? 'Edit Tool' : 'Create New Tool' }}
         </h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400">
-          {{ isEditMode ? 'Modify your tool properties' : 'Configure a new tool or API integration' }}
+          {{
+            isEditMode ? 'Modify your tool properties' : 'Configure a new tool or API integration'
+          }}
         </p>
       </div>
       <div class="flex space-x-3">
-        <button
-          (click)="onCancel()"
-          class="btn-secondary"
-        >
+        <button (click)="onCancel()" class="btn-secondary">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
           </svg>
           Cancel
         </button>
@@ -37,910 +43,1256 @@
           [class.opacity-50]="toolForm.invalid || isSavingBulkMcp"
         >
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            ></path>
           </svg>
           <span *ngIf="isSavingBulkMcp">Creating…</span>
-          <span *ngIf="!isSavingBulkMcp">{{ isEditMode ? 'Update' : (isMcpBulkCreateMode() ? ('Create ' + mcpBulkEnabledCreateCount + ' tools') : 'Create') }}</span>
+          <span *ngIf="!isSavingBulkMcp">{{
+            isEditMode
+              ? 'Update'
+              : isMcpBulkCreateMode()
+              ? 'Create ' + mcpBulkEnabledCreateCount + ' tools'
+              : 'Create'
+          }}</span>
         </button>
       </div>
     </div>
 
-  <!-- Form -->
-  <form [formGroup]="toolForm" (ngSubmit)="onSubmit()" class="space-y-8">
-    <!-- Basic Information (tool type first, then category & details) -->
-    <div class="card">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
-      <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Start with <strong class="text-ink">tool type</strong>, then fill in the fields below (name, category, and details).
-      </p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Type (first: drives the rest of the form) -->
-        <div class="md:col-span-2">
-          <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tool Type *
-          </label>
-          <select
-            id="type"
-            formControlName="type"
-            (change)="onToolTypeChange()"
-            class="input-field"
-            [class.error]="isFieldInvalid('type')"
-          >
-            <option *ngFor="let type of toolTypes" [value]="type">
-              {{ type | titlecase }}
-            </option>
-          </select>
-          <div *ngIf="isFieldInvalid('type')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-            {{ getFieldError('type') }}
-          </div>
-        </div>
-
-        <!-- Tool name (right after type: catalog name or internal preset) -->
-        <div
-          *ngIf="showInternalToolFields() || (!showMcpFields() || isEditMode)"
-          class="md:col-span-2"
-        >
-          <div class="max-w-xl">
+    <!-- Form -->
+    <form [formGroup]="toolForm" (ngSubmit)="onSubmit()" class="space-y-8">
+      <!-- Basic Information (tool type first, then category & details) -->
+      <div class="card">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          Start with <strong class="text-ink">tool type</strong>, then fill in the fields below
+          (name, category, and details).
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Type (first: drives the rest of the form) -->
+          <div class="md:col-span-2">
             <label
+              for="type"
               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              [attr.for]="showInternalToolFields() ? 'internalToolName' : 'name'"
             >
-              <span *ngIf="showInternalToolFields()">Internal tool *</span>
-              <span *ngIf="!showInternalToolFields()">Tool name *</span>
+              Tool Type *
             </label>
-            <div *ngIf="showInternalToolFields()">
-              <select
-                id="internalToolName"
-                formControlName="internalToolName"
-                (change)="onInternalToolNameChange($any($event.target).value)"
-                class="input-field"
-                [class.error]="isFieldInvalid('internalToolName')"
-              >
-                <option value="">Select an internal tool...</option>
-                <option *ngFor="let tool of internalToolNames" [value]="tool.value">
-                  {{ tool.value }}
-                </option>
-              </select>
-              <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Predefined internal tools with specific functionality
-              </div>
-              <div *ngIf="isFieldInvalid('internalToolName')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-                {{ getFieldError('internalToolName') }}
-              </div>
+            <select
+              id="type"
+              formControlName="type"
+              (change)="onToolTypeChange()"
+              class="input-field"
+              [class.error]="isFieldInvalid('type')"
+            >
+              <option *ngFor="let type of toolTypes" [value]="type">
+                {{ type | titlecase }}
+              </option>
+            </select>
+            <div
+              *ngIf="isFieldInvalid('type')"
+              class="mt-1 text-sm text-error-600 dark:text-error-400"
+            >
+              {{ getFieldError('type') }}
             </div>
-            <ng-container *ngIf="!showInternalToolFields()">
-              <input
-                id="name"
-                type="text"
-                formControlName="name"
-                class="input-field"
-                [class.error]="isFieldInvalid('name')"
-                placeholder="Ex: Data Processing API"
-              />
-              <div *ngIf="isFieldInvalid('name')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-                {{ getFieldError('name') }}
+          </div>
+
+          <!-- Tool name (right after type: catalog name or internal preset) -->
+          <div
+            *ngIf="showInternalToolFields() || !showMcpFields() || isEditMode"
+            class="md:col-span-2"
+          >
+            <div class="max-w-xl">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                [attr.for]="showInternalToolFields() ? 'internalToolName' : 'name'"
+              >
+                <span *ngIf="showInternalToolFields()">Internal tool *</span>
+                <span *ngIf="!showInternalToolFields()">Tool name *</span>
+              </label>
+              <div *ngIf="showInternalToolFields()">
+                <select
+                  id="internalToolName"
+                  formControlName="internalToolName"
+                  (change)="onInternalToolNameChange($any($event.target).value)"
+                  class="input-field"
+                  [class.error]="isFieldInvalid('internalToolName')"
+                >
+                  <option value="">Select an internal tool...</option>
+                  <option *ngFor="let tool of internalToolNames" [value]="tool.value">
+                    {{ tool.value }}
+                  </option>
+                </select>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Predefined internal tools with specific functionality
+                </div>
+                <div
+                  *ngIf="isFieldInvalid('internalToolName')"
+                  class="mt-1 text-sm text-error-600 dark:text-error-400"
+                >
+                  {{ getFieldError('internalToolName') }}
+                </div>
               </div>
-            </ng-container>
+              <ng-container *ngIf="!showInternalToolFields()">
+                <input
+                  id="name"
+                  type="text"
+                  formControlName="name"
+                  class="input-field"
+                  [class.error]="isFieldInvalid('name')"
+                  placeholder="Ex: Data Processing API"
+                />
+                <div
+                  *ngIf="isFieldInvalid('name')"
+                  class="mt-1 text-sm text-error-600 dark:text-error-400"
+                >
+                  {{ getFieldError('name') }}
+                </div>
+              </ng-container>
+            </div>
           </div>
-        </div>
 
-        <!-- Category (required; matches catalog grouping) -->
-        <div *ngIf="showCategoryField()">
-          <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Category *
-          </label>
-          <input
-            id="category"
-            type="text"
-            formControlName="category"
-            class="input-field"
-            [class.error]="isFieldInvalid('category')"
-            [attr.maxlength]="toolCategoryMaxLength"
-            placeholder="e.g. Communication, Data, Files"
-            autocomplete="off"
-          />
-          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {{ (toolForm.get('category')?.value || '').length }} / {{ toolCategoryMaxLength }} characters
-          </div>
-          <div *ngIf="isFieldInvalid('category')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-            {{ getFieldError('category') }}
-          </div>
-        </div>
-
-        <!-- Description: hidden for MCP create (per-tool descriptions below) -->
-        <div *ngIf="!showInternalToolFields() && (!showMcpFields() || isEditMode)" class="md:col-span-2">
-          <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Description *
-          </label>
-          <textarea
-            id="description"
-            formControlName="description"
-            rows="3"
-            class="input-field"
-            [class.error]="isFieldInvalid('description')"
-            [attr.maxlength]="toolDescriptionMaxLength"
-            placeholder="Describe the role and capabilities of your tool..."
-          ></textarea>
-          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {{ (toolForm.get('description')?.value || '').length }} / {{ toolDescriptionMaxLength }}
-          </div>
-          <div *ngIf="isFieldInvalid('description')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-            {{ getFieldError('description') }}
-          </div>
-        </div>
-
-        <!-- Internal Tool Configuration Fields -->
-        <div *ngIf="showInternalToolFields()" class="md:col-span-2">
-          <div class="flex items-center justify-between mb-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Configuration
-            </label>
-            <button
-              type="button"
-              (click)="addConfigField()"
-              class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center"
+          <!-- Category (required; matches catalog grouping) -->
+          <div *ngIf="showCategoryField()">
+            <label
+              for="category"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              Add Field
-            </button>
+              Category *
+            </label>
+            <input
+              id="category"
+              type="text"
+              formControlName="category"
+              class="input-field"
+              [class.error]="isFieldInvalid('category')"
+              [attr.maxlength]="toolCategoryMaxLength"
+              placeholder="e.g. Communication, Data, Files"
+              autocomplete="off"
+            />
+            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ (toolForm.get('category')?.value || '').length }} /
+              {{ toolCategoryMaxLength }} characters
+            </div>
+            <div
+              *ngIf="isFieldInvalid('category')"
+              class="mt-1 text-sm text-error-600 dark:text-error-400"
+            >
+              {{ getFieldError('category') }}
+            </div>
           </div>
-          
-          <div class="space-y-2" formArrayName="configFields">
-            <div *ngFor="let field of configFieldsArray.controls; let i = index" [formGroupName]="i" 
-                 class="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-              <div class="flex-1">
-                <input
-                  type="text"
-                  formControlName="key"
-                  placeholder="Key (e.g., apiUrl)"
-                  class="input-field text-sm"
-                  [class.error]="isControlInvalid(field.get('key'))"
-                />
-                <div *ngIf="isControlInvalid(field.get('key'))" class="mt-1 text-xs text-error-600 dark:text-error-400">
-                  {{ getControlErrorMessage(field.get('key')) }}
-                </div>
-              </div>
-              <div class="flex-1">
-                <input
-                  type="text"
-                  formControlName="value"
-                  placeholder="Value (e.g., https://localhost)"
-                  class="input-field text-sm"
-                  [class.error]="isControlInvalid(field.get('value'))"
-                />
-                <div *ngIf="isControlInvalid(field.get('value'))" class="mt-1 text-xs text-error-600 dark:text-error-400">
-                  {{ getControlErrorMessage(field.get('value')) }}
-                </div>
-              </div>
+
+          <!-- Description: hidden for MCP create (per-tool descriptions below) -->
+          <div
+            *ngIf="!showInternalToolFields() && (!showMcpFields() || isEditMode)"
+            class="md:col-span-2"
+          >
+            <label
+              for="description"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Description *
+            </label>
+            <textarea
+              id="description"
+              formControlName="description"
+              rows="3"
+              class="input-field"
+              [class.error]="isFieldInvalid('description')"
+              [attr.maxlength]="toolDescriptionMaxLength"
+              placeholder="Describe the role and capabilities of your tool..."
+            ></textarea>
+            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ (toolForm.get('description')?.value || '').length }} /
+              {{ toolDescriptionMaxLength }}
+            </div>
+            <div
+              *ngIf="isFieldInvalid('description')"
+              class="mt-1 text-sm text-error-600 dark:text-error-400"
+            >
+              {{ getFieldError('description') }}
+            </div>
+          </div>
+
+          <!-- Internal Tool Configuration Fields -->
+          <div *ngIf="showInternalToolFields()" class="md:col-span-2">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Configuration
+              </label>
               <button
                 type="button"
-                (click)="removeConfigField(i)"
-                class="p-2 text-error-600 hover:text-error-700 dark:text-error-400 dark:hover:text-error-300"
-                title="Remove field"
+                (click)="addConfigField()"
+                class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4"
+                  ></path>
                 </svg>
+                Add Field
               </button>
             </div>
-            
-            <div *ngIf="configFieldsArray.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
-              No configuration fields. Click "Add Field" to add configuration (e.g., apiUrl for Export tool).
-            </div>
-          </div>
-        </div>
 
-        <!-- Endpoint (for API and MCP tools) -->
-        <div *ngIf="showApiFields() || showMcpFields()">
-          <label for="endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Endpoint *
-          </label>
-          <input
-            id="endpoint"
-            type="url"
-            formControlName="endpoint"
-            class="input-field"
-            [class.error]="isFieldInvalid('endpoint')"
-            placeholder="https://api.example.com/endpoint"
-          />
-          <div *ngIf="isFieldInvalid('endpoint')" class="mt-1 text-sm text-error-600">
-            {{ getFieldError('endpoint') }}
-          </div>
-          <p *ngIf="showMcpFields()" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            For MCP servers, paste the server URL (for example <code class="text-xs">…/sse</code> or <code class="text-xs">…/mcp</code>). Transport is detected automatically.
-          </p>
-        </div>
-
-        <!-- Method (for API type) -->
-        <div *ngIf="showMethodField()">
-          <label for="method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            HTTP Method *
-          </label>
-          <select
-            id="method"
-            formControlName="method"
-            class="input-field"
-            [class.error]="isFieldInvalid('method')"
-          >
-            <option *ngFor="let method of httpMethods" [value]="method">
-              {{ method }}
-            </option>
-          </select>
-          <div *ngIf="isFieldInvalid('method')" class="mt-1 text-sm text-error-600">
-            {{ getFieldError('method') }}
-          </div>
-        </div>
-
-        <!-- JSON body for API (POST, PUT, PATCH, DELETE) -->
-        <div *ngIf="showApiRequestBodyField()" class="md:col-span-2">
-          <label for="apiRequestBody" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Request body (JSON, optional)
-          </label>
-          <textarea
-            id="apiRequestBody"
-            formControlName="apiRequestBody"
-            rows="8"
-            class="input-field font-mono text-sm"
-            [class.error]="isFieldInvalid('apiRequestBody')"
-            placeholder='e.g. { "name": "example", "count": 1 }'
-            spellcheck="false"
-          ></textarea>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Static JSON sent with the request. When the tool defines parameters, the model can override or add keys in this object (must be a JSON object for merging).
-          </p>
-          <div *ngIf="isFieldInvalid('apiRequestBody')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-            {{ getFieldError('apiRequestBody') }}
-          </div>
-        </div>
-
-        <!-- MCP: configuration.name (remote tool name) comes from discovery rows or existing config — not edited here -->
-
-        <!-- Internal Tool Info -->
-        <div *ngIf="showInternalToolFields()" class="md:col-span-2">
-          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div class="flex items-start">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Internal Tool
-                </h3>
-                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                  <p>Internal tools are simple, parameter-free tools that can be easily attached to any agent. They don't require complex configuration like API endpoints or authentication.</p>
-                  <p class="mt-1">Just provide a name and description - the tool will be ready to use!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-                 <!-- Status -->
-        <div class="md:col-span-2">
-          <label class="flex items-center">
-            <input
-              type="checkbox"
-              formControlName="isActive"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-              Active Tool
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- MCP: discover once, then configure every tool (create mode) -->
-    <div *ngIf="showMcpFields()" class="card">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">MCP tools from server</h2>
-      <div class="space-y-4">
-        <div *ngIf="isDiscoveringMcpTools" class="flex items-center justify-center py-8">
-          <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-          </svg>
-          <span class="text-gray-600 dark:text-gray-400">Discovering tools from MCP server...</span>
-        </div>
-
-        <div *ngIf="mcpDiscoveryError" class="bg-red-50 border border-red-200 rounded-md p-3">
-          <div class="flex">
-            <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <p class="text-sm text-red-700">{{ mcpDiscoveryError }}</p>
-          </div>
-        </div>
-
-        <p *ngIf="!isEditMode && discoveredMcpTools.length > 0 && !isDiscoveringMcpTools" class="text-sm text-gray-600 dark:text-gray-400">
-          Each row is one tool registered in the catalog. Authentication and headers below apply to <strong>all</strong> of them. Uncheck a row to skip creating that tool.
-        </p>
-
-        <div *ngIf="!isEditMode && mcpBulkToolsArray.length > 0 && !isDiscoveringMcpTools" class="space-y-6" formArrayName="mcpBulkTools">
-          <div
-            *ngFor="let draftCtrl of mcpBulkToolsArray.controls; let ti = index"
-            [formGroupName]="ti"
-            class="rounded-xl border border-line-light bg-surface-hover/50 p-4 space-y-4"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
-                <label class="flex items-center gap-2 text-sm font-medium text-ink shrink-0">
-                  <input type="checkbox" formControlName="enabled" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                  Include
-                </label>
-                <span class="text-xs text-ink-muted truncate" title="Name on the MCP server">MCP: <code class="text-ink">{{ draftCtrl.get('mcpToolName')?.value }}</code></span>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catalog name *</label>
-                <input
-                  type="text"
-                  formControlName="displayName"
-                  class="input-field"
-                  [class.error]="draftCtrl.get('displayName')?.invalid && draftCtrl.get('displayName')?.touched"
-                  placeholder="letters_numbers_only"
-                  title="Letters, numbers, and underscores only. Must be unique in your catalog."
-                  autocomplete="off"
-                />
-                <p class="mt-1 text-xs text-ink-muted">
-                  Use only <strong>letters</strong>, <strong>numbers</strong>, and <strong>underscores</strong>. Must be unique in your catalog (including tools already created).
-                </p>
-                <p
-                  *ngIf="draftCtrl.get('displayName')?.invalid && draftCtrl.get('displayName')?.touched"
-                  class="mt-1 text-xs text-error-600 dark:text-error-400 space-y-0.5"
-                >
-                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['required']">Catalog name is required.</span>
-                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['minlength']">At least 3 characters.</span>
-                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['maxlength']">At most 100 characters.</span>
-                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['pattern']">Only alphanumeric characters and underscores are allowed.</span>
-                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['nameTaken']">This name is already used—pick another or uncheck if the tool already exists.</span>
-                  <span *ngIf="draftCtrl.get('displayName')?.errors?.['duplicateInBatch']">Another enabled row uses this name.</span>
-                </p>
-              </div>
-              <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description *</label>
-                <textarea
-                  formControlName="description"
-                  rows="2"
-                  class="input-field"
-                  [class.error]="draftCtrl.get('description')?.invalid && draftCtrl.get('description')?.touched"
-                  [attr.maxlength]="toolDescriptionMaxLength"
-                  placeholder="What this tool does"
-                ></textarea>
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {{ (draftCtrl.get('description')?.value || '').length }} / {{ toolDescriptionMaxLength }}
-                </div>
-                <p
-                  *ngIf="draftCtrl.get('description')?.invalid && draftCtrl.get('description')?.touched"
-                  class="mt-1 text-xs text-error-600 dark:text-error-400 space-y-0.5"
-                >
-                  <span *ngIf="draftCtrl.get('description')?.errors?.['required']">Description is required.</span>
-                  <span *ngIf="draftCtrl.get('description')?.errors?.['minlength'] as me"
-                    >At least {{ me.requiredLength }} characters.</span
+            <div class="space-y-2" formArrayName="configFields">
+              <div
+                *ngFor="let field of configFieldsArray.controls; let i = index"
+                [formGroupName]="i"
+                class="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg"
+              >
+                <div class="flex-1">
+                  <input
+                    type="text"
+                    formControlName="key"
+                    placeholder="Key (e.g., apiUrl)"
+                    class="input-field text-sm"
+                    [class.error]="isControlInvalid(field.get('key'))"
+                  />
+                  <div
+                    *ngIf="isControlInvalid(field.get('key'))"
+                    class="mt-1 text-xs text-error-600 dark:text-error-400"
                   >
-                  <span *ngIf="draftCtrl.get('description')?.errors?.['maxlength'] as xe"
-                    >At most {{ xe.requiredLength }} characters (API limit).</span
-                  >
-                </p>
-              </div>
-            </div>
-            <div *ngIf="getMcpBulkParametersArray(ti).length > 0" formArrayName="parameters">
-              <h3 class="text-sm font-semibold text-ink mb-2">Parameters</h3>
-              <div class="space-y-3">
-                <div
-                  *ngFor="let p of getMcpBulkParametersArray(ti).controls; let pi = index"
-                  [formGroupName]="pi"
-                  class="border border-line-light rounded-lg p-3 bg-surface-card"
-                >
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-ink-muted mb-1">Name</label>
-                      <input [formControl]="getMcpBulkParameterName(ti, pi)" class="input-field text-sm" readonly />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-ink-muted mb-1">Type</label>
-                      <select [formControl]="getMcpBulkParameterType(ti, pi)" class="input-field text-sm">
-                        <option value="string">String</option>
-                        <option value="number">Number</option>
-                        <option value="boolean">Boolean</option>
-                        <option value="object">Object</option>
-                        <option value="array">Array</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-ink-muted mb-1">Default</label>
-                      <input [formControl]="getMcpBulkParameterDefault(ti, pi)" class="input-field text-sm" placeholder="Default value" />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-ink-muted mb-1">Description</label>
-                      <input [formControl]="getMcpBulkParameterDescription(ti, pi)" class="input-field text-sm" />
-                    </div>
+                    {{ getControlErrorMessage(field.get('key')) }}
                   </div>
-                  <label class="mt-2 flex items-center gap-2 text-xs text-ink-secondary">
-                    <input type="checkbox" [formControl]="getMcpBulkParameterRequired(ti, pi)" class="rounded border-gray-300 text-primary-600" />
-                    Required
-                  </label>
+                </div>
+                <div class="flex-1">
+                  <input
+                    type="text"
+                    formControlName="value"
+                    placeholder="Value (e.g., https://localhost)"
+                    class="input-field text-sm"
+                    [class.error]="isControlInvalid(field.get('value'))"
+                  />
+                  <div
+                    *ngIf="isControlInvalid(field.get('value'))"
+                    class="mt-1 text-xs text-error-600 dark:text-error-400"
+                  >
+                    {{ getControlErrorMessage(field.get('value')) }}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="removeConfigField(i)"
+                  class="p-2 text-error-600 hover:text-error-700 dark:text-error-400 dark:hover:text-error-300"
+                  title="Remove field"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+
+              <div
+                *ngIf="configFieldsArray.length === 0"
+                class="text-sm text-gray-500 dark:text-gray-400 italic py-2"
+              >
+                No configuration fields. Click "Add Field" to add configuration (e.g., apiUrl for
+                Export tool).
+              </div>
+            </div>
+          </div>
+
+          <!-- Endpoint (for API and MCP tools) -->
+          <div *ngIf="showApiFields() || showMcpFields()">
+            <label
+              for="endpoint"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Endpoint *
+            </label>
+            <input
+              id="endpoint"
+              type="url"
+              formControlName="endpoint"
+              class="input-field"
+              [class.error]="isFieldInvalid('endpoint')"
+              placeholder="https://api.example.com/endpoint"
+            />
+            <div *ngIf="isFieldInvalid('endpoint')" class="mt-1 text-sm text-error-600">
+              {{ getFieldError('endpoint') }}
+            </div>
+            <p *ngIf="showMcpFields()" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              For MCP servers, paste the server URL (for example
+              <code class="text-xs">…/sse</code> or <code class="text-xs">…/mcp</code>). Transport
+              is detected automatically. If discovery fails with 401, set authentication below —
+              discovery retries when credentials change.
+            </p>
+          </div>
+
+          <!-- Method (for API type) -->
+          <div *ngIf="showMethodField()">
+            <label
+              for="method"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              HTTP Method *
+            </label>
+            <select
+              id="method"
+              formControlName="method"
+              class="input-field"
+              [class.error]="isFieldInvalid('method')"
+            >
+              <option *ngFor="let method of httpMethods" [value]="method">
+                {{ method }}
+              </option>
+            </select>
+            <div *ngIf="isFieldInvalid('method')" class="mt-1 text-sm text-error-600">
+              {{ getFieldError('method') }}
+            </div>
+          </div>
+
+          <!-- JSON body for API (POST, PUT, PATCH, DELETE) -->
+          <div *ngIf="showApiRequestBodyField()" class="md:col-span-2">
+            <label
+              for="apiRequestBody"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Request body (JSON, optional)
+            </label>
+            <textarea
+              id="apiRequestBody"
+              formControlName="apiRequestBody"
+              rows="8"
+              class="input-field font-mono text-sm"
+              [class.error]="isFieldInvalid('apiRequestBody')"
+              placeholder='e.g. { "name": "example", "count": 1 }'
+              spellcheck="false"
+            ></textarea>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Static JSON sent with the request. When the tool defines parameters, the model can
+              override or add keys in this object (must be a JSON object for merging).
+            </p>
+            <div
+              *ngIf="isFieldInvalid('apiRequestBody')"
+              class="mt-1 text-sm text-error-600 dark:text-error-400"
+            >
+              {{ getFieldError('apiRequestBody') }}
+            </div>
+          </div>
+
+          <!-- MCP: configuration.name (remote tool name) comes from discovery rows or existing config — not edited here -->
+
+          <!-- Internal Tool Info -->
+          <div *ngIf="showInternalToolFields()" class="md:col-span-2">
+            <div
+              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+            >
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <svg
+                    class="h-5 w-5 text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Internal Tool
+                  </h3>
+                  <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <p>
+                      Internal tools are simple, parameter-free tools that can be easily attached to
+                      any agent. They don't require complex configuration like API endpoints or
+                      authentication.
+                    </p>
+                    <p class="mt-1">
+                      Just provide a name and description - the tool will be ready to use!
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-            <p *ngIf="getMcpBulkParametersArray(ti).length === 0" class="text-xs text-ink-muted">No parameters for this tool.</p>
           </div>
-        </div>
 
-        <div *ngIf="discoveredMcpTools.length === 0 && !isDiscoveringMcpTools && !mcpDiscoveryError" class="text-center py-8">
-          <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-          <p class="text-gray-500 dark:text-gray-400">Enter an MCP server endpoint above to discover available tools</p>
+          <!-- Status -->
+          <div class="md:col-span-2">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                formControlName="isActive"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"> Active Tool </span>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Authentication (not for Internal tools) -->
-    <div *ngIf="!showInternalToolFields()" class="card">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Authentication</h2>
-      <div class="space-y-4">
-                 <!-- Authentication Type -->
-         <div>
-           <label for="authType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-             Authentication Type *
-           </label>
-           <select
-             id="authType"
-             formControlName="authType"
-             (change)="onAuthenticationTypeChange()"
-             class="input-field"
-             [class.error]="isFieldInvalid('authType')"
-           >
-            <option *ngFor="let authType of authenticationTypes" [value]="authType">
-              {{ authType === 'none' ? 'None' : 
-                 authType === 'api_key' ? 'API Key' : 
-                 authType === 'bearer' ? 'Bearer Token' : 
-                 authType === 'basic' ? 'Basic Auth' : 
-                 authType === 'oauth2' ? 'OAuth2 (Generic)' : 
-                 authType === 'azure_oauth2' ? 'Azure OAuth2' : authType }}
-            </option>
-           </select>
-           <div *ngIf="isFieldInvalid('authType')" class="mt-1 text-sm text-error-600 dark:text-error-400">
-             {{ getFieldError('authType') }}
-           </div>
-         </div>
+      <!-- MCP: discover once, then configure every tool (create mode) -->
+      <div *ngIf="showMcpFields()" class="card">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          MCP tools from server
+        </h2>
+        <div class="space-y-4">
+          <div *ngIf="isDiscoveringMcpTools" class="flex items-center justify-center py-8">
+            <svg
+              class="w-6 h-6 text-blue-500 animate-spin mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            <span class="text-gray-600 dark:text-gray-400"
+              >Discovering tools from MCP server...</span
+            >
+          </div>
 
-         <!-- Authentication Required -->
-         <div *ngIf="showAuthenticationRequiredField()">
-           <label class="flex items-center">
-             <input
-               type="checkbox"
-               formControlName="authRequired"
-               class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-             />
-             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-               Authentication Required
-             </span>
-           </label>
-         </div>
-
-        <!-- API Key / Token -->
-        <div *ngIf="showApiKeyField()">
-          <label for="apiKey" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {{ toolForm.get('authType')?.value === 'bearer' ? 'Bearer Token' : 'API Key' }}
-          </label>
-          <input
-            id="apiKey"
-            type="password"
-            formControlName="authApiKey"
-            class="input-field"
-            placeholder="Enter your API key or token"
-          />
-        </div>
-
-        <!-- Basic Authentication -->
-        <div *ngIf="showBasicAuthFields()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              formControlName="authUsername"
-              class="input-field"
-              placeholder="Enter username"
-            />
-          </div>
-          <div>
-            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              formControlName="authPassword"
-              class="input-field"
-              placeholder="Enter password"
-            />
-          </div>
-        </div>
-
-        <!-- OAuth2 Authentication (Generic) -->
-        <div *ngIf="showOAuth2Fields()" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Client ID *
-              </label>
-              <input
-                id="clientId"
-                type="text"
-                formControlName="authClientId"
-                class="input-field"
-                placeholder="Enter OAuth2 client ID"
-              />
-            </div>
-            <div>
-              <label for="clientSecret" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Client Secret *
-              </label>
-              <input
-                id="clientSecret"
-                type="password"
-                formControlName="authClientSecret"
-                class="input-field"
-                placeholder="Enter OAuth2 client secret"
-              />
-            </div>
-          </div>
-          <div>
-            <label for="tokenUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Token URL *
-            </label>
-            <input
-              id="tokenUrl"
-              type="url"
-              formControlName="authTokenUrl"
-              class="input-field"
-              placeholder="https://oauth.example.com/token"
-            />
-          </div>
-          <div>
-            <label for="scopes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Scopes
-            </label>
-            <input
-              id="scopes"
-              type="text"
-              formControlName="authScopes"
-              class="input-field"
-              placeholder="read write (space-separated)"
-            />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Enter space-separated OAuth2 scopes (e.g., "read write admin")
-            </p>
-          </div>
-          <div>
-            <label for="oauth2Token" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Access Token (Optional)
-            </label>
-            <input
-              id="oauth2Token"
-              type="password"
-              formControlName="authApiKey"
-              class="input-field"
-              placeholder="Enter pre-obtained access token for testing"
-            />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              If you already have an access token, you can provide it here. Otherwise, the system will obtain it using client credentials.
-            </p>
-          </div>
-        </div>
-
-        <!-- Azure OAuth2 Authentication -->
-        <div *ngIf="showAzureOAuth2Fields()" class="space-y-4">
-          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
-            <div class="flex items-start">
-              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+          <div *ngIf="mcpDiscoveryError" class="bg-red-50 border border-red-200 rounded-md p-3">
+            <div class="flex">
+              <svg
+                class="w-5 h-5 text-red-400 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
               </svg>
-              <p class="text-sm text-blue-800 dark:text-blue-200">
-                Azure OAuth2 uses the standard Microsoft token endpoint. Just provide your Tenant ID and we'll construct the token URL automatically.
+              <p class="text-sm text-red-700">{{ mcpDiscoveryError }}</p>
+            </div>
+          </div>
+
+          <p
+            *ngIf="!isEditMode && discoveredMcpTools.length > 0 && !isDiscoveringMcpTools"
+            class="text-sm text-gray-600 dark:text-gray-400"
+          >
+            Each row is one tool registered in the catalog. Authentication and headers apply to
+            <strong>all</strong> imported tools. Uncheck a row to skip creating that tool.
+          </p>
+
+          <div
+            *ngIf="!isEditMode && mcpBulkToolsArray.length > 0 && !isDiscoveringMcpTools"
+            class="space-y-6"
+            formArrayName="mcpBulkTools"
+          >
+            <div
+              *ngFor="let draftCtrl of mcpBulkToolsArray.controls; let ti = index"
+              [formGroupName]="ti"
+              class="rounded-xl border border-line-light bg-surface-hover/50 p-4 space-y-4"
+            >
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                  <label class="flex items-center gap-2 text-sm font-medium text-ink shrink-0">
+                    <input
+                      type="checkbox"
+                      formControlName="enabled"
+                      class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    Include
+                  </label>
+                  <span class="text-xs text-ink-muted truncate" title="Name on the MCP server"
+                    >MCP:
+                    <code class="text-ink">{{ draftCtrl.get('mcpToolName')?.value }}</code></span
+                  >
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Catalog name *</label
+                  >
+                  <input
+                    type="text"
+                    formControlName="displayName"
+                    class="input-field"
+                    [class.error]="
+                      draftCtrl.get('displayName')?.invalid && draftCtrl.get('displayName')?.touched
+                    "
+                    placeholder="letters_numbers_only"
+                    title="Letters, numbers, and underscores only. Must be unique in your catalog."
+                    autocomplete="off"
+                  />
+                  <p class="mt-1 text-xs text-ink-muted">
+                    Use only <strong>letters</strong>, <strong>numbers</strong>, and
+                    <strong>underscores</strong>. Must be unique in your catalog (including tools
+                    already created).
+                  </p>
+                  <p
+                    *ngIf="
+                      draftCtrl.get('displayName')?.invalid && draftCtrl.get('displayName')?.touched
+                    "
+                    class="mt-1 text-xs text-error-600 dark:text-error-400 space-y-0.5"
+                  >
+                    <span *ngIf="draftCtrl.get('displayName')?.errors?.['required']"
+                      >Catalog name is required.</span
+                    >
+                    <span *ngIf="draftCtrl.get('displayName')?.errors?.['minlength']"
+                      >At least 3 characters.</span
+                    >
+                    <span *ngIf="draftCtrl.get('displayName')?.errors?.['maxlength']"
+                      >At most 100 characters.</span
+                    >
+                    <span *ngIf="draftCtrl.get('displayName')?.errors?.['pattern']"
+                      >Only alphanumeric characters and underscores are allowed.</span
+                    >
+                    <span *ngIf="draftCtrl.get('displayName')?.errors?.['nameTaken']"
+                      >This name is already used—pick another or uncheck if the tool already
+                      exists.</span
+                    >
+                    <span *ngIf="draftCtrl.get('displayName')?.errors?.['duplicateInBatch']"
+                      >Another enabled row uses this name.</span
+                    >
+                  </p>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Description *</label
+                  >
+                  <textarea
+                    formControlName="description"
+                    rows="2"
+                    class="input-field"
+                    [class.error]="
+                      draftCtrl.get('description')?.invalid && draftCtrl.get('description')?.touched
+                    "
+                    [attr.maxlength]="toolDescriptionMaxLength"
+                    placeholder="What this tool does"
+                  ></textarea>
+                  <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ (draftCtrl.get('description')?.value || '').length }} /
+                    {{ toolDescriptionMaxLength }}
+                  </div>
+                  <p
+                    *ngIf="
+                      draftCtrl.get('description')?.invalid && draftCtrl.get('description')?.touched
+                    "
+                    class="mt-1 text-xs text-error-600 dark:text-error-400 space-y-0.5"
+                  >
+                    <span *ngIf="draftCtrl.get('description')?.errors?.['required']"
+                      >Description is required.</span
+                    >
+                    <span *ngIf="draftCtrl.get('description')?.errors?.['minlength'] as me"
+                      >At least {{ me.requiredLength }} characters.</span
+                    >
+                    <span *ngIf="draftCtrl.get('description')?.errors?.['maxlength'] as xe"
+                      >At most {{ xe.requiredLength }} characters (API limit).</span
+                    >
+                  </p>
+                </div>
+              </div>
+              <div *ngIf="getMcpBulkParametersArray(ti).length > 0" formArrayName="parameters">
+                <h3 class="text-sm font-semibold text-ink mb-2">Parameters</h3>
+                <div class="space-y-3">
+                  <div
+                    *ngFor="let p of getMcpBulkParametersArray(ti).controls; let pi = index"
+                    [formGroupName]="pi"
+                    class="border border-line-light rounded-lg p-3 bg-surface-card"
+                  >
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label class="block text-xs font-medium text-ink-muted mb-1">Name</label>
+                        <input
+                          [formControl]="getMcpBulkParameterName(ti, pi)"
+                          class="input-field text-sm"
+                          readonly
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-ink-muted mb-1">Type</label>
+                        <select
+                          [formControl]="getMcpBulkParameterType(ti, pi)"
+                          class="input-field text-sm"
+                        >
+                          <option value="string">String</option>
+                          <option value="number">Number</option>
+                          <option value="boolean">Boolean</option>
+                          <option value="object">Object</option>
+                          <option value="array">Array</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-ink-muted mb-1">Default</label>
+                        <input
+                          [formControl]="getMcpBulkParameterDefault(ti, pi)"
+                          class="input-field text-sm"
+                          placeholder="Default value"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-ink-muted mb-1"
+                          >Description</label
+                        >
+                        <input
+                          [formControl]="getMcpBulkParameterDescription(ti, pi)"
+                          class="input-field text-sm"
+                        />
+                      </div>
+                    </div>
+                    <label class="mt-2 flex items-center gap-2 text-xs text-ink-secondary">
+                      <input
+                        type="checkbox"
+                        [formControl]="getMcpBulkParameterRequired(ti, pi)"
+                        class="rounded border-gray-300 text-primary-600"
+                      />
+                      Required
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <p *ngIf="getMcpBulkParametersArray(ti).length === 0" class="text-xs text-ink-muted">
+                No parameters for this tool.
               </p>
             </div>
           </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="azureClientId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Client ID (Application ID) *
-              </label>
-              <input
-                id="azureClientId"
-                type="text"
-                formControlName="authClientId"
-                class="input-field"
-                placeholder="12345678-1234-1234-1234-123456789012"
-              />
-            </div>
-            <div>
-              <label for="azureClientSecret" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Client Secret *
-              </label>
-              <input
-                id="azureClientSecret"
-                type="password"
-                formControlName="authClientSecret"
-                class="input-field"
-                placeholder="Enter Azure client secret"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label for="tenantId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tenant ID *
-            </label>
-            <input
-              id="tenantId"
-              type="text"
-              formControlName="authTenantId"
-              class="input-field"
-              placeholder="87654321-4321-4321-4321-210987654321"
-            />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Your Azure AD tenant ID (found in Azure Portal)
+
+          <div
+            *ngIf="discoveredMcpTools.length === 0 && !isDiscoveringMcpTools && !mcpDiscoveryError"
+            class="text-center py-8"
+          >
+            <svg
+              class="w-12 h-12 text-gray-400 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              ></path>
+            </svg>
+            <p class="text-gray-500 dark:text-gray-400">
+              Enter an MCP server endpoint above to discover available tools
             </p>
           </div>
-          
+        </div>
+      </div>
+
+      <!-- Authentication (not for Internal tools) -->
+      <div *ngIf="!showInternalToolFields()" class="card">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Authentication</h2>
+        <p *ngIf="showMcpFields()" class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Protected MCP servers need credentials here. Tool discovery retries automatically when
+          authentication changes.
+        </p>
+        <div class="space-y-4">
+          <!-- Authentication Type -->
           <div>
-            <label for="resource" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Resource / Scope
+            <label
+              for="authType"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Authentication Type *
             </label>
-            <input
-              id="resource"
-              type="text"
-              formControlName="authResource"
+            <select
+              id="authType"
+              formControlName="authType"
+              (change)="onAuthenticationTypeChange()"
               class="input-field"
-              placeholder="https://graph.microsoft.com/.default"
-            />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Azure resource identifier or scope (e.g., "https://graph.microsoft.com/.default")
-            </p>
+              [class.error]="isFieldInvalid('authType')"
+            >
+              <option *ngFor="let authType of authenticationTypes" [value]="authType">
+                {{
+                  authType === 'none'
+                    ? 'None'
+                    : authType === 'api_key'
+                    ? 'API Key'
+                    : authType === 'bearer'
+                    ? 'Bearer Token'
+                    : authType === 'basic'
+                    ? 'Basic Auth'
+                    : authType === 'oauth2'
+                    ? 'OAuth2 (Generic)'
+                    : authType === 'azure_oauth2'
+                    ? 'Azure OAuth2'
+                    : authType
+                }}
+              </option>
+            </select>
+            <div
+              *ngIf="isFieldInvalid('authType')"
+              class="mt-1 text-sm text-error-600 dark:text-error-400"
+            >
+              {{ getFieldError('authType') }}
+            </div>
           </div>
-          
-          <div>
-            <label for="azureToken" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Access Token (Optional)
+
+          <!-- Authentication Required -->
+          <div *ngIf="showAuthenticationRequiredField()">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                formControlName="authRequired"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                Authentication Required
+              </span>
+            </label>
+          </div>
+
+          <!-- API Key / Token -->
+          <div *ngIf="showApiKeyField()">
+            <label
+              for="apiKey"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              {{ toolForm.get('authType')?.value === 'bearer' ? 'Bearer Token' : 'API Key' }}
             </label>
             <input
-              id="azureToken"
+              id="apiKey"
               type="password"
               formControlName="authApiKey"
               class="input-field"
-              placeholder="Enter pre-obtained access token for testing"
+              placeholder="Enter your API key or token"
             />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              If you already have an access token, you can provide it here. Otherwise, the system will obtain it automatically.
+          </div>
+
+          <div *ngIf="showApiKeyHeaderField()">
+            <label
+              for="apiKeyHeader"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              API Key Header Name
+            </label>
+            <input
+              id="apiKeyHeader"
+              type="text"
+              formControlName="authApiKeyHeader"
+              class="input-field"
+              placeholder="X-API-Key"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Header used to send the API key (e.g. <code class="text-xs">X-API-Key</code>,
+              <code class="text-xs">Authorization</code>, <code class="text-xs">api-key</code>).
+            </p>
+          </div>
+
+          <!-- Basic Authentication -->
+          <div *ngIf="showBasicAuthFields()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                for="username"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                formControlName="authUsername"
+                class="input-field"
+                placeholder="Enter username"
+              />
+            </div>
+            <div>
+              <label
+                for="password"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                formControlName="authPassword"
+                class="input-field"
+                placeholder="Enter password"
+              />
+            </div>
+          </div>
+
+          <!-- OAuth2 Authentication (Generic) -->
+          <div *ngIf="showOAuth2Fields()" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  for="clientId"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Client ID *
+                </label>
+                <input
+                  id="clientId"
+                  type="text"
+                  formControlName="authClientId"
+                  class="input-field"
+                  placeholder="Enter OAuth2 client ID"
+                />
+              </div>
+              <div>
+                <label
+                  for="clientSecret"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Client Secret *
+                </label>
+                <input
+                  id="clientSecret"
+                  type="password"
+                  formControlName="authClientSecret"
+                  class="input-field"
+                  placeholder="Enter OAuth2 client secret"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                for="tokenUrl"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Token URL *
+              </label>
+              <input
+                id="tokenUrl"
+                type="url"
+                formControlName="authTokenUrl"
+                class="input-field"
+                placeholder="https://oauth.example.com/token"
+              />
+            </div>
+            <div>
+              <label
+                for="scopes"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Scopes
+              </label>
+              <input
+                id="scopes"
+                type="text"
+                formControlName="authScopes"
+                class="input-field"
+                placeholder="read write (space-separated)"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Enter space-separated OAuth2 scopes (e.g., "read write admin")
+              </p>
+            </div>
+            <div>
+              <label
+                for="oauth2Token"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Access Token (Optional)
+              </label>
+              <input
+                id="oauth2Token"
+                type="password"
+                formControlName="authApiKey"
+                class="input-field"
+                placeholder="Enter pre-obtained access token for testing"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                If you already have an access token, you can provide it here. Otherwise, the system
+                will obtain it using client credentials.
+              </p>
+            </div>
+          </div>
+
+          <!-- Azure OAuth2 Authentication -->
+          <div *ngIf="showAzureOAuth2Fields()" class="space-y-4">
+            <div
+              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4"
+            >
+              <div class="flex items-start">
+                <svg
+                  class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                  Azure OAuth2 uses the standard Microsoft token endpoint. Just provide your Tenant
+                  ID and we'll construct the token URL automatically.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  for="azureClientId"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Client ID (Application ID) *
+                </label>
+                <input
+                  id="azureClientId"
+                  type="text"
+                  formControlName="authClientId"
+                  class="input-field"
+                  placeholder="12345678-1234-1234-1234-123456789012"
+                />
+              </div>
+              <div>
+                <label
+                  for="azureClientSecret"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Client Secret *
+                </label>
+                <input
+                  id="azureClientSecret"
+                  type="password"
+                  formControlName="authClientSecret"
+                  class="input-field"
+                  placeholder="Enter Azure client secret"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                for="tenantId"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Tenant ID *
+              </label>
+              <input
+                id="tenantId"
+                type="text"
+                formControlName="authTenantId"
+                class="input-field"
+                placeholder="87654321-4321-4321-4321-210987654321"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Your Azure AD tenant ID (found in Azure Portal)
+              </p>
+            </div>
+
+            <div>
+              <label
+                for="resource"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Resource / Scope
+              </label>
+              <input
+                id="resource"
+                type="text"
+                formControlName="authResource"
+                class="input-field"
+                placeholder="https://graph.microsoft.com/.default"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Azure resource identifier or scope (e.g., "https://graph.microsoft.com/.default")
+              </p>
+            </div>
+
+            <div>
+              <label
+                for="azureToken"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Access Token (Optional)
+              </label>
+              <input
+                id="azureToken"
+                type="password"
+                formControlName="authApiKey"
+                class="input-field"
+                placeholder="Enter pre-obtained access token for testing"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                If you already have an access token, you can provide it here. Otherwise, the system
+                will obtain it automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Headers (not for Internal tools) -->
+      <div *ngIf="!showInternalToolFields()" class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Headers</h2>
+          <button type="button" (click)="addHeader()" class="btn-secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              ></path>
+            </svg>
+            Add Header
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div
+            *ngFor="let headerGroup of headersArray.controls; let i = index"
+            class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Header {{ i + 1 }}</h3>
+              <button
+                type="button"
+                (click)="removeHeader(i)"
+                class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Header Name *
+                </label>
+                <input
+                  [formControl]="getHeaderName(i)"
+                  placeholder="Ex: Content-Type"
+                  class="input-field"
+                  [class.error]="isControlInvalid(getHeaderName(i))"
+                />
+                <div
+                  *ngIf="isControlInvalid(getHeaderName(i))"
+                  class="mt-1 text-sm text-error-600 dark:text-error-400"
+                >
+                  {{ getControlErrorMessage(getHeaderName(i)) }}
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Header Value *
+                </label>
+                <input
+                  [formControl]="getHeaderValue(i)"
+                  placeholder="Ex: application/json"
+                  class="input-field"
+                  [class.error]="isControlInvalid(getHeaderValue(i))"
+                />
+                <div
+                  *ngIf="isControlInvalid(getHeaderValue(i))"
+                  class="mt-1 text-sm text-error-600 dark:text-error-400"
+                >
+                  {{ getControlErrorMessage(getHeaderValue(i)) }}
+                </div>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Description
+                </label>
+                <input
+                  [formControl]="getHeaderDescription(i)"
+                  placeholder="Header description"
+                  class="input-field"
+                />
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  [formControl]="getHeaderRequired(i)"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"> Required Header </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Message if no headers -->
+          <div
+            *ngIf="headersArray.length === 0"
+            class="text-center py-8 text-gray-500 dark:text-gray-400"
+          >
+            <svg
+              class="mx-auto h-12 w-12 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            <p>
+              No headers configured. Add headers to configure HTTP request headers for your tool.
             </p>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Headers (not for Internal tools) -->
-    <div *ngIf="!showInternalToolFields()" class="card">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Headers</h2>
-        <button
-          type="button"
-          (click)="addHeader()"
-          class="btn-secondary"
-        >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
-          Add Header
-        </button>
-      </div>
-
-      <div class="space-y-4">
-        <div
-          *ngFor="let headerGroup of headersArray.controls; let i = index"
-          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-        >
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Header {{ i + 1 }}</h3>
-            <button
-              type="button"
-              (click)="removeHeader(i)"
-              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Header Name *
-              </label>
-              <input
-                [formControl]="getHeaderName(i)"
-                placeholder="Ex: Content-Type"
-                class="input-field"
-                [class.error]="isControlInvalid(getHeaderName(i))"
-              />
-              <div *ngIf="isControlInvalid(getHeaderName(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
-                {{ getControlErrorMessage(getHeaderName(i)) }}
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Header Value *
-              </label>
-              <input
-                [formControl]="getHeaderValue(i)"
-                placeholder="Ex: application/json"
-                class="input-field"
-                [class.error]="isControlInvalid(getHeaderValue(i))"
-              />
-              <div *ngIf="isControlInvalid(getHeaderValue(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
-                {{ getControlErrorMessage(getHeaderValue(i)) }}
-              </div>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Description
-              </label>
-              <input
-                [formControl]="getHeaderDescription(i)"
-                placeholder="Header description"
-                class="input-field"
-              />
-            </div>
-          </div>
-
-          <div class="mt-3">
-            <label class="flex items-center">
-              <input
-                type="checkbox"
-                [formControl]="getHeaderRequired(i)"
-                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              />
-              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                Required Header
-              </span>
-            </label>
-          </div>
+      <!-- Paramètres (API tools, or MCP edit — not MCP bulk create) -->
+      <div *ngIf="!showInternalToolFields() && !isMcpBulkCreateMode()" class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Parameters</h2>
+          <button type="button" (click)="addParameter()" class="btn-secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              ></path>
+            </svg>
+            Add Parameter
+          </button>
         </div>
 
-        <!-- Message if no headers -->
-        <div *ngIf="headersArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
-          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p>No headers configured. Add headers to configure HTTP request headers for your tool.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Paramètres (API tools, or MCP edit — not MCP bulk create) -->
-    <div *ngIf="!showInternalToolFields() && !isMcpBulkCreateMode()" class="card">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Parameters</h2>
-        <button
-          type="button"
-          (click)="addParameter()"
-          class="btn-secondary"
-        >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
-          Add Parameter
-        </button>
-      </div>
-
-      <div class="space-y-4">
-        <div
-          *ngFor="let parameterGroup of parametersArray.controls; let i = index"
-          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-        >
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Parameter {{ i + 1 }}</h3>
-            <button
-              type="button"
-              (click)="removeParameter(i)"
-              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Name *
-              </label>
-              <input
-                [formControl]="getParameterName(i)"
-                placeholder="Ex: query"
-                class="input-field"
-                [class.error]="isControlInvalid(getParameterName(i))"
-              />
-              <div *ngIf="isControlInvalid(getParameterName(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
-                {{ getControlErrorMessage(getParameterName(i)) }}
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Type *
-              </label>
-              <select
-                [formControl]="getParameterType(i)"
-                class="input-field"
-                [class.error]="isControlInvalid(getParameterType(i))"
+        <div class="space-y-4">
+          <div
+            *ngFor="let parameterGroup of parametersArray.controls; let i = index"
+            class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                Parameter {{ i + 1 }}
+              </h3>
+              <button
+                type="button"
+                (click)="removeParameter(i)"
+                class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
               >
-                <option value="string">String</option>
-                <option value="number">Number</option>
-                <option value="boolean">Boolean</option>
-                <option value="object">Object</option>
-                <option value="array">Array</option>
-              </select>
-              <div *ngIf="isControlInvalid(getParameterType(i))" class="mt-1 text-sm text-error-600 dark:text-error-400">
-                {{ getControlErrorMessage(getParameterType(i)) }}
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Name *
+                </label>
+                <input
+                  [formControl]="getParameterName(i)"
+                  placeholder="Ex: query"
+                  class="input-field"
+                  [class.error]="isControlInvalid(getParameterName(i))"
+                />
+                <div
+                  *ngIf="isControlInvalid(getParameterName(i))"
+                  class="mt-1 text-sm text-error-600 dark:text-error-400"
+                >
+                  {{ getControlErrorMessage(getParameterName(i)) }}
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Type *
+                </label>
+                <select
+                  [formControl]="getParameterType(i)"
+                  class="input-field"
+                  [class.error]="isControlInvalid(getParameterType(i))"
+                >
+                  <option value="string">String</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean</option>
+                  <option value="object">Object</option>
+                  <option value="array">Array</option>
+                </select>
+                <div
+                  *ngIf="isControlInvalid(getParameterType(i))"
+                  class="mt-1 text-sm text-error-600 dark:text-error-400"
+                >
+                  {{ getControlErrorMessage(getParameterType(i)) }}
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Default Value
+                </label>
+                <input
+                  [formControl]="getParameterDefault(i)"
+                  placeholder="Default value"
+                  class="input-field"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Description
+                </label>
+                <input
+                  [formControl]="getParameterDescription(i)"
+                  placeholder="Parameter description"
+                  class="input-field"
+                />
               </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Default Value
+
+            <div class="mt-3">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  [formControl]="getParameterRequired(i)"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Required Parameter
+                </span>
               </label>
-              <input
-                [formControl]="getParameterDefault(i)"
-                placeholder="Default value"
-                class="input-field"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Description
-              </label>
-              <input
-                [formControl]="getParameterDescription(i)"
-                placeholder="Parameter description"
-                class="input-field"
-              />
             </div>
           </div>
 
-          <div class="mt-3">
-            <label class="flex items-center">
-              <input
-                type="checkbox"
-                [formControl]="getParameterRequired(i)"
-                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              />
-              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                Required Parameter
-              </span>
-            </label>
+          <!-- Message if no parameters -->
+          <div
+            *ngIf="parametersArray.length === 0"
+            class="text-center py-8 text-gray-500 dark:text-gray-400"
+          >
+            <svg
+              class="mx-auto h-12 w-12 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            <p>No parameters configured. Add parameters to configure your tool's behavior.</p>
           </div>
-        </div>
-
-        <!-- Message if no parameters -->
-        <div *ngIf="parametersArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
-          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p>No parameters configured. Add parameters to configure your tool's behavior.</p>
         </div>
       </div>
-    </div>
-  </form>
-  </div> <!-- End of form content wrapper -->
+    </form>
+  </div>
+  <!-- End of form content wrapper -->
 </div>

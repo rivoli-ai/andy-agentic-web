@@ -1,5 +1,4 @@
 import { APP_INITIALIZER, Injector, NgModule } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -24,7 +23,12 @@ import { LoadingOverlayComponent } from './shared/components/loading-overlay/loa
 import { ThemeToggleComponent } from './shared/components/theme-toggle/theme-toggle.component';
 
 // Role pipes
-import { HasRolePipe, HasAnyRolePipe, HasWritePermissionPipe, HasReadPermissionPipe } from './shared/pipes/role.pipe';
+import {
+  HasRolePipe,
+  HasAnyRolePipe,
+  HasWritePermissionPipe,
+  HasReadPermissionPipe,
+} from './shared/pipes/role.pipe';
 
 // Feature components
 import { AgentsComponent } from './features/agents/agents.component';
@@ -38,20 +42,17 @@ import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { LLMDetailComponent } from './features/llm/llm-detail/llm-detail.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
 import { highlight } from 'prismjs';
-import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 import { AppConfigService } from './core/config/app-config.service';
-import { MsalService } from '@azure/msal-angular';
+import { AuthService } from './core/auth/services/auth.service';
 
-/**
- * Load runtime config before anything touches AppConfigService (e.g. MSAL factory).
- * Must not inject MsalService in APP_INITIALIZER deps: that constructs MSAL before config.load().
- */
+/** Load runtime config, then auth providers (before first route/interceptor use). */
 export function initApplication(injector: Injector): () => Promise<void> {
-  return () =>
-    injector
-      .get(AppConfigService)
-      .load()
-      .then(() => firstValueFrom(injector.get(MsalService).initialize()));
+  return async () => {
+    const configService = injector.get(AppConfigService);
+    await configService.load();
+    const authService = injector.get(AuthService);
+    await authService.initializeAfterConfigLoad();
+  };
 }
 
 @NgModule({
@@ -73,7 +74,7 @@ export function initApplication(injector: Injector): () => Promise<void> {
     HasRolePipe,
     HasAnyRolePipe,
     HasWritePermissionPipe,
-    HasReadPermissionPipe
+    HasReadPermissionPipe,
   ],
   imports: [
     BrowserModule,
@@ -94,7 +95,7 @@ export function initApplication(injector: Injector): () => Promise<void> {
     AppSidebarComponent,
     AppHeaderComponent,
     ToolExecutionDisplayComponent,
-    ToolExecutionSummaryComponent
+    ToolExecutionSummaryComponent,
   ],
   providers: [
     ThemeService,
@@ -102,15 +103,14 @@ export function initApplication(injector: Injector): () => Promise<void> {
       provide: APP_INITIALIZER,
       useFactory: initApplication,
       deps: [Injector],
-      multi: true
+      multi: true,
     },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
-      multi: true
+      multi: true,
     },
-    { provide: LocationStrategy, useClass: HashLocationStrategy }
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

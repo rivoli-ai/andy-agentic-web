@@ -7,10 +7,11 @@ import {
   AbstractControl,
   FormControl,
   ValidatorFn,
-  ValidationErrors
+  ValidationErrors,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, merge } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { Tool, ToolType, McpToolDiscovery } from '../../../models/tool.model';
 import { ToolService } from '../../../core/services/tool.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -19,7 +20,7 @@ import { NotificationService } from '../../../core/services/notification.service
   standalone: false,
   selector: 'app-tool-form',
   templateUrl: './tool-form.component.html',
-  styleUrls: ['./tool-form.component.css']
+  styleUrls: ['./tool-form.component.css'],
 })
 export class ToolFormComponent implements OnInit, OnDestroy {
   toolForm: FormGroup;
@@ -32,9 +33,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   // Predefined internal tool names
   internalToolNames = [
     { value: 'Search', description: 'Search functionality for finding information' },
-    { value: 'Export', description: 'Export responses to document formats (Excel, PDF, Word)' }
+    { value: 'Export', description: 'Export responses to document formats (Excel, PDF, Word)' },
   ];
-  
+
   // MCP Discovery properties
   discoveredMcpTools: McpToolDiscovery[] = [];
   isDiscoveringMcpTools = false;
@@ -53,13 +54,14 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
   /** Matches API `ToolDto.Category` [MaxLength(50)] */
   readonly toolCategoryMaxLength = 50;
-  
+
   // Loading states
   isLoadingTool = false;
-  
+
   private subscription = new Subscription();
   /** Subscriptions for MCP bulk row `enabled` toggles (replaced on each discovery) */
   private mcpBulkRowSubs = new Subscription();
+  private mcpDiscoverTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private fb: FormBuilder,
@@ -75,13 +77,15 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.toolId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.toolId;
-    
+
     // Listen for endpoint changes to auto-discover MCP tools
     this.subscription.add(
       this.toolForm.get('endpoint')?.valueChanges.subscribe(endpoint => {
         this.onEndpointChange(endpoint);
       })
     );
+
+    this.setupMcpAuthDiscoveryRetry();
 
     if (this.isEditMode) {
       this.loadToolForEdit();
@@ -111,7 +115,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         },
         error: () => {
           /* non-blocking */
-        }
+        },
       })
     );
   }
@@ -193,11 +197,12 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       Validators.maxLength(100),
       Validators.pattern(this.CATALOG_NAME_PATTERN),
       this.catalogNameTakenValidator(),
-      this.mcpBulkDuplicateDisplayNameValidator(rowIndex)
+      this.mcpBulkDuplicateDisplayNameValidator(rowIndex),
     ];
   }
 
   ngOnDestroy(): void {
+    if (this.mcpDiscoverTimer) clearTimeout(this.mcpDiscoverTimer);
     this.mcpBulkRowSubs.unsubscribe();
     this.subscription.unsubscribe();
   }
@@ -211,7 +216,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       }
       if (s.length > this.toolCategoryMaxLength) {
         return {
-          maxlength: { requiredLength: this.toolCategoryMaxLength, actualLength: s.length }
+          maxlength: { requiredLength: this.toolCategoryMaxLength, actualLength: s.length },
         };
       }
       return null;
@@ -228,7 +233,11 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       internalToolName: [''], // For predefined internal tool names
       description: [
         '',
-        [Validators.required, Validators.minLength(3), Validators.maxLength(this.toolDescriptionMaxLength)]
+        [
+          Validators.required,
+          Validators.minLength(3),
+          Validators.maxLength(this.toolDescriptionMaxLength),
+        ],
       ],
       type: [ToolType.INTERNAL, Validators.required],
       category: ['', this.categoryFormValidator()],
@@ -242,6 +251,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       authType: ['none'], // Remove required validator - will be set based on tool type
       authRequired: [false],
       authApiKey: [''],
+      authApiKeyHeader: ['X-API-Key'],
       authUsername: [''],
       authPassword: [''],
       authClientId: [''],
@@ -253,27 +263,27 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       parameters: this.fb.array([]),
       headers: this.fb.array([]),
       configFields: this.fb.array([]), // Configuration fields for internal tools
-      mcpBulkTools: this.fb.array([]) // Create-mode MCP: one row per discovered server tool
+      mcpBulkTools: this.fb.array([]), // Create-mode MCP: one row per discovered server tool
     });
   }
 
   private loadToolForEdit(): void {
     if (!this.toolId) return;
-    
+
     this.isLoadingTool = true;
     this.subscription.add(
       this.toolService.getToolById(this.toolId).subscribe({
-        next: (tool) => {
+        next: tool => {
           if (tool) {
             this.populateForm(tool);
           }
           this.isLoadingTool = false;
         },
-        error: (error) => {
-          this.notificationService.error('Erreur', 'Impossible de charger l\'outil pour édition');
+        error: error => {
+          this.notificationService.error('Erreur', "Impossible de charger l'outil pour édition");
           console.error('Error loading tool:', error);
           this.isLoadingTool = false;
-        }
+        },
       })
     );
   }
@@ -281,16 +291,16 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   private populateForm(tool: Tool): void {
     // Vider les FormArrays existants
     this.clearFormArrays();
-    
+
     console.log('populateForm - tool.type:', tool.type);
     console.log('populateForm - tool:', tool);
-    
+
     // Parse configuration to extract endpoint, method, and mcpName
     let endpoint = '';
     let method = 'GET';
     let mcpName = '';
     let apiRequestBody = '';
-    
+
     if (tool.configuration) {
       try {
         const config = JSON.parse(tool.configuration);
@@ -308,7 +318,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         console.warn('Invalid configuration JSON:', tool.configuration);
       }
     }
-    
+
     // Remplir le formulaire principal
     this.toolForm.patchValue({
       name: tool.name,
@@ -320,11 +330,11 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       method: method,
       apiRequestBody,
       mcpName: mcpName,
-      internalToolName: tool.type === ToolType.INTERNAL ? tool.name : ''
+      internalToolName: tool.type === ToolType.INTERNAL ? tool.name : '',
     });
 
     this.updateApiRequestBodyValidators();
-    
+
     // Pour les InternalTool, parser la configuration en champs clé-valeur
     if (tool.type === ToolType.INTERNAL && tool.configuration) {
       try {
@@ -336,36 +346,37 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         console.error('Error parsing configuration JSON for InternalTool:', tool.configuration, e);
       }
     }
-    
+
     console.log('populateForm - form type after patch:', this.toolForm.get('type')?.value);
 
-         // Remplir l'authentification - parse JSON string if needed
-     let authData: any = {};
-     console.log('populateForm - tool.authentication:', tool.authentication);
-     console.log('populateForm - typeof tool.authentication:', typeof tool.authentication);
-     
-     if (tool.authentication) {
-       if (typeof tool.authentication === 'string') {
-         console.log('populateForm - parsing JSON string');
-         try {
-           authData = JSON.parse(tool.authentication);
-           console.log('populateForm - parsed authData:', authData);
-         } catch (e) {
-           console.warn('Invalid authentication JSON:', tool.authentication);
-           authData = {};
-         }
-       } else {
-         console.log('populateForm - using authentication object directly');
-         authData = tool.authentication;
-       }
-       
+    // Remplir l'authentification - parse JSON string if needed
+    let authData: any = {};
+    console.log('populateForm - tool.authentication:', tool.authentication);
+    console.log('populateForm - typeof tool.authentication:', typeof tool.authentication);
+
+    if (tool.authentication) {
+      if (typeof tool.authentication === 'string') {
+        console.log('populateForm - parsing JSON string');
+        try {
+          authData = JSON.parse(tool.authentication);
+          console.log('populateForm - parsed authData:', authData);
+        } catch (e) {
+          console.warn('Invalid authentication JSON:', tool.authentication);
+          authData = {};
+        }
+      } else {
+        console.log('populateForm - using authentication object directly');
+        authData = tool.authentication;
+      }
+
       console.log('populateForm - final authData:', authData);
       console.log('populateForm - authData.type:', authData.type);
-      
+
       this.toolForm.patchValue({
         authType: authData.type || 'none',
         authRequired: authData.required || false,
         authApiKey: authData.apiKey || authData.token || '',
+        authApiKeyHeader: authData.key || 'X-API-Key',
         authUsername: authData.username || '',
         authPassword: authData.password || '',
         authClientId: authData.clientId || '',
@@ -373,13 +384,16 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authTokenUrl: authData.tokenUrl || '',
         authTenantId: authData.tenantId || '',
         authResource: authData.resource || '',
-        authScopes: authData.scopes || ''
+        authScopes: authData.scopes || '',
       });
       console.log('populateForm - authType set to:', authData.type || 'none');
-      console.log('populateForm - form authType after patch:', this.toolForm.get('authType')?.value);
-     } else {
-       console.log('populateForm - no authentication data found');
-     }
+      console.log(
+        'populateForm - form authType after patch:',
+        this.toolForm.get('authType')?.value
+      );
+    } else {
+      console.log('populateForm - no authentication data found');
+    }
 
     // Ajouter les paramètres - parse JSON string if needed
     let parametersArray: any[] = [];
@@ -394,7 +408,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         parametersArray = tool.parameters;
       }
     }
-    
+
     if (parametersArray.length > 0) {
       parametersArray.forEach(parameter => {
         this.addParameter(parameter);
@@ -414,17 +428,23 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         headersArray = tool.headers;
       }
     }
-    
+
     if (headersArray.length > 0) {
       headersArray.forEach(header => {
         this.addHeader(header);
       });
     }
-    
+
     // Set validation based on the loaded tool type
-    console.log('populateForm - calling onToolTypeChange, current authType:', this.toolForm.get('authType')?.value);
+    console.log(
+      'populateForm - calling onToolTypeChange, current authType:',
+      this.toolForm.get('authType')?.value
+    );
     this.onToolTypeChange();
-    console.log('populateForm - after onToolTypeChange, authType:', this.toolForm.get('authType')?.value);
+    console.log(
+      'populateForm - after onToolTypeChange, authType:',
+      this.toolForm.get('authType')?.value
+    );
   }
 
   private clearFormArrays(): void {
@@ -463,28 +483,36 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     return this.mcpBulkToolsArray.controls.filter(c => c.get('enabled')?.value !== false).length;
   }
 
-  get parametersArray(): FormArray { return this.toolForm.get('parameters') as FormArray; }
-  get headersArray(): FormArray { return this.toolForm.get('headers') as FormArray; }
-  get configFieldsArray(): FormArray { return this.toolForm.get('configFields') as FormArray; }
+  get parametersArray(): FormArray {
+    return this.toolForm.get('parameters') as FormArray;
+  }
+  get headersArray(): FormArray {
+    return this.toolForm.get('headers') as FormArray;
+  }
+  get configFieldsArray(): FormArray {
+    return this.toolForm.get('configFields') as FormArray;
+  }
 
-  getParameterGroup(index: number): FormGroup { return this.parametersArray.at(index) as FormGroup; }
-  getParameterName(index: number): FormControl { 
+  getParameterGroup(index: number): FormGroup {
+    return this.parametersArray.at(index) as FormGroup;
+  }
+  getParameterName(index: number): FormControl {
     const control = this.getParameterGroup(index)?.get('name');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getParameterType(index: number): FormControl { 
+  getParameterType(index: number): FormControl {
     const control = this.getParameterGroup(index)?.get('type');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getParameterDefault(index: number): FormControl { 
+  getParameterDefault(index: number): FormControl {
     const control = this.getParameterGroup(index)?.get('default');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getParameterDescription(index: number): FormControl { 
+  getParameterDescription(index: number): FormControl {
     const control = this.getParameterGroup(index)?.get('description');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getParameterRequired(index: number): FormControl { 
+  getParameterRequired(index: number): FormControl {
     const control = this.getParameterGroup(index)?.get('required');
     return control instanceof FormControl ? control : new FormControl(false);
   }
@@ -533,7 +561,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       type: [parameter?.type || 'string', [Validators.required]],
       required: [parameter?.required ?? false],
       default: [parameter?.default || ''],
-      description: [parameter?.description || '']
+      description: [parameter?.description || ''],
     });
 
     this.parametersArray.push(parameterGroup);
@@ -547,7 +575,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   addConfigField(key?: string, value?: string): void {
     const configGroup = this.fb.group({
       key: [key || '', [Validators.required]],
-      value: [value || '', [Validators.required]]
+      value: [value || '', [Validators.required]],
     });
     this.configFieldsArray.push(configGroup);
   }
@@ -582,7 +610,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       name: [header?.name || '', [Validators.required]],
       value: [header?.value || '', [Validators.required]],
       required: [header?.required ?? false],
-      description: [header?.description || '']
+      description: [header?.description || ''],
     });
 
     this.headersArray.push(headerGroup);
@@ -592,20 +620,22 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     this.headersArray.removeAt(index);
   }
 
-  getHeaderGroup(index: number): FormGroup { return this.headersArray.at(index) as FormGroup; }
-  getHeaderName(index: number): FormControl { 
+  getHeaderGroup(index: number): FormGroup {
+    return this.headersArray.at(index) as FormGroup;
+  }
+  getHeaderName(index: number): FormControl {
     const control = this.getHeaderGroup(index)?.get('name');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getHeaderValue(index: number): FormControl { 
+  getHeaderValue(index: number): FormControl {
     const control = this.getHeaderGroup(index)?.get('value');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getHeaderDescription(index: number): FormControl { 
+  getHeaderDescription(index: number): FormControl {
     const control = this.getHeaderGroup(index)?.get('description');
     return control instanceof FormControl ? control : new FormControl('');
   }
-  getHeaderRequired(index: number): FormControl { 
+  getHeaderRequired(index: number): FormControl {
     const control = this.getHeaderGroup(index)?.get('required');
     return control instanceof FormControl ? control : new FormControl(false);
   }
@@ -619,14 +649,14 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     const descriptionControl = this.toolForm.get('description');
     const nameControl = this.toolForm.get('name');
     const internalToolNameControl = this.toolForm.get('internalToolName');
-    
+
     console.log('onToolTypeChange - toolType:', toolType);
 
     // New tools start as Internal with a preset name; switching to API/MCP must not keep that default.
     if (!this.isEditMode && (toolType === ToolType.API || toolType === ToolType.MCP)) {
       this.toolForm.patchValue({ name: '', internalToolName: '' }, { emitEvent: false });
     }
-    
+
     if (toolType === ToolType.API) {
       methodControl?.setValidators([Validators.required]);
       endpointControl?.setValidators([Validators.required]);
@@ -634,9 +664,13 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       descriptionControl?.setValidators([
         Validators.required,
         Validators.minLength(10),
-        Validators.maxLength(this.toolDescriptionMaxLength)
+        Validators.maxLength(this.toolDescriptionMaxLength),
       ]);
-      nameControl?.setValidators([Validators.required, Validators.minLength(3), Validators.maxLength(100)]);
+      nameControl?.setValidators([
+        Validators.required,
+        Validators.minLength(3),
+        Validators.maxLength(100),
+      ]);
       internalToolNameControl?.clearValidators();
     } else if (toolType === ToolType.MCP) {
       methodControl?.clearValidators();
@@ -650,9 +684,13 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         descriptionControl?.setValidators([
           Validators.required,
           Validators.minLength(10),
-          Validators.maxLength(this.toolDescriptionMaxLength)
+          Validators.maxLength(this.toolDescriptionMaxLength),
         ]);
-        nameControl?.setValidators([Validators.required, Validators.minLength(3), Validators.maxLength(100)]);
+        nameControl?.setValidators([
+          Validators.required,
+          Validators.minLength(3),
+          Validators.maxLength(100),
+        ]);
       }
       internalToolNameControl?.clearValidators();
     } else if (toolType === ToolType.INTERNAL) {
@@ -660,41 +698,43 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       methodControl?.clearValidators();
       endpointControl?.clearValidators();
       authTypeControl?.clearValidators();
-      
+
       // For InternalTool, make description validation more lenient
       descriptionControl?.setValidators([
         Validators.required,
         Validators.minLength(3),
-        Validators.maxLength(this.toolDescriptionMaxLength)
+        Validators.maxLength(this.toolDescriptionMaxLength),
       ]);
-      
+
       // Internal tools use predefined names
       nameControl?.clearValidators();
       internalToolNameControl?.setValidators([Validators.required]);
-      
+
       // Only clear form arrays and set defaults if we're not in edit mode
       // In edit mode, data is already loaded by populateForm()
       if (!this.isEditMode) {
         console.log('onToolTypeChange - Setting defaults for new internal tool');
-        
+
         // Clear parameters and headers for internal tools
         this.clearFormArrays();
-        
+
         this.toolForm.patchValue({
           authType: 'none',
           authRequired: false,
           method: 'GET',
           endpoint: '',
-          internalToolName: 'Search' // Set default internal tool name
+          internalToolName: 'Search', // Set default internal tool name
         });
-        
+
         // Set the name field to the selected internal tool name
         this.onInternalToolNameChange('Search');
       } else {
-        console.log('onToolTypeChange - Edit mode: preserving existing data (auth, config fields, etc.)');
+        console.log(
+          'onToolTypeChange - Edit mode: preserving existing data (auth, config fields, etc.)'
+        );
       }
     }
-    
+
     methodControl?.updateValueAndValidity();
     endpointControl?.updateValueAndValidity();
     authTypeControl?.updateValueAndValidity();
@@ -707,7 +747,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     if (toolType !== ToolType.MCP) {
       this.clearMcpDiscovery();
     }
-    
+
     // Debug form validity
     console.log('Form valid:', this.toolForm.valid);
     console.log('Form errors:', this.getFormErrors());
@@ -731,9 +771,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       // Do not auto-fill category from internal preset name (e.g. "Search") — user sets category explicitly.
       this.toolForm.patchValue({
         name: selectedTool.value,
-        description: selectedTool.description
+        description: selectedTool.description,
       });
-      
+
       // Set default configuration fields for Export tool
       if (selectedName === 'Export') {
         this.clearConfigFields();
@@ -746,7 +786,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   onAuthenticationTypeChange(): void {
     const authType = this.toolForm.get('authType')?.value;
     console.log('onAuthenticationTypeChange - authType:', authType);
-    
+
     // Réinitialiser les champs selon le type
     if (authType === 'none') {
       this.toolForm.patchValue({
@@ -759,7 +799,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authTokenUrl: '',
         authTenantId: '',
         authResource: '',
-        authScopes: ''
+        authScopes: '',
       });
     } else if (authType === 'api_key' || authType === 'bearer') {
       this.toolForm.patchValue({
@@ -770,7 +810,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authTokenUrl: '',
         authTenantId: '',
         authResource: '',
-        authScopes: ''
+        authScopes: '',
       });
     } else if (authType === 'basic') {
       this.toolForm.patchValue({
@@ -780,7 +820,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authTokenUrl: '',
         authTenantId: '',
         authResource: '',
-        authScopes: ''
+        authScopes: '',
       });
     } else if (authType === 'oauth2') {
       this.toolForm.patchValue({
@@ -788,7 +828,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authUsername: '',
         authPassword: '',
         authTenantId: '',
-        authResource: ''
+        authResource: '',
       });
     } else if (authType === 'azure_oauth2') {
       this.toolForm.patchValue({
@@ -796,28 +836,79 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         authUsername: '',
         authPassword: '',
         authTokenUrl: '',
-        authScopes: ''
+        authScopes: '',
       });
     }
-    
+
     // Forcer la détection des changements
     this.cdr.detectChanges();
     console.log('onAuthenticationTypeChange - form updated, change detection forced');
+    this.scheduleMcpDiscoveryRetry();
+  }
+
+  private setupMcpAuthDiscoveryRetry(): void {
+    const authControls = [
+      'authType',
+      'authApiKey',
+      'authApiKeyHeader',
+      'authUsername',
+      'authPassword',
+      'authClientId',
+      'authClientSecret',
+      'authTokenUrl',
+      'authTenantId',
+      'authResource',
+      'authScopes',
+    ] as const;
+
+    const streams = authControls
+      .map(name => this.toolForm.get(name)?.valueChanges)
+      .filter((s): s is NonNullable<typeof s> => !!s);
+
+    if (streams.length === 0) return;
+
+    this.subscription.add(
+      merge(...streams)
+        .pipe(debounceTime(600))
+        .subscribe(() => this.scheduleMcpDiscoveryRetry())
+    );
+  }
+
+  private scheduleMcpDiscoveryRetry(): void {
+    if (this.toolForm.get('type')?.value !== ToolType.MCP) return;
+    const endpoint = (this.toolForm.get('endpoint')?.value || '').trim();
+    if (!endpoint) return;
+
+    if (this.mcpDiscoverTimer) clearTimeout(this.mcpDiscoverTimer);
+    this.mcpDiscoverTimer = setTimeout(() => this.runMcpDiscovery(endpoint), 450);
+  }
+
+  private buildMcpDiscoveryAuthenticationJson(): string | undefined {
+    const formValue = this.toolForm.getRawValue();
+    if (formValue.type === ToolType.INTERNAL) return undefined;
+
+    const authentication = this.buildAuthenticationObject(formValue);
+    if (authentication['type'] === 'none') return undefined;
+
+    return JSON.stringify(authentication);
   }
 
   private buildAuthenticationObject(formValue: any): Record<string, unknown> {
     let authentication: Record<string, unknown> = {
       type: 'none',
-      required: false
+      required: false,
     };
 
     if (formValue.type !== ToolType.INTERNAL) {
       authentication = {
         type: formValue.authType,
-        required: formValue.authRequired || false
+        required: formValue.authRequired || false,
       };
 
-      if (formValue.authType === 'api_key' || formValue.authType === 'bearer') {
+      if (formValue.authType === 'api_key') {
+        authentication['apiKey'] = formValue.authApiKey;
+        authentication['key'] = (formValue.authApiKeyHeader || 'X-API-Key').trim() || 'X-API-Key';
+      } else if (formValue.authType === 'bearer') {
         authentication['apiKey'] = formValue.authApiKey;
       } else if (formValue.authType === 'basic') {
         authentication['username'] = formValue.authUsername;
@@ -908,7 +999,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
   private createMcpToolsBulk(): void {
     const formValue = this.toolForm.getRawValue();
-    const drafts = (formValue.mcpBulkTools || []).filter((d: { enabled?: boolean }) => d.enabled !== false);
+    const drafts = (formValue.mcpBulkTools || []).filter(
+      (d: { enabled?: boolean }) => d.enabled !== false
+    );
     if (drafts.length === 0) {
       this.notificationService.error('Validation', 'Enable at least one MCP tool to create.');
       return;
@@ -923,7 +1016,9 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       if (seenInRequest.has(k)) {
         this.notificationService.error(
           'Validation',
-          `Duplicate catalog name in this import: « ${(d as { displayName?: string }).displayName} ». Each enabled tool needs a unique name.`
+          `Duplicate catalog name in this import: « ${
+            (d as { displayName?: string }).displayName
+          } ». Each enabled tool needs a unique name.`
         );
         return;
       }
@@ -955,7 +1050,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       const configuration = JSON.stringify({
         endpoint,
         mcpType: 'auto',
-        name: d.mcpToolName
+        name: d.mcpToolName,
       });
 
       const toolData = {
@@ -967,7 +1062,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         configuration,
         authentication: JSON.stringify(authentication),
         parameters: JSON.stringify(d.parameters || []),
-        headers: headersJson
+        headers: headersJson,
       };
 
       this.subscription.add(
@@ -984,22 +1079,20 @@ export class ToolFormComponent implements OnInit, OnDestroy {
             this.isSavingBulkMcp = false;
             this.refreshExistingCatalogNames();
             const serverMsg = this.formatApiError(error);
-            const progress =
-              created > 0 ? `${created} outil(s) déjà créé(s) avant l’échec. ` : '';
+            const progress = created > 0 ? `${created} outil(s) déjà créé(s) avant l’échec. ` : '';
             const duplicateHint =
               created > 0
                 ? 'Si certains noms existent déjà, décochez les lignes concernées ou renommez-les. '
                 : '';
-            const fallback =
-              !serverMsg
-                ? 'Cause inconnue : ouvrez la console réseau (F12) pour le corps de la réponse.'
-                : '';
+            const fallback = !serverMsg
+              ? 'Cause inconnue : ouvrez la console réseau (F12) pour le corps de la réponse.'
+              : '';
             this.notificationService.error(
               'Échec de création MCP',
               `« ${d.displayName} » n’a pas été créé. ${progress}${duplicateHint}${serverMsg}${fallback}`
             );
             console.error('Bulk MCP create error:', error);
-          }
+          },
         })
       );
     };
@@ -1022,7 +1115,10 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       if (!this.toolForm.valid) {
         this.markFormGroupTouched();
         this.markMcpBulkTouched();
-        this.notificationService.error('Erreur de validation', 'Veuillez corriger les erreurs dans le formulaire');
+        this.notificationService.error(
+          'Erreur de validation',
+          'Veuillez corriger les erreurs dans le formulaire'
+        );
         return;
       }
       this.createMcpToolsBulk();
@@ -1030,26 +1126,26 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     }
 
     if (this.toolForm.valid) {
-       console.log('onSubmit - formValue:', formValue);
-       const authentication = this.buildAuthenticationObject(formValue);
-       console.log('onSubmit - authentication object:', authentication);
+      console.log('onSubmit - formValue:', formValue);
+      const authentication = this.buildAuthenticationObject(formValue);
+      console.log('onSubmit - authentication object:', authentication);
 
-       // Generate configuration JSON based on tool type
-       let configuration: any = {};
-       
-       if (formValue.type === ToolType.API) {
-         configuration = {
-           endpoint: formValue.endpoint,
-           method: formValue.method
-         };
-         const bodyRaw = (formValue.apiRequestBody ?? '').toString().trim();
-         if (bodyRaw.length > 0) {
-           configuration.bodyTemplate = bodyRaw;
-         }
+      // Generate configuration JSON based on tool type
+      let configuration: any = {};
+
+      if (formValue.type === ToolType.API) {
+        configuration = {
+          endpoint: formValue.endpoint,
+          method: formValue.method,
+        };
+        const bodyRaw = (formValue.apiRequestBody ?? '').toString().trim();
+        if (bodyRaw.length > 0) {
+          configuration.bodyTemplate = bodyRaw;
+        }
       } else if (formValue.type === ToolType.MCP) {
         configuration = {
           endpoint: formValue.endpoint,
-          mcpType: 'auto'
+          mcpType: 'auto',
         };
         if (formValue.mcpName) {
           configuration.name = formValue.mcpName;
@@ -1066,20 +1162,26 @@ export class ToolFormComponent implements OnInit, OnDestroy {
           });
         }
       }
-      
+
       const configurationValue = JSON.stringify(configuration);
 
-       const toolData = {
-         name: formValue.name,
-         id : this.toolId,
-         description: formValue.description,
-         type: formValue.type,
-         category: this.trimmedCategory(formValue.category),
-         isActive: formValue.isActive,
-         configuration: configurationValue,
+      const toolData = {
+        name: formValue.name,
+        id: this.toolId,
+        description: formValue.description,
+        type: formValue.type,
+        category: this.trimmedCategory(formValue.category),
+        isActive: formValue.isActive,
+        configuration: configurationValue,
         authentication: JSON.stringify(authentication),
-        parameters: formValue.type === ToolType.INTERNAL ? JSON.stringify([]) : JSON.stringify(formValue.parameters),
-        headers: formValue.type === ToolType.INTERNAL ? JSON.stringify([]) : JSON.stringify(formValue.headers)
+        parameters:
+          formValue.type === ToolType.INTERNAL
+            ? JSON.stringify([])
+            : JSON.stringify(formValue.parameters),
+        headers:
+          formValue.type === ToolType.INTERNAL
+            ? JSON.stringify([])
+            : JSON.stringify(formValue.headers),
       };
 
       if (this.isEditMode && this.toolId) {
@@ -1089,46 +1191,51 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       }
     } else {
       this.markFormGroupTouched();
-      this.notificationService.error('Erreur de validation', 'Veuillez corriger les erreurs dans le formulaire');
+      this.notificationService.error(
+        'Erreur de validation',
+        'Veuillez corriger les erreurs dans le formulaire'
+      );
     }
   }
 
   private createTool(toolData: any): void {
     this.subscription.add(
       this.toolService.createTool(toolData).subscribe({
-        next: (tool) => {
+        next: tool => {
           this.notificationService.success('Succès', 'Outil créé avec succès');
           this.router.navigate(['/tools']);
         },
-        error: (error) => {
+        error: error => {
           const detail = this.formatApiError(error);
           this.notificationService.error(
             'Erreur',
             detail ? `Impossible de créer l’outil. ${detail}` : 'Impossible de créer l’outil.'
           );
           console.error('Error creating tool:', error);
-        }
+        },
       })
     );
   }
 
   private updateTool(toolData: any): void {
     if (!this.toolId) return;
-    
+
     this.subscription.add(
       this.toolService.updateTool(this.toolId, toolData).subscribe({
-        next: (tool) => {
+        next: tool => {
           this.notificationService.success('Succès', 'Outil mis à jour avec succès');
           this.router.navigate(['/tools']);
         },
-        error: (error) => {
+        error: error => {
           const detail = this.formatApiError(error);
           this.notificationService.error(
             'Erreur',
-            detail ? `Impossible de mettre à jour l’outil. ${detail}` : 'Impossible de mettre à jour l’outil.'
+            detail
+              ? `Impossible de mettre à jour l’outil. ${detail}`
+              : 'Impossible de mettre à jour l’outil.'
           );
           console.error('Error updating tool:', error);
-        }
+        },
       })
     );
   }
@@ -1162,10 +1269,14 @@ export class ToolFormComponent implements OnInit, OnDestroy {
       return 'Ce champ est requis';
     }
     if (errors['minlength']) {
-      return `Minimum ${(errors['minlength'] as { requiredLength: number }).requiredLength} caractères`;
+      return `Minimum ${
+        (errors['minlength'] as { requiredLength: number }).requiredLength
+      } caractères`;
     }
     if (errors['maxlength']) {
-      return `Maximum ${(errors['maxlength'] as { requiredLength: number }).requiredLength} caractères`;
+      return `Maximum ${
+        (errors['maxlength'] as { requiredLength: number }).requiredLength
+      } caractères`;
     }
     if (errors['pattern']) {
       return 'Format invalide';
@@ -1230,6 +1341,10 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     return authType === 'api_key' || authType === 'bearer';
   }
 
+  showApiKeyHeaderField(): boolean {
+    return this.toolForm.get('authType')?.value === 'api_key';
+  }
+
   showBasicAuthFields(): boolean {
     const authType = this.toolForm.get('authType')?.value;
     return authType === 'basic';
@@ -1281,22 +1396,28 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   onEndpointChange(endpoint: string): void {
     const toolType = this.toolForm.get('type')?.value;
     if (toolType === ToolType.MCP && endpoint && endpoint.trim()) {
-      this.discoverMcpTools(endpoint.trim());
+      this.scheduleMcpDiscoveryRetry();
     } else {
       this.clearMcpDiscovery();
     }
   }
 
   discoverMcpTools(endpoint: string): void {
+    this.scheduleMcpDiscoveryRetry();
+  }
+
+  private runMcpDiscovery(endpoint: string): void {
     this.isDiscoveringMcpTools = true;
     this.mcpDiscoveryError = '';
     this.discoveredMcpTools = [];
     this.mcpBulkToolsArray.clear();
 
+    const authentication = this.buildMcpDiscoveryAuthenticationJson();
+
     const runDiscover = () => {
       this.subscription.add(
-        this.toolService.discoverMcpToolsAsEntities(endpoint).subscribe({
-          next: (tools) => {
+        this.toolService.discoverMcpToolsAsEntities(endpoint, undefined, authentication).subscribe({
+          next: tools => {
             console.log('discoverMcpTools - received tools:', tools);
 
             this.discoveredMcpTools = tools.map(tool => {
@@ -1304,7 +1425,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
               return {
                 name: tool.name,
                 description: tool.description,
-                inputSchema: inputSchema
+                inputSchema: inputSchema,
               };
             });
 
@@ -1317,11 +1438,13 @@ export class ToolFormComponent implements OnInit, OnDestroy {
               `Discovered ${this.discoveredMcpTools.length} tools from MCP server`
             );
           },
-          error: (error) => {
-            this.mcpDiscoveryError = error.message || 'Failed to discover MCP tools';
+          error: (error: unknown) => {
+            const err = error as { message?: string; error?: { message?: string } };
+            this.mcpDiscoveryError =
+              err?.error?.message || err?.message || 'Failed to discover MCP tools';
             this.isDiscoveringMcpTools = false;
-            this.notificationService.error('MCP Discovery Failed', 'Failed to discover MCP tools');
-          }
+            this.notificationService.error('MCP Discovery Failed', this.mcpDiscoveryError);
+          },
         })
       );
     };
@@ -1334,7 +1457,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
           );
           runDiscover();
         },
-        error: () => runDiscover()
+        error: () => runDiscover(),
       })
     );
   }
@@ -1358,12 +1481,12 @@ export class ToolFormComponent implements OnInit, OnDestroy {
               type: [def.type || 'string', Validators.required],
               required: [isRequired],
               description: [def.description || ''],
-              default: [def.default != null ? String(def.default) : '']
+              default: [def.default != null ? String(def.default) : ''],
             })
           );
         });
       }
-      const rawDesc = (t.description && t.description.trim()) ? t.description : t.name;
+      const rawDesc = t.description && t.description.trim() ? t.description : t.name;
       const maxLen = this.toolDescriptionMaxLength;
       const desc = rawDesc.length > maxLen ? rawDesc.substring(0, maxLen) : rawDesc;
       const catalogName = this.makeSuggestedCatalogName(t.name, usedInBatch);
@@ -1373,9 +1496,13 @@ export class ToolFormComponent implements OnInit, OnDestroy {
         displayName: [catalogName],
         description: [
           desc,
-          [Validators.required, Validators.minLength(3), Validators.maxLength(this.toolDescriptionMaxLength)]
+          [
+            Validators.required,
+            Validators.minLength(3),
+            Validators.maxLength(this.toolDescriptionMaxLength),
+          ],
         ],
-        parameters: paramsArray
+        parameters: paramsArray,
       });
       this.mcpBulkToolsArray.push(row);
       this.wireMcpBulkRowEnabledState(row, this.mcpBulkToolsArray.length - 1);
@@ -1398,7 +1525,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
           descCtrl?.setValidators([
             Validators.required,
             Validators.minLength(3),
-            Validators.maxLength(this.toolDescriptionMaxLength)
+            Validators.maxLength(this.toolDescriptionMaxLength),
           ]);
         } else {
           mcpNameCtrl?.clearValidators();
@@ -1463,30 +1590,30 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     console.log('populateToolParameters called with tool:', tool);
     console.log('tool.inputSchema:', tool.inputSchema);
     console.log('tool.inputSchema?.properties:', tool.inputSchema?.properties);
-    
+
     this.clearToolParameters();
-    
+
     if (tool.inputSchema?.properties) {
       console.log('Found properties, creating parameters...');
       const parametersArray = this.toolForm.get('parameters') as FormArray;
       console.log('parametersArray before:', parametersArray.length);
-      
+
       Object.entries(tool.inputSchema.properties).forEach(([paramName, paramDef]) => {
         console.log('Processing parameter:', paramName, paramDef);
         const isRequired = tool.inputSchema?.required?.includes(paramName) || false;
-        
+
         const parameterGroup = this.fb.group({
           name: [paramName, Validators.required],
           type: [paramDef.type || 'string', Validators.required],
           required: [isRequired],
           description: [paramDef.description || ''],
-          default: [paramDef.default || ''] // Fixed: changed from 'defaultValue' to 'default'
+          default: [paramDef.default || ''], // Fixed: changed from 'defaultValue' to 'default'
         });
-        
+
         parametersArray.push(parameterGroup);
         console.log('Added parameter group:', parameterGroup.value);
       });
-      
+
       console.log('parametersArray after:', parametersArray.length);
       console.log('parametersArray controls:', parametersArray.controls);
     } else {
@@ -1496,39 +1623,39 @@ export class ToolFormComponent implements OnInit, OnDestroy {
 
   private parseToolParameters(parameters?: any): any {
     console.log('parseToolParameters called with parameters:', parameters);
-    
+
     if (!parameters) {
       console.log('No parameters provided, returning undefined');
       return undefined;
     }
-    
+
     try {
       const params = typeof parameters === 'string' ? JSON.parse(parameters) : parameters;
       console.log('Parsed params:', params);
       console.log('Is array?', Array.isArray(params));
-      
+
       if (Array.isArray(params)) {
         const properties: { [key: string]: any } = {};
         const required: string[] = [];
-        
+
         params.forEach((param: any) => {
           console.log('Processing param:', param);
           if (param.name) {
             properties[param.name] = {
               type: param.type || 'string',
               description: param.description,
-              default: param.default || param.defaultValue // Handle both field names for backward compatibility
+              default: param.default || param.defaultValue, // Handle both field names for backward compatibility
             };
             if (param.required) {
               required.push(param.name);
             }
           }
         });
-        
+
         const result = {
           type: 'object',
           properties,
-          required
+          required,
         };
         console.log('parseToolParameters result:', result);
         return result;
@@ -1536,7 +1663,7 @@ export class ToolFormComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.warn('Failed to parse tool parameters:', error);
     }
-    
+
     console.log('parseToolParameters returning undefined');
     return undefined;
   }
@@ -1544,5 +1671,4 @@ export class ToolFormComponent implements OnInit, OnDestroy {
   getObjectKeys(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
   }
-
 }

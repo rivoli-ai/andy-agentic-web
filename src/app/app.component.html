@@ -1,6 +1,6 @@
-<!-- Authentication Loading Overlay -->
+<!-- Authentication Loading Overlay (not on public auth routes) -->
 <app-loading-overlay
-  *ngIf="isAuthLoading"
+  *ngIf="isAuthLoading && !isPublicAuthRoute"
   title="Authenticating"
   message="Please wait while we verify your identity and load your workspace."
   [showProgress]="true"
@@ -22,8 +22,11 @@
   additionalInfo="You will be redirected to the login page shortly."
 ></app-loading-overlay>
 
-<!-- Show login page if not authenticated -->
-<div *ngIf="!isAuthenticated && !isLoggingOut && !isAuthLoading" class="min-h-screen">
+<!-- Show login/callback/logout routes without waiting for auth bootstrap -->
+<div
+  *ngIf="(!isAuthenticated && !isLoggingOut && !isAuthLoading) || isPublicAuthRoute"
+  class="min-h-screen"
+>
   <router-outlet></router-outlet>
 </div>
 
