@@ -1,5 +1,6 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { of, Subject, Subscription } from 'rxjs';
+import { catchError, debounceTime, switchMap, tap } from 'rxjs/operators';
 import {
   AgentSkill,
   AttachSkillInput,
@@ -29,7 +30,10 @@ export class AgentSkillsComponent implements OnInit, OnDestroy {
   attachedSkills: AgentSkill[] = [];
   isSearching = false;
   isLoading = true;
+  dropdownOpen = false;
+  hasSearched = false;
 
+  private readonly searchTerms = new Subject<string>();
   private subscription = new Subscription();
 
   constructor(private skillService: SkillService, private notification: NotificationService) {}
@@ -46,11 +50,63 @@ export class AgentSkillsComponent implements OnInit, OnDestroy {
         error: () => this.notification.error('Skills', 'Failed to load registries'),
       })
     );
+
+    // Debounced autocomplete: type → query the registry after a short pause.
+    this.subscription.add(
+      this.searchTerms
+        .pipe(
+          debounceTime(300),
+          tap(() => {
+            this.isSearching = true;
+            this.hasSearched = true;
+          }),
+          switchMap(query => {
+            if (!this.selectedRegistryId) {
+              return of([] as SkillSearchResult[]);
+            }
+            return this.skillService.searchSkills(this.selectedRegistryId, query.trim()).pipe(
+              catchError(() => {
+                this.notification.error('Skills', 'Search failed');
+                return of([] as SkillSearchResult[]);
+              })
+            );
+          })
+        )
+        .subscribe(results => {
+          this.searchResults = results;
+          this.isSearching = false;
+        })
+    );
+
     this.loadAttached();
   }
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+  }
+
+  /** Called on every keystroke in the search box. */
+  onSearchInput(value: string): void {
+    this.searchQuery = value;
+    this.dropdownOpen = true;
+    this.searchTerms.next(value);
+  }
+
+  /** Open the dropdown on focus and run a search (empty query = browse all). */
+  onSearchFocus(): void {
+    this.dropdownOpen = true;
+    this.searchTerms.next(this.searchQuery);
+  }
+
+  /** Close the dropdown shortly after blur so item clicks still register. */
+  onSearchBlur(): void {
+    setTimeout(() => (this.dropdownOpen = false), 150);
+  }
+
+  /** Re-run the search when the target registry changes. */
+  onRegistryChange(): void {
+    this.dropdownOpen = true;
+    this.searchTerms.next(this.searchQuery);
   }
 
   loadAttached(): void {
@@ -68,27 +124,6 @@ export class AgentSkillsComponent implements OnInit, OnDestroy {
         error: () => {
           this.notification.error('Skills', 'Failed to load attached skills');
           this.isLoading = false;
-        },
-      })
-    );
-  }
-
-  search(): void {
-    // An empty query is allowed: the registry returns all skills (browse mode).
-    if (!this.selectedRegistryId) {
-      this.searchResults = [];
-      return;
-    }
-    this.isSearching = true;
-    this.subscription.add(
-      this.skillService.searchSkills(this.selectedRegistryId, this.searchQuery.trim()).subscribe({
-        next: results => {
-          this.searchResults = results;
-          this.isSearching = false;
-        },
-        error: () => {
-          this.notification.error('Skills', 'Search failed');
-          this.isSearching = false;
         },
       })
     );
