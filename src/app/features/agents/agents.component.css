@@ -1,0 +1,30 @@
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Responsive card improvements */
+@media (max-width: 640px) {
+  .agent-card {
+    min-height: auto;
+  }
+  
+  .agent-card .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Smooth transitions for responsive elements */
+.agent-card {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 640px) {
+  .agent-card button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

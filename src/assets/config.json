@@ -1,0 +1,5 @@
+{
+  "production": false,
+  "apiUrl": "http://localhost/api",
+  "signalRUrl": "http://localhost/documentRagHub"
+}

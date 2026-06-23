@@ -1,0 +1,50 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { AppConfigService } from '../config/app-config.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ApiService {
+  constructor(
+    private http: HttpClient,
+    private appConfig: AppConfigService
+  ) {}
+
+  get baseUrl(): string {
+    return this.appConfig.apiUrl;
+  }
+
+  // Generic HTTP methods
+  get<T>(endpoint: string, params?: HttpParams): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${endpoint}`, { params });
+  }
+
+  post<T>(endpoint: string, data: any): Observable<T> {
+    return this.http.post<T>(`${this.baseUrl}${endpoint}`, data);
+  }
+
+  put<T>(endpoint: string, data: any): Observable<T> {
+    return this.http.put<T>(`${this.baseUrl}${endpoint}`, data);
+  }
+
+  delete<T>(endpoint: string): Observable<T> {
+    return this.http.delete<T>(`${this.baseUrl}${endpoint}`);
+  }
+
+  getBlob(endpoint: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}${endpoint}`, { responseType: 'blob' });
+  }
+
+  // Helper method to create HttpParams
+  createParams(params: { [key: string]: string | number | boolean }): HttpParams {
+    let httpParams = new HttpParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        httpParams = httpParams.set(key, params[key].toString());
+      }
+    });
+    return httpParams;
+  }
+}

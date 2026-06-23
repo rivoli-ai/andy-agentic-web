@@ -1,0 +1,637 @@
+<div class="orchestration-container">
+  <!-- Header -->
+  <div class="orchestration-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Agent Orchestration</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">
+          Design and manage complex agent workflows with drag-and-drop functionality.
+        </p>
+      </div>
+      <div class="header-actions">
+        <!-- View Mode Toggle -->
+        <div class="view-mode-toggle mr-4">
+          <button
+            (click)="viewMode = 'design'"
+            [class.active]="viewMode === 'design'"
+            class="btn-mode">
+            Design
+          </button>
+          <button
+            (click)="viewMode = 'execute'"
+            [class.active]="viewMode === 'execute'"
+            class="btn-mode">
+            Execute
+          </button>
+          <button
+            (click)="loadExecutionHistory()"
+            [class.active]="viewMode === 'history'"
+            class="btn-mode">
+            History
+          </button>
+        </div>
+
+
+        <!-- Save Button - Only show when there are unsaved changes -->
+        <button
+          *ngIf="hasUnsavedChanges"
+          (click)="saveWorkflow()"
+          class="btn-save mr-3">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+          Save Changes
+        </button>
+        
+        <button
+          (click)="isFlowModalOpen = true"
+          class="btn-primary">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          New Workflow
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="orchestration-content">
+    <!-- Left Sidebar - Workflows Only -->
+    <div class="sidebar-left" [class.collapsed]="leftSidebarCollapsed">
+      <div class="sidebar-header">
+        <h3 class="sidebar-title" [title]="leftSidebarCollapsed ? 'Workflows' : ''">Workflows</h3>
+        <button 
+          (click)="toggleLeftSidebar()" 
+          class="sidebar-toggle"
+          [title]="leftSidebarCollapsed ? 'Expand Workflows' : 'Collapse Workflows'">
+          <svg *ngIf="!leftSidebarCollapsed" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+          </svg>
+          <svg *ngIf="leftSidebarCollapsed" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="sidebar-content" *ngIf="!leftSidebarCollapsed">
+        <div class="workflow-list">
+          <div
+            *ngFor="let workflow of workflows"
+            (click)="selectWorkflow(workflow)"
+            [class]="'workflow-item' + (selectedFlow?.id === workflow.id ? ' selected' : '')">
+            <div class="workflow-info">
+              <h4 class="workflow-name">{{ workflow.name }}</h4>
+              <p class="workflow-description">{{ workflow.description }}</p>
+              <div class="workflow-meta">
+                <span class="workflow-nodes">{{ workflow.nodes.length }} nodes</span>
+                <span class="workflow-edges">{{ workflow.edges.length }} connections</span>
+              </div>
+            </div>
+            <div class="workflow-actions">
+              <button
+                (click)="deleteWorkflow(workflow.id); $event.stopPropagation()"
+                class="btn-icon btn-danger">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Orchestration Area -->
+    <div class="orchestration-main">
+      <!-- Toolbar -->
+      <div class="canvas-toolbar">
+        <div class="toolbar-left">
+          <div class="view-mode-toggle">
+            <button
+              [class]="'btn-toggle ' + (viewMode === 'design' ? 'active' : '')"
+              (click)="viewMode = 'design'">
+              Design
+            </button>
+            <button
+              [class]="'btn-toggle ' + (viewMode === 'execute' ? 'active' : '')"
+              (click)="viewMode = 'execute'">
+              Execute
+            </button>
+            <button
+              [class]="'btn-toggle ' + (viewMode === 'history' ? 'active' : '')"
+              (click)="viewMode = 'history'">
+              History
+            </button>
+          </div>
+          
+        </div>
+        <div class="toolbar-right">
+          <div class="selection-actions" *ngIf="selectedNodes.length > 0 || selectedConnections.length > 0">
+            <button
+              (click)="deleteSelectedNodes()"
+              class="btn-icon text-red-500 hover:text-red-700"
+              *ngIf="selectedNodes.length > 0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              Delete Nodes
+            </button>
+            <button
+              (click)="deleteSelectedConnections()"
+              class="btn-icon text-red-500 hover:text-red-700"
+              *ngIf="selectedConnections.length > 0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              Delete Connections
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Canvas Container -->
+      <div class="canvas-container">
+        <div
+          #flowCanvas
+          class="flow-canvas"
+          (mousedown)="onCanvasMouseDown($event)"
+          (mousemove)="onCanvasMouseMove($event)"
+          (mouseup)="onCanvasMouseUp($event)"
+          (wheel)="onCanvasWheel($event)"
+          (dragover)="onCanvasDragOver($event)"
+          (dragleave)="onCanvasDragLeave($event)"
+          (drop)="onCanvasDrop($event)">
+          
+          <!-- SVG for Connections -->
+          <svg
+            #svgContainer
+            class="flow-svg"
+            xmlns="http://www.w3.org/2000/svg">
+            <!-- Existing Connections -->
+            <g class="flow-edges">
+              <!-- Background glow for each connection -->
+              <path
+                *ngFor="let edge of selectedFlow?.edges"
+                [attr.d]="getConnectionPath(edge)"
+                [attr.stroke]="getConnectionColor(edge.type || 'sequential')"
+                [class]="'flow-edge edge-' + (edge.type || 'sequential') + '-glow'"
+                [class.selected]="selectedConnections.includes(edge.id)"
+                stroke-width="6"
+                opacity="0.3"
+                fill="none">
+              </path>
+              
+              <!-- Main connection lines -->
+              <path
+                *ngFor="let edge of selectedFlow?.edges"
+                [attr.d]="getConnectionPath(edge)"
+                [attr.stroke]="getConnectionColor(edge.type || 'sequential')"
+                [class]="'flow-edge edge-' + (edge.type || 'sequential')"
+                [class.selected]="selectedConnections.includes(edge.id)"
+                (click)="selectConnection($event, edge.id)"
+                (contextmenu)="onConnectionRightClick($event, edge.id)"
+                fill="none"
+                stroke-width="2.5">
+              </path>
+              
+              <!-- Connection endpoints -->
+              <g *ngFor="let edge of selectedFlow?.edges">
+                <!-- Start point -->
+                <circle
+                  [attr.cx]="getConnectionStartPoint(edge).x"
+                  [attr.cy]="getConnectionStartPoint(edge).y"
+                  r="4"
+                  [attr.fill]="getConnectionColor(edge.type || 'sequential')"
+                  [class]="'connection-endpoint connection-start edge-' + (edge.type || 'sequential')"
+                  [class.selected]="selectedConnections.includes(edge.id)">
+                </circle>
+                
+                <!-- End point -->
+                <circle
+                  [attr.cx]="getConnectionEndPoint(edge).x"
+                  [attr.cy]="getConnectionEndPoint(edge).y"
+                  r="4"
+                  [attr.fill]="getConnectionColor(edge.type || 'sequential')"
+                  [class]="'connection-endpoint connection-end edge-' + (edge.type || 'sequential')"
+                  [class.selected]="selectedConnections.includes(edge.id)">
+                </circle>
+              </g>
+            </g>
+            
+            <!-- Temporary Connection Line -->
+            <g *ngIf="isConnecting && connectionLinePath">
+              <path
+                [attr.d]="connectionLinePath"
+                class="connection-line"
+                fill="none"
+                stroke="#3b82f6"
+                stroke-width="2.5"
+                stroke-dasharray="5,5">
+              </path>
+              
+              <!-- Temporary connection endpoints -->
+              <circle
+                *ngIf="connectionStart"
+                [attr.cx]="getConnectionStartCanvasX()"
+                [attr.cy]="getConnectionStartCanvasY()"
+                r="4"
+                fill="#3B82F6"
+                class="connection-endpoint connection-start">
+              </circle>
+              
+              <circle
+                *ngIf="connectionEnd"
+                [attr.cx]="getConnectionEndCanvasX()"
+                [attr.cy]="getConnectionEndCanvasY()"
+                r="4"
+                fill="#3B82F6"
+                class="connection-endpoint connection-end">
+              </circle>
+            </g>
+            
+          </svg>
+
+          <!-- Flow Nodes -->
+          <div
+            *ngFor="let node of selectedFlow?.nodes"
+            [style.left.px]="node.position.x"
+            [style.top.px]="node.position.y"
+            [class]="'flow-node ' + getNodeClasses(node)"
+            (mousedown)="onNodeMouseDown($event, node)"
+            (click)="onNodeClick($event, node)"
+            (contextmenu)="onNodeRightClick($event, node)">
+            
+            <!-- Node Header -->
+            <div class="node-header">
+              <div class="node-icon">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getNodeIcon(node.type)"></path>
+                </svg>
+              </div>
+              <div class="node-status-indicator" [class]="'status-' + node.status"></div>
+            </div>
+            
+            <!-- Node Content -->
+            <div class="node-content">
+              <h4 class="node-name">{{ node.name }}</h4>
+              <p class="node-description">{{ node.description }}</p>
+              <div class="node-meta">
+                <span class="node-type-badge" [class]="'type-' + node.type">{{ node.type }}</span>
+                <span class="node-duration" *ngIf="node.duration">{{ node.duration }}ms</span>
+              </div>
+            </div>
+            
+            <!-- Connection Points -->
+            <div class="connection-points">
+              <div
+                class="connection-point target"
+                [class.connection-point-active]="isConnecting && !connectionStart?.isOutput"
+                (mousedown)="onConnectionPointMouseDown($event, node.id, false)"
+                (mouseup)="onConnectionPointMouseUp($event, node.id, false)">
+                <div class="connector-dot"></div>
+              </div>
+              <div
+                class="connection-point source"
+                [class.connection-point-active]="isConnecting && connectionStart?.isOutput"
+                (mousedown)="onConnectionPointMouseDown($event, node.id, true)"
+                (mouseup)="onConnectionPointMouseUp($event, node.id, true)">
+                <div class="connector-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Sidebar - Agent Palette, Logs, History -->
+    <div class="sidebar-right" [class.collapsed]="rightSidebarCollapsed">
+      <div class="sidebar-header">
+        <h3 class="sidebar-title" [title]="rightSidebarCollapsed ? getRightSidebarTitle() : ''">{{ getRightSidebarTitle() }}</h3>
+        <button 
+          (click)="toggleRightSidebar()" 
+          class="sidebar-toggle"
+          [title]="rightSidebarCollapsed ? 'Expand ' + getRightSidebarTitle() : 'Collapse ' + getRightSidebarTitle()">
+          <svg *ngIf="!rightSidebarCollapsed" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+          </svg>
+          <svg *ngIf="rightSidebarCollapsed" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="sidebar-content" *ngIf="!rightSidebarCollapsed">
+        <!-- Design Mode - Agent Palette -->
+        <div *ngIf="viewMode === 'design'" class="palette-section">
+          <div class="palette-grid">
+            <div
+              *ngFor="let item of agentPalette"
+              class="palette-item"
+              draggable="true"
+              (dragstart)="onPaletteItemDragStart($event, item)"
+              (dragend)="onPaletteItemDragEnd($event)">
+              <div class="palette-item-content">
+                <div class="palette-icon">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getNodeIcon(item.type)"></path>
+                  </svg>
+                </div>
+                <div class="palette-info">
+                  <h4 class="palette-name">{{ item.name }}</h4>
+                  <p class="palette-description">{{ item.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Execute Mode - Execution Controls, Status, and Logs -->
+        <div *ngIf="viewMode === 'execute'" class="execute-section">
+          <!-- Execution Controls -->
+          <div class="execution-controls-section" *ngIf="selectedFlow">
+            <h4 class="section-title">Execution Controls</h4>
+            <div class="execution-buttons">
+              <!-- Start Execution -->
+              <button
+                *ngIf="!selectedExecution"
+                (click)="startExecution()"
+                [disabled]="!canStartExecution()"
+                class="btn-execute btn-start">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z"></path>
+                </svg>
+                Start Execution
+              </button>
+              
+              <!-- Execution Status & Controls -->
+              <div *ngIf="selectedExecution" class="execution-status">
+                <div class="status-header">
+                  <h4>Execution Status</h4>
+                  <div class="status-badge" [class]="'status-' + getExecutionStatusString(selectedExecution.status).toLowerCase()">
+                    {{ getExecutionStatusString(selectedExecution.status) }}
+                  </div>
+                </div>
+                <div class="execution-info">
+                  <div class="info-item">
+                    <label>Workflow:</label>
+                    <span>{{ selectedExecution.workflowName }}</span>
+                  </div>
+                  <div class="info-item">
+                    <label>Started:</label>
+                    <span>{{ selectedExecution.startTime | date:'medium' }}</span>
+                  </div>
+                  <div class="info-item" *ngIf="selectedExecution.endTime">
+                    <label>Ended:</label>
+                    <span>{{ selectedExecution.endTime | date:'medium' }}</span>
+                  </div>
+                  <div class="info-item" *ngIf="selectedExecution.durationSeconds">
+                    <label>Duration:</label>
+                    <span>{{ selectedExecution.durationSeconds | number:'1.1-1' }}s</span>
+                  </div>
+                  <div class="info-item">
+                    <label>Progress:</label>
+                    <div class="progress-bar">
+                      <div class="progress-fill" [style.width.%]="selectedExecution.progressPercentage"></div>
+                    </div>
+                    <span class="progress-text">{{ selectedExecution.progressPercentage | number:'1.0-0' }}%</span>
+                  </div>
+                </div>
+                
+                <!-- Control Buttons -->
+                <div class="execution-buttons">
+                  <!-- Running -->
+                  <button
+                    *ngIf="selectedExecution.status === 1"
+                    (click)="pauseExecution()"
+                    [disabled]="!canPauseExecution()"
+                    class="btn-execute btn-pause">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Pause
+                  </button>
+                  
+                  <!-- Paused -->
+                  <button
+                    *ngIf="selectedExecution.status === 2"
+                    (click)="resumeExecution()"
+                    [disabled]="!canResumeExecution()"
+                    class="btn-execute btn-resume">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z"></path>
+                    </svg>
+                    Resume
+                  </button>
+                  
+                  <button
+                    (click)="stopExecution()"
+                    [disabled]="!canStopExecution()"
+                    class="btn-execute btn-stop">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Stop
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Node Executions -->
+          <div class="node-executions-section" *ngIf="nodeExecutions.length > 0">
+            <h4 class="section-title">Node Executions</h4>
+            <div class="node-execution-list">
+              <div 
+                *ngFor="let nodeExec of nodeExecutions" 
+                class="node-execution-item"
+                [class]="'status-' + getNodeExecutionStatusString(nodeExec.status).toLowerCase()">
+                <div class="node-exec-header">
+                  <div class="node-info">
+                    <h5>{{ nodeExec.nodeName }}</h5>
+                    <span class="node-type">{{ nodeExec.nodeType }}</span>
+                  </div>
+                  <div class="node-status">
+                    <span class="status-badge" [class]="'status-' + getNodeExecutionStatusString(nodeExec.status).toLowerCase()">
+                      {{ getNodeExecutionStatusString(nodeExec.status) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="node-exec-details">
+                  <div class="exec-time">
+                    <span>Started: {{ nodeExec.startTime | date:'short' }}</span>
+                    <span *ngIf="nodeExec.endTime">Ended: {{ nodeExec.endTime | date:'short' }}</span>
+                  </div>
+                  <div class="exec-error" *ngIf="nodeExec.errorMessage">
+                    <strong>Error:</strong> {{ nodeExec.errorMessage }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Execution Logs -->
+          <div class="logs-section">
+            <div class="logs-header">
+              <h4 class="section-title">Execution Logs</h4>
+              <div class="logs-actions">
+                <button 
+                  (click)="clearLogs()" 
+                  class="btn-clear-logs"
+                  *ngIf="selectedExecution && selectedExecution.logs.length > 0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                  Clear
+                </button>
+              </div>
+            </div>
+          
+          <div class="logs-container">
+            <div *ngIf="currentExecution && currentExecution.logs.length > 0; else noLogs">
+              <div *ngFor="let log of currentExecution.logs; trackBy: trackByLogId" class="log-entry">
+                <div class="log-header">
+                  <div class="log-level-badge" [class]="'level-' + log.level">
+                    <div class="level-dot"></div>
+                    <span class="level-text">{{ log.level | titlecase }}</span>
+                  </div>
+                  <div class="log-timestamp">{{ log.timestamp | date:'HH:mm:ss.SSS' }}</div>
+                </div>
+                <div class="log-content">
+                  <div class="log-message">{{ log.message }}</div>
+                  <div *ngIf="log.nodeId" class="log-context">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Node: {{ log.nodeId }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noLogs>
+              <div class="no-logs">
+                <div class="no-logs-icon">
+                  <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                </div>
+                <h4 class="no-logs-title">No Logs Yet</h4>
+                <p class="no-logs-message">Start an execution to see real-time logs here.</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+        </div>
+
+        <!-- History Mode - Execution History -->
+        <div *ngIf="viewMode === 'history'" class="history-section">
+          <div class="history-header">
+            <h4 class="section-title">Execution History</h4>
+            <div class="history-actions">
+              <button 
+                (click)="loadExecutionHistory()" 
+                class="btn-refresh">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          <div class="history-container">
+            <div *ngIf="workflowExecutions.length > 0; else noHistory">
+              <div *ngFor="let execution of workflowExecutions" 
+                   class="history-item"
+                   (click)="selectExecution(execution)"
+                   [class.selected]="selectedExecution?.id === execution.id">
+                <div class="history-content">
+                  <div class="history-main">
+                    <div class="history-title">
+                      <h5>{{ execution.workflowName }}</h5>
+                      <span class="history-id">#{{ execution.id.slice(-6) }}</span>
+                    </div>
+                    <div class="history-details">
+                      <span class="history-time">{{ execution.startTime | date:'MMM d, HH:mm' }}</span>
+                      <span class="history-duration" *ngIf="execution.durationSeconds">{{ execution.durationSeconds | number:'1.1-1' }}s</span>
+                      <span class="history-logs">{{ execution.logs?.length || 0 }} logs</span>
+                    </div>
+                  </div>
+                  <div class="history-status" [class]="'status-' + getExecutionStatusString(execution.status).toLowerCase()">
+                    {{ getExecutionStatusString(execution.status) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noHistory>
+              <div class="no-history">
+                <div class="no-history-icon">
+                  <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+                <h4 class="no-history-title">No History Yet</h4>
+                <p class="no-history-message">Complete some executions to see history here.</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Workflow Modal -->
+<div
+  *ngIf="isFlowModalOpen"
+  class="modal-overlay"
+  (click)="isFlowModalOpen = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Create New Workflow</h2>
+      <button
+        (click)="isFlowModalOpen = false"
+        class="btn-icon">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Workflow Name</label>
+        <input
+          [(ngModel)]="newFlowName"
+          class="form-input"
+          placeholder="Enter workflow name"
+          type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea
+          [(ngModel)]="newFlowDescription"
+          class="form-textarea"
+          placeholder="Enter workflow description"
+          rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button
+        (click)="isFlowModalOpen = false"
+        class="btn-secondary">
+        Cancel
+      </button>
+      <button
+        (click)="createWorkflow()"
+        class="btn-primary"
+        [disabled]="!newFlowName.trim()">
+        Create Workflow
+      </button>
+    </div>
+  </div>
+</div>
+
+

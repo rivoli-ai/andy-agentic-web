@@ -1,0 +1,122 @@
+/* Styles spécifiques au formulaire d'outil */
+.card {
+  @apply bg-surface-card border border-line-light shadow-card rounded-lg p-6 text-ink;
+}
+
+.input-field {
+  @apply w-full px-3 py-2 border border-line rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-surface-card dark:bg-surface-elevated text-ink placeholder:text-ink-muted;
+}
+
+.input-field:focus {
+  @apply ring-2 ring-primary-500 border-primary-500;
+}
+
+.input-field.error {
+  @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+}
+
+/* Boutons */
+.btn-primary {
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center px-4 py-2 border border-line text-sm font-medium rounded-md text-ink-secondary bg-surface-card dark:bg-surface-elevated hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ground focus:ring-primary-500 transition-colors duration-200;
+}
+
+/* FormArrays */
+.form-array-item {
+  @apply border border-line-light rounded-lg p-4 bg-surface-hover;
+}
+
+.form-array-header {
+  @apply flex items-center justify-between mb-3;
+}
+
+.form-array-title {
+  @apply text-lg font-medium text-ink;
+}
+
+.form-array-remove-btn {
+  @apply text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200 transition-colors duration-200;
+}
+
+/* Paramètres */
+.parameter-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+.parameter-input {
+  @apply input-field;
+}
+
+.parameter-select {
+  @apply input-field;
+}
+
+.parameter-remove-btn {
+  @apply text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200 p-2 rounded-md hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors duration-200;
+}
+
+/* Headers */
+.header-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-2 items-end;
+}
+
+.header-input {
+  @apply input-field;
+}
+
+.header-remove-btn {
+  @apply text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200 p-2 rounded-md hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors duration-200;
+}
+
+/* Messages d'état */
+.empty-state {
+  @apply text-center py-8 text-gray-500 dark:text-gray-400;
+}
+
+.empty-state-icon {
+  @apply mx-auto h-12 w-12 mb-4 text-gray-400;
+}
+
+.empty-state-text {
+  @apply text-sm;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .parameter-grid,
+  .header-grid {
+    @apply grid-cols-1 gap-3;
+  }
+  
+  .form-array-item {
+    @apply p-3;
+  }
+  
+  .card {
+    @apply p-4;
+  }
+}
+
+/* Animations */
+.form-array-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effects */
+.form-array-item:hover {
+  @apply shadow-md transition-shadow duration-200;
+}

@@ -1,0 +1,114 @@
+/* Bottom stack — glass surface aligned with app header */
+.toast-stack {
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  max-height: min(40vh, 320px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 640px) {
+  .toast-stack {
+    bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.toast-stack::-webkit-scrollbar {
+  width: 4px;
+}
+
+.toast-stack::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  border-radius: 4px;
+}
+
+.notification-toast {
+  pointer-events: auto;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-light);
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--border-default) 40%, transparent);
+  overflow: hidden;
+}
+
+.notification-toast.success {
+  box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--success-600) 18%, transparent);
+}
+
+.notification-toast.error {
+  box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--error-600) 22%, transparent);
+}
+
+.notification-toast.warning {
+  box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--warning-600) 22%, transparent);
+}
+
+.notification-toast.info {
+  box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 25%, transparent);
+}
+
+/* Icon wells — soft tint per type */
+.toast-icon-wrap {
+  @apply text-current;
+}
+
+.notification-toast.success .toast-icon-wrap {
+  background: color-mix(in srgb, var(--success-500) 14%, transparent);
+  color: var(--success-600);
+}
+
+.notification-toast.error .toast-icon-wrap {
+  background: color-mix(in srgb, var(--error-500) 14%, transparent);
+  color: var(--error-600);
+}
+
+.notification-toast.warning .toast-icon-wrap {
+  background: color-mix(in srgb, var(--warning-500) 16%, transparent);
+  color: var(--warning-600);
+}
+
+.notification-toast.info .toast-icon-wrap {
+  background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+  color: var(--brand-primary);
+}
+
+[data-theme='dark'] .notification-toast.success .toast-icon-wrap {
+  color: var(--success-500);
+}
+
+[data-theme='dark'] .notification-toast.error .toast-icon-wrap {
+  color: var(--error-500);
+}
+
+[data-theme='dark'] .notification-toast.warning .toast-icon-wrap {
+  color: var(--warning-500);
+}
+
+[data-theme='dark'] .notification-toast.info .toast-icon-wrap {
+  color: #a5b4fc;
+}
+
+.toast-body svg {
+  @apply flex-shrink-0;
+}
+
+@media (max-width: 640px) {
+  .toast-stack {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .toast-body {
+    @apply gap-2.5 p-3.5;
+  }
+
+  .toast-title {
+    @apply text-[0.8125rem];
+  }
+
+  .toast-message {
+    @apply text-[0.8125rem];
+  }
+}

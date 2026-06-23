@@ -1,0 +1,760 @@
+<div class="max-w-4xl mx-auto p-6 space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+         {{ isEditMode ? 'Edit Agent' : 'Create New Agent' }}
+       </h1>
+       <p class="mt-2 text-gray-600 dark:text-gray-400">
+         {{ isEditMode ? 'Modify your agent properties' : 'Configure a new intelligent agent' }}
+       </p>
+    </div>
+    <div class="flex space-x-3">
+      <button
+        (click)="onCancel()"
+        class="btn-secondary"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+                 Cancel
+      </button>
+      <button
+        (click)="onSubmit()"
+        [disabled]="agentForm.invalid"
+        class="btn-primary"
+        [class.opacity-50]="agentForm.invalid"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+                 {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </div>
+
+     <!-- Form -->
+  <form [formGroup]="agentForm" (ngSubmit)="onSubmit()" class="space-y-8">
+             <!-- Basic Information -->
+    <div class="card">
+             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <!-- Name -->
+        <div>
+                     <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+             Agent Name *
+           </label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="input-field"
+            [class.error]="isFieldInvalid('name')"
+            placeholder="Ex: Assistant Client Support"
+          />
+          <div *ngIf="isFieldInvalid('name')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('name') }}
+          </div>
+        </div>
+
+        <!-- Type -->
+        <div>
+                     <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+             Agent Type *
+           </label>
+          <select
+            id="type"
+            formControlName="type"
+            class="input-field"
+          >
+            <option *ngFor="let type of agentTypes" [value]="type">
+              {{ type | titlecase }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="md:col-span-2">
+          <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Description *
+          </label>
+          <textarea
+            id="description"
+            formControlName="description"
+            rows="3"
+            class="input-field"
+            [class.error]="isFieldInvalid('description')"
+                             placeholder="Describe the role and capabilities of your agent..."
+          ></textarea>
+          <div *ngIf="isFieldInvalid('description')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('description') }}
+          </div>
+        </div>
+
+                 <!-- Status -->
+        <div class="md:col-span-2">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              formControlName="isActive"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Agent
+             </span>
+          </label>
+        </div>
+
+        <!-- Public/Private -->
+        <div class="md:col-span-2">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              formControlName="isPublic"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              Public Agent (visible to all users)
+            </span>
+          </label>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            If checked, this agent will be visible to all users. If unchecked, only you can see it.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- LLM Configuration -->
+    <div class="card">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">LLM Configuration</h2>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoadingLLMConfigs" class="flex items-center justify-center py-8">
+        <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="text-gray-600 dark:text-gray-400">Loading LLM configurations...</span>
+      </div>
+      
+      <div *ngIf="!isLoadingLLMConfigs" class="space-y-4">
+        <!-- LLM Config Selection -->
+        <div>
+          <label for="llmConfigId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select LLM Configuration *
+          </label>
+          <select
+            id="llmConfigId"
+            formControlName="llmConfigId"
+            class="input-field"
+            [class.error]="isFieldInvalid('llmConfigId')"
+          >
+            <option value="">Select an LLM configuration...</option>
+            <option *ngFor="let config of availableLLMConfigs" [value]="config.id">
+              {{ config.name }} ({{ config.provider }} - {{ config.model }})
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('llmConfigId')" class="mt-1 text-sm text-error-600">
+            {{ getFieldError('llmConfigId') }}
+          </div>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Choose an existing LLM configuration for this agent. You can manage configurations in the LLM Configurations section.
+          </p>
+        </div>
+
+        <!-- Embedding LLM Config Selection -->
+        <div>
+          <label for="embeddingLlmConfigId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select Embedding Model (Optional)
+          </label>
+          <select
+            id="embeddingLlmConfigId"
+            formControlName="embeddingLlmConfigId"
+            class="input-field"
+          >
+            <option value="">No embedding model (RAG disabled)</option>
+            <option *ngFor="let config of availableLLMConfigs" [value]="config.id">
+              {{ config.name }} ({{ config.provider }} - {{ config.model }})
+            </option>
+          </select>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Select an LLM configuration for document embeddings. This enables RAG (Retrieval Augmented Generation) functionality with your agent's documents.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Tags and Categories</h2>
+        <button
+          type="button"
+          (click)="refreshTags()"
+          class="btn-secondary text-sm"
+          title="Refresh tags from API"
+          [disabled]="isLoadingTags"
+        >
+          <svg *ngIf="!isLoadingTags" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <svg *ngIf="isLoadingTags" class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          {{ isLoadingTags ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoadingTags" class="flex items-center justify-center py-8">
+        <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="text-gray-600 dark:text-gray-400">Loading available tags...</span>
+      </div>
+      
+      <div *ngIf="!isLoadingTags" class="space-y-4">
+        <!-- Existing Tags -->
+        <div *ngIf="agentForm.get('tags')?.value?.length > 0" class="flex flex-wrap gap-2">
+          <span
+            *ngFor="let agentTag of agentForm.get('tags')?.value"
+            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+            [style.background-color]="agentTag?.tag?.color + '20'"
+            [style.color]="agentTag?.tag?.color"
+            [style.border]="'1px solid ' + agentTag?.tag?.color + '40'"
+          >
+            {{ agentTag?.tag?.name }}
+            <button
+              type="button"
+              (click)="removeTag(agentTag?.tag?.name)"
+              class="ml-2 hover:opacity-70"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </span>
+        </div>
+
+        <!-- Add a tag -->
+        <div class="space-y-3">
+          <div class="flex space-x-2">
+            <select
+              #tagSelect
+              class="input-field flex-1"
+              (change)="addTag(tagSelect.value); tagSelect.value = ''"
+            >
+              <option value="">Select a tag...</option>
+              <option *ngFor="let tag of availableTags" [value]="tag.name">
+                {{ tag.name | titlecase }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Custom tag creation -->
+          <div class="flex space-x-2">
+            <input
+              #customTagInput
+              type="text"
+              placeholder="Or create a custom tag..."
+              class="input-field flex-1"
+              (keyup.enter)="createCustomTag(customTagInput.value); customTagInput.value = ''"
+            />
+            <button
+              type="button"
+              (click)="createCustomTag(customTagInput.value); customTagInput.value = ''"
+              class="btn-primary text-sm"
+            >
+              Create
+            </button>
+          </div>
+        </div>
+
+        <!-- Message if no tags available -->
+        <div *ngIf="availableTags.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+          <p>No tags available. Please refresh or check your connection.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompts -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Prompts and Instructions</h2>
+        <button
+          type="button"
+          (click)="addPrompt()"
+          class="btn-secondary"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+                     Add a prompt
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div
+          *ngFor="let promptGroup of promptsArray.controls; let i = index"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Prompt {{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removePrompt(i)"
+              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Prompt Content -->
+            <div>
+                           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+               Prompt Content *
+             </label>
+              <textarea
+                [formControl]="getPromptContent(i)"
+                rows="3"
+                class="input-field w-full"
+                                 placeholder="Enter instructions for your agent..."
+              ></textarea>
+            </div>
+
+                         <!-- Prompt Variables -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                   Prompt Variables
+                 </label>
+                <button
+                  type="button"
+                  (click)="addPromptVariable(getPromptGroup(i))"
+                  class="btn-primary text-sm"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  Variable
+                </button>
+              </div>
+
+              <div class="space-y-2">
+                <div
+                  *ngFor="let variableGroup of getPromptVariables(i).controls; let j = index"
+                  class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end"
+                >
+                  <input
+                    [formControl]="getPromptVariableName(i, j)"
+                    placeholder="Name"
+                    class="input-field"
+                  />
+                  <select
+                    [formControl]="getPromptVariableType(i, j)"
+                    class="input-field"
+                  >
+                    <option value="string">String</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="object">Object</option>
+                    <option value="array">Array</option>
+                  </select>
+                  <input
+                    [formControl]="getPromptVariableDefault(i, j)"
+                    placeholder="Default Value"
+                    class="input-field"
+                  />
+                  <button
+                    type="button"
+                    (click)="removePromptVariable(getPromptGroup(i), j)"
+                    class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+                         <!-- Prompt Status -->
+            <div>
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  [formControl]="getPromptIsActive(i)"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Prompt
+             </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+                 <!-- Message if no prompt -->
+        <div *ngIf="promptsArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+                     <p>No prompt configured. Add your first prompt to define your agent's behavior.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outils -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Tools and Integrations</h2>
+        <button
+          type="button"
+          (click)="addTool()"
+          class="btn-secondary"
+          [disabled]="isLoadingTools"
+        >
+          <svg *ngIf="!isLoadingTools" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          <svg *ngIf="isLoadingTools" class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          {{ isLoadingTools ? 'Loading...' : 'Add a tool' }}
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoadingTools" class="flex items-center justify-center py-8">
+        <svg class="w-6 h-6 text-blue-500 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="text-gray-600 dark:text-gray-400">Loading available tools...</span>
+      </div>
+
+      <div *ngIf="!isLoadingTools" class="space-y-4">
+        <div
+          *ngFor="let toolGroup of toolsArray.controls; let i = index"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Tool {{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removeTool(i)"
+              class="text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-200"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Tool Selection (searchable) -->
+          <div class="relative">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" [attr.for]="'agent-tool-search-' + i">
+              Select an existing tool *
+            </label>
+            <div
+              *ngIf="getResolvedToolForRow(i) as picked"
+              class="mb-2 flex flex-wrap items-center gap-2"
+            >
+              <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Selected</span>
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-normal text-ink-secondary bg-surface-hover border border-line-light"
+              >
+                {{ formatToolCategory(picked.category) }}
+              </span>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ picked.name }}</span>
+            </div>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input
+                  type="text"
+                  class="input-field w-full pr-9"
+                  [id]="'agent-tool-search-' + i"
+                  [ngModel]="getToolPickerValue(i)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setToolPickerValue(i, $event)"
+                  (focus)="onToolPickerFocus(i)"
+                  (blur)="onToolPickerBlur(i)"
+                  [placeholder]="
+                    getResolvedToolForRow(i)
+                      ? 'Filter or pick another tool…'
+                      : 'Filter by category, name, or description…'
+                  "
+                  autocomplete="off"
+                  [class.border-red-300]="getToolToolId(i).invalid && getToolToolId(i).touched"
+                />
+                <button
+                  type="button"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  (mousedown)="clearToolPickerRow(i, $event)"
+                  title="Clear selection"
+                  aria-label="Clear tool selection"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+                <ul
+                  *ngIf="toolPickerOpen[i] && availableTools.length > 0"
+                  class="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg py-1"
+                  role="listbox"
+                >
+                  <li
+                    *ngFor="let tool of getFilteredToolsForPicker(i); trackBy: trackByToolId"
+                    role="option"
+                    class="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                    (mousedown)="pickToolForRow(tool, i, $event)"
+                  >
+                    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span
+                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide text-ink-secondary bg-surface-hover border border-line-light shrink-0"
+                      >
+                        {{ formatToolCategory(tool.category) }}
+                      </span>
+                      <span class="text-sm font-medium text-gray-900 dark:text-white">{{ tool.name }}</span>
+                    </div>
+                    <p *ngIf="tool.description" class="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                      {{ tool.description }}
+                    </p>
+                    <p *ngIf="!tool.description" class="mt-1 text-xs text-gray-400 dark:text-gray-500 italic">No description</p>
+                  </li>
+                  <li *ngIf="getFilteredToolsForPicker(i).length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    No tools match your search.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <p *ngIf="availableTools.length === 0" class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              No tools available in the catalog. Create tools first.
+            </p>
+            <!-- Keep toolId bound for validation (hidden from layout) -->
+            <input type="hidden" [formControl]="getToolToolId(i)" />
+          </div>
+
+          <!-- Selected tool description -->
+          <div
+            *ngIf="getSelectedToolForRow(i) as sel"
+            class="mt-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 px-3 py-2"
+          >
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Description</p>
+            <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{{ sel.description || '—' }}</p>
+          </div>
+
+          <!-- Tool Status -->
+          <div class="mt-4">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [formControl]="getToolIsActive(i)"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+                           <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+               Active Tool
+             </span>
+            </label>
+          </div>
+        </div>
+
+                 <!-- Message if no tool -->
+        <div *ngIf="toolsArray.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+                     <p>No tool configured. Add tools to extend your agent's capabilities.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills (registry-backed, progressive disclosure) -->
+    <div class="card" *ngIf="isEditMode && agentId">
+      <div class="mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Skills</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Attach skills from a configured registry. The agent loads each skill's instructions on demand.
+        </p>
+      </div>
+      <app-agent-skills [agentId]="agentId"></app-agent-skills>
+    </div>
+
+    <!-- Documents -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Documents</h2>
+        <div class="flex space-x-2">
+          <button
+            type="button"
+            (click)="createTextDocument()"
+            class="btn-secondary"
+            [disabled]="!agentId"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Create Text
+          </button>
+          <button
+            type="button"
+            (click)="triggerFileInput()"
+            class="btn-primary"
+            [disabled]="!agentId"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            Upload File
+          </button>
+        </div>
+      </div>
+
+      <!-- File Upload Input (Hidden) -->
+      <input
+        id="documentFile"
+        type="file"
+        (change)="onDocumentFileSelected($event)"
+        accept=".pdf,.doc,.docx,.txt,.json,.xml,.csv,.html,.md"
+        class="hidden"
+      />
+
+      <!-- Upload Button for Selected File -->
+      <div *ngIf="selectedDocumentFile" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getDocumentTypeIcon(selectedDocumentFile.name.split('.').pop() || '')"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-blue-900 dark:text-blue-100">{{ selectedDocumentFile.name }}</p>
+              <p class="text-xs text-blue-600 dark:text-blue-300">{{ formatFileSize(selectedDocumentFile.size) }}</p>
+            </div>
+          </div>
+          <div class="flex space-x-2">
+            <button
+              type="button"
+              (click)="uploadDocument()"
+              [disabled]="isUploadingDocument"
+              class="btn-primary text-sm"
+            >
+              <svg *ngIf="isUploadingDocument" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg *ngIf="!isUploadingDocument" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              {{ isUploadingDocument ? 'Uploading...' : 'Upload' }}
+            </button>
+            <button
+              type="button"
+              (click)="clearFileInput()"
+              class="btn-secondary text-sm"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents List -->
+      <div class="space-y-3">
+        <div
+          *ngFor="let agentDoc of agentDocuments; let i = index"
+          class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" [ngClass]="getDocumentTypeIconClass(agentDoc.document?.type || '')">
+              <!-- PDF Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'pdf'" class="w-4 h-4 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- DOCX/DOC Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'docx' || agentDoc.document?.type === 'doc'" class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- TXT Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'txt' || agentDoc.document?.type === 'text'" class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              
+              <!-- XLSX/XLS Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'xlsx' || agentDoc.document?.type === 'xls'" class="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- PPTX/PPT Icon -->
+              <svg *ngIf="agentDoc.document?.type === 'pptx' || agentDoc.document?.type === 'ppt'" class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              
+              <!-- Default Document Icon -->
+              <svg *ngIf="!isSpecificDocumentType(agentDoc.document?.type || '')" class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ agentDoc.document?.name }}</p>
+                <!-- RAG Processing Status Icon -->
+                <div class="flex items-center space-x-1">
+                  <svg *ngIf="agentDoc.document?.isRagProcessed" class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20" title="RAG Processed">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  <svg *ngIf="!agentDoc.document?.isRagProcessed" class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" title="RAG Not Processed">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ agentDoc.document?.type?.toUpperCase() }} • {{ formatFileSize(agentDoc.document?.size || 0) }}
+                <span *ngIf="agentDoc.document?.description"> • {{ agentDoc.document?.description }}</span>
+                <span *ngIf="agentDoc.document?.isRagProcessed" class="text-green-600 dark:text-green-400"> • RAG Processed</span>
+                <span *ngIf="!agentDoc.document?.isRagProcessed" class="text-yellow-600 dark:text-yellow-400"> • RAG Pending</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button
+              type="button"
+              (click)="downloadDocument(agentDoc.documentId, agentDoc.document?.name || 'document')"
+              class="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              title="Download document"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              (click)="removeDocument(agentDoc.documentId)"
+              class="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+              title="Remove document"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Message if no documents -->
+        <div *ngIf="agentDocuments.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>No documents attached. Add documents to provide context and knowledge to your agent.</p>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div>

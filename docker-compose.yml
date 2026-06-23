@@ -1,0 +1,6 @@
+services:
+  angular-app:
+    build: .
+    image: agentic/andy-agentic-web:latest
+    ports:
+      - "80:80"

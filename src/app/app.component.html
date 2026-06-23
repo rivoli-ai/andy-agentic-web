@@ -1,0 +1,52 @@
+<!-- Authentication Loading Overlay (not on public auth routes) -->
+<app-loading-overlay
+  *ngIf="isAuthLoading && !isPublicAuthRoute"
+  title="Authenticating"
+  message="Please wait while we verify your identity and load your workspace."
+  [showProgress]="true"
+  [progress]="authProgress"
+  [steps]="authSteps"
+  [currentStep]="authCurrentStep"
+  additionalInfo="This may take a few moments..."
+></app-loading-overlay>
+
+<!-- Logout Loading Overlay -->
+<app-loading-overlay
+  *ngIf="isLoggingOut"
+  title="Signing Out"
+  message="Please wait while we securely sign you out of your account."
+  [showProgress]="true"
+  [progress]="logoutProgress"
+  [steps]="logoutSteps"
+  [currentStep]="logoutCurrentStep"
+  additionalInfo="You will be redirected to the login page shortly."
+></app-loading-overlay>
+
+<!-- Show login/callback/logout routes without waiting for auth bootstrap -->
+<div
+  *ngIf="(!isAuthenticated && !isLoggingOut && !isAuthLoading) || isPublicAuthRoute"
+  class="min-h-screen"
+>
+  <router-outlet></router-outlet>
+</div>
+
+<!-- Authenticated shell (DevPilot-style sidebar + header) -->
+<div *ngIf="isAuthenticated && !isLoggingOut && !isAuthLoading" [ngClass]="getShellClasses()">
+  <app-app-sidebar
+    [isCollapsed]="isSidebarCollapsed"
+    [mobileOpen]="isMobile && isSidebarOpen"
+    (collapseToggled)="toggleSidebarCollapse()"
+    (mobileDrawerClose)="closeMobileSidebar()"
+  />
+  <div class="app-content">
+    <app-app-header (toggleSidebar)="toggleSidebar()" />
+    <main class="main-content" [class.chatbot-route]="isChatbotRoute">
+      <div class="content-area" [class.chatbot-route]="isChatbotRoute">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+  <div *ngIf="isSidebarOpen && isMobile" class="sidebar-overlay" (click)="toggleSidebar()"></div>
+</div>
+
+<app-notification-toast></app-notification-toast>

@@ -1,0 +1,306 @@
+<div *ngIf="toolExecution" class="tool-execution-container">
+  <!-- Compact View -->
+  <div *ngIf="compact && !isExpanded" class="compact-view">
+    <div class="flex items-center space-x-3 p-4 bg-surface-card border border-line-light rounded-lg shadow-sm transition-shadow">
+      <div class="flex-shrink-0">
+        <div class="w-8 h-8 bg-primary-100 dark:bg-primary-950/40 rounded-lg flex items-center justify-center">
+          <span class="text-lg">{{ getToolIcon(toolExecution.toolName) }}</span>
+        </div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center space-x-2 mb-1">
+          <h4 class="font-semibold text-ink text-sm">
+            {{ toolExecution.toolName }}
+          </h4>
+          <span *ngIf="toolExecution.tool?.type" [class]="getToolTypeColor(toolExecution.tool?.type || '')" class="text-xs px-2 py-0.5 rounded font-mono">
+            {{ toolExecution.tool?.type?.toUpperCase() }}
+          </span>
+          <span [class]="getStatusColor(toolExecution.success)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
+            {{ getStatusIcon(toolExecution.success) }}
+            {{ toolExecution.success ? 'Success' : 'Failed' }}
+          </span>
+          <span *ngIf="toolExecution.executionTime" class="text-xs text-ink-secondary bg-surface-hover px-2 py-0.5 rounded">
+            {{ toolExecution.executionTime }}ms
+          </span>
+        </div>
+        <div class="flex items-center text-xs text-ink-muted">
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Click to view details
+        </div>
+      </div>
+      <button
+        (click)="toggleExpanded()"
+        class="flex-shrink-0 p-2 rounded-lg transition-colors"
+        [title]="isExpanded ? 'Collapse' : 'Expand'"
+      >
+        <svg class="w-4 h-4 text-ink-muted" [class.rotate-180]="isExpanded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Expanded View -->
+  <div *ngIf="isExpanded" class="expanded-view">
+    <!-- Compact expanded view for chat messages -->
+    <div *ngIf="compact" class="bg-surface-card border border-line-light rounded-lg shadow-sm mt-3">
+      <!-- Professional Header -->
+      <div class="px-4 py-3 border-b border-line-light bg-surface-hover rounded-t-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-primary-100 dark:bg-primary-950/40 rounded-lg flex items-center justify-center">
+              <span class="text-lg">{{ getToolIcon(toolExecution.toolName) }}</span>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h4 class="font-semibold text-ink text-sm">{{ toolExecution.toolName }}</h4>
+                <span *ngIf="toolExecution.tool?.type" [class]="getToolTypeColor(toolExecution.tool?.type || '')" class="text-xs px-2 py-0.5 rounded font-mono">
+                  {{ toolExecution.tool?.type?.toUpperCase() }}
+                </span>
+              </div>
+              <div class="flex items-center space-x-2 mt-1">
+                <span [class]="getStatusColor(toolExecution.success)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
+                  {{ getStatusIcon(toolExecution.success) }}
+                  {{ toolExecution.success ? 'Success' : 'Failed' }}
+                </span>
+                <span *ngIf="toolExecution.executionTime" class="text-xs text-ink-secondary bg-surface-hover px-2 py-0.5 rounded">
+                  {{ toolExecution.executionTime }}ms
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            (click)="toggleExpanded()"
+            class="p-2 rounded-lg transition-colors"
+            [title]="isExpanded ? 'Collapse' : 'Expand'"
+          >
+            <svg class="w-4 h-4 text-ink-muted" [class.rotate-180]="isExpanded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Professional Content with Tabs -->
+      <div class="p-4">
+        <!-- Tab Navigation -->
+        <div class="flex space-x-1 mb-4 bg-surface-hover dark:bg-surface-elevated rounded-lg p-1">
+          <button
+            (click)="activeTab = 'parameters'"
+            [class]="activeTab === 'parameters' ? 'bg-surface-card dark:bg-surface-ground text-ink shadow-sm' : 'text-ink-secondary hover:text-ink'"
+            class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Parameters
+          </button>
+          <button
+            (click)="activeTab = 'result'"
+            [class]="activeTab === 'result' ? 'bg-surface-card dark:bg-surface-ground text-ink shadow-sm' : 'text-ink-secondary hover:text-ink'"
+            class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Result
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="space-y-4">
+          <!-- Parameters Tab -->
+          <div *ngIf="activeTab === 'parameters'" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h5 class="text-sm font-semibold text-ink-secondary flex items-center">
+                <svg class="w-4 h-4 mr-2 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Parameters
+              </h5>
+              <button
+                (click)="copyToClipboard(formatParameters(toolExecution.parameters))"
+                class="p-1.5 rounded-lg transition-colors hover:bg-surface-ground dark:hover:bg-surface-hover"
+                title="Copy parameters"
+              >
+                <svg class="w-4 h-4 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="tool-execution-code-panel bg-surface-hover dark:bg-surface-elevated border border-line-light rounded-lg p-3 max-h-48 overflow-y-auto">
+              <pre class="text-sm text-ink whitespace-pre-wrap font-mono leading-relaxed break-all overflow-hidden">{{ formatParameters(toolExecution.parameters) }}</pre>
+            </div>
+          </div>
+
+          <!-- Result Tab -->
+          <div *ngIf="activeTab === 'result'" class="space-y-2">
+            <!-- Success Result -->
+            <div *ngIf="toolExecution.success" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h5 class="text-sm font-semibold text-green-700 dark:text-green-300 flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Result
+                </h5>
+                <button
+                  (click)="copyToClipboard(formatResult(toolExecution.result))"
+                  class="p-1.5 rounded-lg transition-colors hover:bg-green-100 dark:hover:bg-green-600"
+                  title="Copy result"
+                >
+                  <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <pre class="text-sm text-green-700 dark:text-green-300 whitespace-pre-wrap font-mono leading-relaxed break-all overflow-hidden">{{ formatResult(toolExecution.result) }}</pre>
+              </div>
+            </div>
+
+            <!-- Error Result -->
+            <div *ngIf="!toolExecution.success" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h5 class="text-sm font-semibold text-red-700 dark:text-red-300 flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Error Details
+                </h5>
+                <button
+                  (click)="copyToClipboard(toolExecution.errorMessage || '')"
+                  class="p-1.5 rounded-lg transition-colors hover:bg-red-100 dark:hover:bg-red-600"
+                  title="Copy error message"
+                >
+                  <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <pre class="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap font-mono leading-relaxed break-all overflow-hidden">{{ toolExecution.errorMessage }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full expanded view for non-compact mode -->
+    <div *ngIf="!compact" class="bg-gradient-to-r from-primary-50 to-violet-50 dark:from-primary-950/35 dark:to-violet-950/35 border border-primary-200 dark:border-primary-800 rounded-xl p-4 shadow-sm">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">{{ getToolIcon(toolExecution.toolName) }}</span>
+          <div>
+            <h3 class="font-semibold text-ink text-lg">
+              {{ toolExecution.toolName }}
+            </h3>
+            <div class="flex items-center space-x-2 mt-1">
+              <span [class]="getStatusColor(toolExecution.success)" class="text-sm font-medium">
+                {{ getStatusIcon(toolExecution.success) }}
+                {{ toolExecution.success ? 'Success' : 'Failed' }}
+              </span>
+              <span *ngIf="toolExecution.executionTime" class="text-sm text-ink-secondary">
+                • {{ toolExecution.executionTime }}ms
+              </span>
+              <span *ngIf="showTimestamp" class="text-sm text-ink-secondary">
+                • {{ toolExecution.executedAt | date:'HH:mm:ss' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button
+          (click)="toggleExpanded()"
+          class="p-2 hover:bg-surface-hover dark:hover:bg-surface-elevated rounded-lg transition-colors"
+          [title]="isExpanded ? 'Collapse' : 'Expand'"
+        >
+          <svg class="w-5 h-5 text-ink-muted" [class.rotate-180]="isExpanded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content Sections -->
+      <div class="space-y-4">
+        <!-- Parameters Section -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-medium text-ink-secondary text-sm flex items-center">
+              <svg class="w-4 h-4 mr-2 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Parameters
+            </h4>
+            <button
+              (click)="copyToClipboard(formatParameters(toolExecution.parameters))"
+              class="p-1 hover:bg-surface-hover dark:hover:bg-surface-elevated rounded transition-colors"
+              title="Copy parameters"
+            >
+              <svg class="w-4 h-4 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="tool-execution-code-panel bg-surface-hover dark:bg-surface-elevated rounded-lg p-3">
+            <pre class="text-sm text-ink whitespace-pre-wrap font-mono break-all overflow-hidden">{{ formatParameters(toolExecution.parameters) }}</pre>
+          </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="space-y-2">
+          <!-- Success Result -->
+          <div *ngIf="toolExecution.success" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-medium text-green-700 dark:text-green-300 text-sm flex items-center">
+                <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Result
+              </h4>
+              <button
+                (click)="copyToClipboard(formatResult(toolExecution.result))"
+                class="p-1 hover:bg-green-100 dark:hover:bg-green-600 rounded transition-colors"
+                title="Copy result"
+              >
+                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <pre class="text-sm text-green-700 dark:text-green-300 whitespace-pre-wrap font-mono break-all overflow-hidden">{{ formatResult(toolExecution.result) }}</pre>
+            </div>
+          </div>
+
+          <!-- Error Result -->
+          <div *ngIf="!toolExecution.success" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-medium text-red-700 dark:text-red-300 text-sm flex items-center">
+                <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Error Details
+              </h4>
+              <button
+                (click)="copyToClipboard(toolExecution.errorMessage || '')"
+                class="p-1 hover:bg-red-100 dark:hover:bg-red-600 rounded transition-colors"
+                title="Copy error message"
+              >
+                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <pre class="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap font-mono break-all overflow-hidden">{{ toolExecution.errorMessage }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

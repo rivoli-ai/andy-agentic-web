@@ -1,0 +1,192 @@
+.tool-execution-summary {
+  @apply transition-all duration-300 ease-in-out;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the component fits in sidebar */
+.tool-execution-summary .expanded-view {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for expanded view */
+.tool-execution-summary .expanded-view::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tool-execution-summary .expanded-view::-webkit-scrollbar-track {
+  @apply bg-surface-hover dark:bg-surface-elevated rounded-full;
+}
+
+.tool-execution-summary .expanded-view::-webkit-scrollbar-thumb {
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded-full;
+}
+
+.tool-execution-summary .expanded-view::-webkit-scrollbar-thumb:hover {
+  @apply bg-secondary-400 dark:bg-secondary-500;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth rotation for expand/collapse icon */
+svg {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Hover effects for interactive elements */
+button {
+  @apply transition-all duration-200;
+}
+
+button:hover {
+  @apply transform scale-105;
+}
+
+/* Progress bar animation */
+.progress-bar {
+  @apply transition-all duration-500 ease-out;
+}
+
+/* Gradient background animation */
+.gradient-bg {
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--brand-primary) 14%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 12%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-primary) 14%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 12%, var(--surface-card))
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Dark mode gradient */
+.dark .gradient-bg {
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--brand-primary) 28%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 22%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-primary) 28%, var(--surface-card)),
+    color-mix(in srgb, var(--brand-secondary) 22%, var(--surface-card))
+  );
+  background-size: 400% 400%;
+}
+
+/* Stats card hover effects */
+.stats-card {
+  @apply transition-all duration-200;
+}
+
+.stats-card:hover {
+  @apply transform scale-105 shadow-lg;
+}
+
+/* Tool usage item hover effects */
+.tool-usage-item {
+  @apply transition-all duration-200;
+}
+
+.tool-usage-item:hover {
+  @apply transform scale-[1.02] shadow-md;
+}
+
+/* Success rate color coding */
+.success-rate-high {
+  @apply text-green-600 dark:text-green-400;
+}
+
+.success-rate-medium {
+  @apply text-yellow-600 dark:text-yellow-400;
+}
+
+.success-rate-low {
+  @apply text-red-600 dark:text-red-400;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .tool-execution-summary {
+    @apply p-3;
+  }
+  
+  .grid-cols-2 {
+    @apply grid-cols-1;
+  }
+  
+  .grid-cols-4 {
+    @apply grid-cols-2;
+  }
+}
+
+/* Animation for progress bars */
+@keyframes progressFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
+.progress-bar {
+  animation: progressFill 1s ease-out;
+}
+
+/* Pulse animation for active elements */
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Tool icon animations */
+.tool-icon {
+  @apply transition-transform duration-200;
+}
+
+.tool-icon:hover {
+  @apply transform scale-110;
+}
+
+/* Summary card animations */
+.summary-card {
+  @apply transition-all duration-300;
+}
+
+.summary-card:hover {
+  @apply transform translate-y-[-2px] shadow-xl;
+}
+

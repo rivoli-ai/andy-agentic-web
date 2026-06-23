@@ -1,0 +1,955 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">AI Agents</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Manage your intelligent agents and automate your tasks
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0" *ngIf="hasWritePermission | async">
+      <button
+        routerLink="/agents/new"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-ground"
+      >
+        <!-- Background glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-violet-500 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+        
+        <!-- Icon with animation -->
+        <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        
+        <!-- Text -->
+        <span class="relative">Create New Agent</span>
+        
+        <!-- Subtle arrow indicator -->
+        <svg class="w-4 h-4 ml-2 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Enhanced Controls Bar -->
+  <div class="bg-surface-card border border-line-light shadow-card rounded-lg p-6">
+    <!-- Top Row: Search, Filters, and View Controls -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+      <!-- Search and Filters -->
+      <div class="flex flex-col sm:flex-row gap-4 flex-1">
+      <!-- Search -->
+        <div class="flex-1 min-w-0">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearch()"
+              placeholder="Search agents, tags, or descriptions..."
+              class="input-field pl-10"
+        />
+          </div>
+      </div>
+
+      <!-- Type Filter -->
+        <div class="sm:w-48">
+        <select
+          [(ngModel)]="selectedType"
+          (change)="onTypeFilterChange()"
+          class="input-field"
+        >
+            <option value="">All Types</option>
+          <option *ngFor="let type of agentTypes" [value]="type">{{ type | titlecase }}</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+        <div class="sm:w-40">
+        <select
+          [(ngModel)]="selectedStatus"
+          (change)="onStatusFilterChange()"
+          class="input-field"
+        >
+            <option value="">All Status</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+        </div>
+
+        <!-- Tag Filter -->
+        <div class="sm:w-48">
+          <select
+            [(ngModel)]="selectedTag"
+            (change)="onTagFilterChange()"
+            class="input-field"
+          >
+            <option value="">All Tags</option>
+            <option *ngFor="let tag of availableTags" [value]="tag.id">{{ tag.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- View Controls -->
+      <div class="flex items-center gap-2">
+        <!-- Sort Controls -->
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</label>
+          <select
+            [(ngModel)]="sortBy"
+            (change)="onSortChange(sortBy)"
+            class="text-sm border border-line rounded-md px-2 py-1 bg-surface-card dark:bg-surface-elevated text-ink"
+          >
+            <option value="name">Name</option>
+            <option value="updatedAt">Last Modified</option>
+            <option value="createdAt">Created</option>
+            <option value="executionCount">Executions</option>
+          </select>
+          <button
+            (click)="toggleSortOrder()"
+            class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            [title]="sortOrder === 'asc' ? 'Sort Ascending' : 'Sort Descending'"
+          >
+            <svg class="w-4 h-4" [class.rotate-180]="sortOrder === 'desc'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- View Mode Toggle -->
+        <div class="flex items-center bg-surface-hover border border-line-light rounded-lg p-1">
+          <button
+            (click)="setViewMode('grid')"
+            [class]="viewMode === 'grid' ? 'bg-surface-elevated text-primary-600 shadow-sm border border-line-light' : 'text-ink-muted'"
+            class="p-2 rounded-md transition-all duration-200"
+            title="Grid View"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+            </svg>
+          </button>
+          <button
+            (click)="setViewMode('list')"
+            [class]="viewMode === 'list' ? 'bg-surface-elevated text-primary-600 shadow-sm border border-line-light' : 'text-ink-muted'"
+            class="p-2 rounded-md transition-all duration-200"
+            title="List View"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Grouping Toggle -->
+        <button
+          (click)="toggleGrouping()"
+          [class]="groupByTags ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300 border border-primary-200 dark:border-primary-800' : 'bg-surface-hover text-ink-secondary border border-line-light'"
+          class="px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+          title="Group by Tags"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          Group by Tags
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Stats -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-line-light">
+      <!-- Stats -->
+      <div class="flex items-center gap-6 text-sm text-ink-secondary">
+        <span>{{ filteredAgents.length }} agents</span>
+        <span *ngIf="groupByTags">{{ groupedAgents.size }} groups</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex items-center justify-center py-12">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+      <p class="text-ink-secondary">Loading agents...</p>
+    </div>
+  </div>
+
+  <!-- Agents Display -->
+  <div *ngIf="!isLoading">
+    <!-- Grouped View -->
+    <div *ngIf="groupByTags && groupedAgents.size > 0" class="space-y-6">
+      <div *ngFor="let group of groupedAgents | keyvalue" class="space-y-4">
+        <!-- Group Header -->
+        <div class="flex items-center justify-between bg-surface-card border border-line-light shadow-card rounded-xl p-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div
+              class="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-line-light"
+              [class.bg-ink-muted]="group.key === 'untagged'"
+              [style.background-color]="group.key === 'untagged' ? null : getTagColor(group.key)"
+            ></div>
+            <h3 class="text-lg font-semibold text-ink truncate">
+              {{ group.key === 'untagged' ? 'Untagged Agents' : group.key }}
+            </h3>
+            <span class="px-2 py-1 text-xs font-medium bg-surface-hover text-ink-secondary border border-line-light rounded-full flex-shrink-0">
+              {{ group.value.length }}
+            </span>
+          </div>
+          <button
+            (click)="toggleGroupCollapse(group.key)"
+            type="button"
+            class="p-2 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors flex-shrink-0"
+            [attr.aria-expanded]="!collapsedGroups.has(group.key)"
+          >
+            <svg class="w-5 h-5 transition-transform duration-200" [class.rotate-180]="collapsedGroups.has(group.key)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Group Content -->
+        <div *ngIf="!collapsedGroups.has(group.key)" class="space-y-4">
+          <!-- Grid View -->
+          <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              *ngFor="let agent of group.value"
+              class="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+              (click)="navigateToChat(agent.id)"
+            >
+              <!-- Agent Header -->
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex items-start space-x-3 flex-1">
+                  <!-- Agent Icon -->
+                  <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                      {{ agent.name }}
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                      {{ agent.description }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [ngClass]="getTypeClasses(agent.type)"
+                  >
+                    {{ (agent.type || '') | titlecase }}
+                  </span>
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [ngClass]="getStatusClasses(agent.isActive)"
+                  >
+                    {{ agent.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Agent Details -->
+              <div class="mb-4">
+                <!-- Configuration Section -->
+                <div class="mb-4">
+                  <!-- Main LLM Configuration -->
+                  <div class="mb-3">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <div class="flex items-center space-x-1">
+                        <svg class="w-3 h-3 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Main LLM</span>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+                      <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                        {{ getProviderName(agent.llmConfig.provider) }}
+                      </span>
+                      <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                        {{ agent.llmConfig.model }}
+                      </span>
+                      <span
+                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+                        [ngClass]="agent.llmConfig.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+                      >
+                        {{ agent.llmConfig.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- Embedding Model Configuration -->
+                  <div *ngIf="agent.embeddingLlmConfig" class="mb-3">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <div class="flex items-center space-x-1">
+                        <svg class="w-3 h-3 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Embedding</span>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+                      <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                        {{ getProviderName(agent.embeddingLlmConfig.provider) }}
+                      </span>
+                      <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                        {{ agent.embeddingLlmConfig.model }}
+                      </span>
+                      <span
+                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+                        [ngClass]="agent.embeddingLlmConfig.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+                      >
+                        {{ agent.embeddingLlmConfig.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- RAG Status -->
+                  <div *ngIf="agent.embeddingLlmConfig" class="mb-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                      <div class="flex items-center space-x-1">
+                        <svg class="w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">RAG Enabled</span>
+                      </div>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">({{ agent.agentDocuments.length || 0 }} documents)</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3">
+                  <div class="flex items-center space-x-1 sm:space-x-2">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Prompts</span>
+                    <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.prompts.length }}</span>
+                  </div>
+                  
+                  <div class="flex items-center space-x-1 sm:space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Tools</span>
+                    <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.tools.length }}</span>
+                  </div>
+                  
+                  <div class="flex items-center space-x-1 sm:space-x-2">
+                    <div class="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Executions</span>
+                    <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.executionCount }}</span>
+                  </div>
+                  
+                  <div class="flex items-center space-x-1 sm:space-x-2">
+                    <div class="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Documents</span>
+                    <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.agentDocuments.length || 0 }}</span>
+                  </div>
+                </div>
+                
+                <!-- Tags -->
+                <div *ngIf="agent.agentTags.length > 0" class="mb-3">
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      *ngFor="let tag of agent.agentTags.slice(0, 3)"
+                      class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+                      [style.background-color]="(tag.tag?.color || '') ? tag.tag?.color + '20' : '#f3f4f6'"
+                      [style.color]="tag.tag?.color || '#374151'"
+                    >
+                      {{ tag.tag?.name || 'Unknown Tag' }}
+                    </span>
+                    <span
+                      *ngIf="agent.agentTags.length > 3"
+                      class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                    >
+                      +{{ agent.agentTags.length - 3 }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Last modified: {{ agent.updatedAt | date:'short' }}
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button
+                    [routerLink]="['/chatbot', agent.id]"
+                    (click)="$event.stopPropagation()"
+                    class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
+                    title="Chat with this agent"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    [routerLink]="['/agents', agent.id]"
+                    (click)="$event.stopPropagation()"
+                    class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+                    title="Preview agent"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    *ngIf="hasWritePermission | async"
+                    [routerLink]="['/agents', agent.id, 'edit']"
+                    (click)="$event.stopPropagation()"
+                    class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+                    title="Edit agent"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    *ngIf="hasWritePermission | async"
+                    (click)="duplicateAgent(agent.id, $event)"
+                    class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
+                    title="Duplicate agent"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    *ngIf="hasWritePermission | async"
+                    (click)="deleteAgent(agent.id, $event)"
+                    class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
+                    title="Delete agent"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- List View -->
+          <div *ngIf="viewMode === 'list'" class="bg-surface-card border border-line-light shadow-card rounded-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-line-light">
+                <thead class="bg-surface-hover border-b border-line-light">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Agent</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Stats</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Last Modified</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-surface-card divide-y divide-line-light">
+                  <tr
+                    *ngFor="let agent of group.value"
+                    class="hover:bg-surface-hover cursor-pointer"
+                    (click)="navigateToChat(agent.id)"
+                  >
+                    <td class="px-6 py-4 whitespace-nowrap">
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center flex-shrink-0 mr-3">
+                          <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900 dark:text-white">{{ agent.name }}</div>
+                          <div class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ agent.description }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        [ngClass]="getTypeClasses(agent.type)"
+                      >
+                        {{ (agent.type || '') | titlecase }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        [ngClass]="getStatusClasses(agent.isActive)"
+                      >
+                        {{ agent.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <div class="flex items-center space-x-4">
+                        <span>{{ agent.prompts.length }}P</span>
+                        <span>{{ agent.tools.length }}T</span>
+                        <span>{{ agent.executionCount }}R</span>
+                        <span>{{ agent.agentDocuments.length || 0 }}D</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {{ agent.updatedAt | date:'short' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex items-center justify-end space-x-2">
+                        <button
+                          [routerLink]="['/agents', agent.id]"
+                          (click)="$event.stopPropagation()"
+                          class="text-ink-secondary hover:text-ink dark:hover:text-ink"
+                          title="Preview agent"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                          </svg>
+                        </button>
+                        <button
+                          [routerLink]="['/chatbot', agent.id]"
+                          (click)="$event.stopPropagation()"
+                          class="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400"
+                          title="Chat with this agent"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                          </svg>
+                        </button>
+                        <button
+                          *ngIf="hasWritePermission | async"
+                          [routerLink]="['/agents', agent.id, 'edit']"
+                          (click)="$event.stopPropagation()"
+                          class="text-secondary-600 hover:text-secondary-900 dark:hover:text-secondary-400"
+                          title="Edit"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                          </svg>
+                        </button>
+                        <button
+                          *ngIf="hasWritePermission | async"
+                          (click)="duplicateAgent(agent.id, $event)"
+                          class="text-warning-600 hover:text-warning-900 dark:hover:text-warning-400"
+                          title="Duplicate"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                          </svg>
+                        </button>
+                        <button
+                          *ngIf="hasWritePermission | async"
+                          (click)="deleteAgent(agent.id, $event)"
+                          class="text-error-600 hover:text-error-900 dark:hover:text-error-400"
+                          title="Delete"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Ungrouped View -->
+    <div *ngIf="!groupByTags" class="space-y-4">
+      <!-- Grid View -->
+      <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      *ngFor="let agent of filteredAgents"
+      class="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      (click)="navigateToChat(agent.id)"
+    >
+      <!-- Agent Header -->
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex items-start space-x-3 flex-1">
+          <!-- Agent Icon -->
+          <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              {{ agent.name }}
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+              {{ agent.description }}
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getTypeClasses(agent.type)"
+          >
+            {{ (agent.type || '') | titlecase }}
+          </span>
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="getStatusClasses(agent.isActive)"
+          >
+            {{ agent.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Agent Details -->
+      <div class="mb-4">
+        <!-- Configuration Section -->
+        <div class="mb-4">
+          <!-- Main LLM Configuration -->
+          <div class="mb-3">
+            <div class="flex items-center space-x-2 mb-2">
+              <div class="flex items-center space-x-1">
+                <svg class="w-3 h-3 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Main LLM</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                {{ getProviderName(agent.llmConfig.provider) }}
+              </span>
+              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                {{ agent.llmConfig.model }}
+              </span>
+              <span
+                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+                [ngClass]="agent.llmConfig.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+              >
+                {{ agent.llmConfig.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+          
+          <!-- Embedding Model Configuration -->
+          <div *ngIf="agent.embeddingLlmConfig" class="mb-3">
+            <div class="flex items-center space-x-2 mb-2">
+              <div class="flex items-center space-x-1">
+                <svg class="w-3 h-3 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Embedding</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                {{ getProviderName(agent.embeddingLlmConfig.provider) }}
+              </span>
+              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                {{ agent.embeddingLlmConfig.model }}
+              </span>
+              <span
+                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+                [ngClass]="agent.embeddingLlmConfig.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+              >
+                {{ agent.embeddingLlmConfig.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+          
+          <!-- RAG Status -->
+          <div *ngIf="agent.embeddingLlmConfig" class="mb-3">
+            <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+              <div class="flex items-center space-x-1">
+                <svg class="w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">RAG Enabled</span>
+              </div>
+              <span class="text-xs text-gray-500 dark:text-gray-400">({{ agent.agentDocuments.length || 0 }} documents)</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3">
+          <div class="flex items-center space-x-1 sm:space-x-2">
+            <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Prompts</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.prompts.length }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-1 sm:space-x-2">
+            <div class="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Tools</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.tools.length }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-1 sm:space-x-2">
+            <div class="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Executions</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.executionCount }}</span>
+          </div>
+          
+          <div class="flex items-center space-x-1 sm:space-x-2">
+            <div class="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+            <span class="text-xs text-gray-600 dark:text-gray-400 truncate">Documents</span>
+            <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ agent.agentDocuments.length || 0 }}</span>
+          </div>
+        </div>
+        
+        <!-- Tags -->
+        <div *ngIf="agent.agentTags.length > 0" class="mb-3">
+          <div class="flex flex-wrap gap-1">
+            <span
+              *ngFor="let tag of agent.agentTags.slice(0, 3)"
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium"
+              [style.background-color]="(tag.tag?.color || '') ? tag.tag?.color + '20' : '#f3f4f6'"
+              [style.color]="tag.tag?.color || '#374151'"
+            >
+              {{ tag.tag?.name || 'Unknown Tag' }}
+            </span>
+            <span
+              *ngIf="agent.agentTags.length > 3"
+              class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+            >
+              +{{ agent.agentTags.length - 3 }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Last modified: {{ agent.updatedAt | date:'short' }}
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            [routerLink]="['/chatbot', agent.id]"
+            (click)="$event.stopPropagation()"
+            class="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 rounded-md transition-colors duration-200"
+            title="Chat with this agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+          </button>
+          <button
+            [routerLink]="['/agents', agent.id]"
+            (click)="$event.stopPropagation()"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="Preview agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+          <button
+            *ngIf="hasWritePermission | async"
+            [routerLink]="['/agents', agent.id, 'edit']"
+            (click)="$event.stopPropagation()"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="Edit agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+          <button
+            *ngIf="hasWritePermission | async"
+            (click)="duplicateAgent(agent.id, $event)"
+            class="p-2 text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900 rounded-md transition-colors duration-200"
+            title="Duplicate agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+          </button>
+          <button
+            *ngIf="hasWritePermission | async"
+            (click)="deleteAgent(agent.id, $event)"
+            class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
+            title="Delete agent"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <!-- List View -->
+      <div *ngIf="viewMode === 'list'" class="bg-surface-card border border-line-light shadow-card rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-line-light">
+            <thead class="bg-surface-hover border-b border-line-light">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Agent</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Stats</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Last Modified</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-surface-card divide-y divide-line-light">
+              <tr
+                *ngFor="let agent of filteredAgents"
+                class="hover:bg-surface-hover cursor-pointer"
+                (click)="navigateToChat(agent.id)"
+              >
+                <td class="px-6 py-4 whitespace-nowrap">
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center flex-shrink-0 mr-3">
+                      <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium text-gray-900 dark:text-white">{{ agent.name }}</div>
+                      <div class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ agent.description }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [ngClass]="getTypeClasses(agent.type)"
+                  >
+                    {{ (agent.type || '') | titlecase }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [ngClass]="getStatusClasses(agent.isActive)"
+                  >
+                    {{ agent.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <div class="flex items-center space-x-4">
+                    <span>{{ agent.prompts.length }}P</span>
+                    <span>{{ agent.tools.length }}T</span>
+                    <span>{{ agent.executionCount }}R</span>
+                    <span>{{ agent.agentDocuments.length || 0 }}D</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {{ agent.updatedAt | date:'short' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div class="flex items-center justify-end space-x-2">
+                    <button
+                      [routerLink]="['/agents', agent.id]"
+                      (click)="$event.stopPropagation()"
+                      class="text-ink-secondary hover:text-ink dark:hover:text-ink"
+                      title="Preview agent"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      [routerLink]="['/chatbot', agent.id]"
+                      (click)="$event.stopPropagation()"
+                      class="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400"
+                      title="Chat with this agent"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      *ngIf="hasWritePermission | async"
+                      [routerLink]="['/agents', agent.id, 'edit']"
+                      (click)="$event.stopPropagation()"
+                      class="text-secondary-600 hover:text-secondary-900 dark:hover:text-secondary-400"
+                      title="Edit"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      *ngIf="hasWritePermission | async"
+                      (click)="duplicateAgent(agent.id, $event)"
+                      class="text-warning-600 hover:text-warning-900 dark:hover:text-warning-400"
+                      title="Duplicate"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      *ngIf="hasWritePermission | async"
+                      (click)="deleteAgent(agent.id, $event)"
+                      class="text-error-600 hover:text-error-900 dark:hover:text-error-400"
+                      title="Delete"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    *ngIf="!isLoading && filteredAgents.length === 0"
+    class="text-center py-12"
+  >
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+      {{ searchQuery || selectedType || selectedStatus ? 'No agents found' : 'No agents configured' }}
+    </h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      {{ searchQuery || selectedType || selectedStatus ? 'Try modifying your search criteria.' : 'Get started by creating your first intelligent agent.' }}
+    </p>
+    <div class="mt-6">
+      <button
+        routerLink="/agents/new"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-ground"
+      >
+        <!-- Background glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-violet-500 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+        
+        <!-- Icon with animation -->
+        <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        
+        <!-- Text -->
+        <span class="relative">Create an agent</span>
+        
+        <!-- Subtle arrow indicator -->
+        <svg class="w-4 h-4 ml-2 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

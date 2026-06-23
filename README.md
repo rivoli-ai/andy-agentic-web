@@ -1,159 +1,183 @@
-# Andy Agentic Web
+# Andy Agentic — Frontend
 
-A modern web platform built with ASP.NET Core 8.0 MVC that enables seamless integration of any Large Language Model (LLM), API, and Model Context Protocol (MCP) server through an intuitive web interface.
+Angular 19 single-page application for the Andy Agentic platform. Authenticates
+users via Microsoft Entra (MSAL), streams chat over Server-Sent Events,
+subscribes to RAG progress over SignalR, and renders rich markdown (Mermaid +
+Prism + clipboard) for chat messages.
 
-> ⚠️ **ALPHA RELEASE WARNING** ⚠️
-> 
-> This software is in ALPHA stage. **NO GUARANTEES** are made about its functionality, stability, or safety.
-> 
-> **CRITICAL WARNINGS:**
-> - This library performs **DESTRUCTIVE OPERATIONS** on files and directories
-> - Permission management is **NOT FULLY TESTED** and may have security vulnerabilities
-> - **DO NOT USE** in production environments
-> - **DO NOT USE** on systems with critical or irreplaceable data
-> - **DO NOT USE** on systems without complete, verified backups
-> - The authors assume **NO RESPONSIBILITY** for data loss, system damage, or security breaches
-> 
-> **USE AT YOUR OWN RISK**
+> See `../ARCHITECTURE.md` for the system-level view and
+> `../IMPROVEMENT_PLAN.md` for the active roadmap. This README focuses on the
+> frontend project specifically.
 
-## Overview
+## Tech stack
 
-Andy Agentic Web provides a unified web-based interface for orchestrating AI agents across different LLM providers, APIs, and MCP servers. It acts as a bridge between various AI services and tools, allowing you to create powerful agentic workflows without being locked into a single provider or protocol.
-
-## Key Features
-
-- **Universal LLM Support**: Connect to any LLM provider (OpenAI, Anthropic, Google, local models, etc.)
-- **API Integration**: Seamlessly integrate with any REST or GraphQL API
-- **MCP Server Compatibility**: Full support for Model Context Protocol servers
-- **Web-Based Interface**: Modern, responsive UI for configuring and managing agents
-- **Agent Orchestration**: Create complex multi-agent workflows
-- **Real-time Monitoring**: Track agent activities and performance
-- **Extensible Architecture**: Plugin system for custom integrations
-
-## Technology Stack
-
-- **Framework**: ASP.NET Core 8.0 MVC
-- **View Engine**: Razor Pages
-- **Testing**: xUnit
-- **Platform**: Cross-platform (.NET 8)
-- **Styling**: Bootstrap 5.3 & Font Awesome
-- **Database**: Entity Framework Core (ready for integration)
+- **Angular 19.2** (NgModule-based, not standalone components)
+- **MSAL Angular 4** for Entra ID authentication
+- **SignalR client 10** for the `/documentRagHub` connection
+- **TailwindCSS 3** + `@tailwindcss/forms` + `@tailwindcss/typography`
+- **Angular Material 19** for a small set of widgets
+- **ngx-markdown** + **marked** + **Prism** + **Mermaid** for chat rendering
+- **RxJS 7**
+- **Jest** + **jest-preset-angular** for unit tests
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
-- A modern web browser
+- Node 20+ (`.nvmrc` will be added once the team standardises on a version)
+- npm 10+
+- A running backend at the URL you configure in `assets/config.json`
 
-## Getting Started
-
-### Running the Application
-
-```bash
-# Clone the repository
-git clone https://github.com/rivoli-ai/andy-agentic-web.git
-cd andy-agentic-web
-
-# Restore dependencies
-dotnet restore
-
-# Build the solution
-dotnet build
-
-# Run the application
-dotnet run --project src/Andy.Agentic.Web
-```
-
-The application will start on `http://localhost:5030`. Open your browser and navigate to this URL to access the web interface.
-
-### Running Tests
+## Run it
 
 ```bash
-# Run all tests
-dotnet test
-
-# Run tests with coverage
-dotnet test --collect:"XPlat Code Coverage"
-
-# Run tests with detailed output
-dotnet test --verbosity normal
+cp src/assets/config.sample.json src/assets/config.json
+# edit src/assets/config.json — see "Runtime configuration" below
+npm ci
+npm start                           # http://localhost:4200
 ```
 
-## Project Structure
+`npm start` is wrapped in a small shell to free port 4200 if a stray dev
+server is still bound — see the `scripts` section of `package.json`.
+
+## Available scripts
+
+| Command                  | Purpose                                                  |
+|--------------------------|----------------------------------------------------------|
+| `npm start`              | Dev server with HMR on port 4200                         |
+| `npm run build`          | Production build to `dist/agentic-app/`                  |
+| `npm run watch`          | Dev build, watching                                      |
+| `npm test`               | Jest unit tests                                          |
+| `npm run test:ci`        | Jest with `--ci --coverage --maxWorkers=50%`             |
+| `npm run test:watch`     | Jest in watch mode                                       |
+| `npm run lint`           | ESLint (`@angular-eslint`, `@typescript-eslint`)         |
+
+> There is **no** `e2e` script today; the historical mention in older docs
+> was aspirational. See `../IMPROVEMENT_PLAN.md` §3.2 for plans.
+
+## Runtime configuration
+
+Settings are loaded at startup from **`src/assets/config.json`** (served as
+`/assets/config.json`). The same build is shipped to every environment;
+only this file differs per deployment. Angular `environment.ts`
+file-replacements are intentionally **not** used.
+
+`src/assets/config.sample.json` shows the expected shape:
+
+```json
+{
+  "production": true,
+  "apiUrl": "https://your-api-host.example/api",
+  "signalRUrl": "https://your-api-host.example/documentRagHub",
+  "azureAd": {
+    "clientId": "your-app-registration-client-id",
+    "tenantId": "your-tenant-id",
+    "redirectUri": "https://your-spa-host.example",
+    "scope": "api://your-api-app-id/Api.Access"
+  }
+}
+```
+
+Loading is gated by `APP_INITIALIZER` (`AppConfigService.load()` in
+`src/app/core/config/`), which runs *before* the MSAL `IPublicClientApplication`
+is constructed. If the file is missing or malformed, bootstrap throws — the
+console will show "Failed to load assets/config.json".
+
+## Auth model
+
+1. `AuthGuard` runs on every protected route; it asks `AuthService` whether
+   MSAL has an active account.
+2. If not, the guard redirects to `/login`, which kicks off an MSAL
+   `loginRedirect()` against the tenant from `config.json`.
+3. `AuthInterceptor` (`src/app/core/interceptors/auth.interceptor.ts`) calls
+   `acquireTokenSilent({ scopes: [config.azureAd.scope] })` for every
+   outgoing API request and attaches the bearer token.
+4. `WriteRoleGuard` additionally protects routes that mutate data; it
+   inspects the `Api.Write` role claim.
+5. The backend `/api/auth/sync` endpoint is called on first sign-in to
+   upsert the user row.
+
+## Project structure
 
 ```
-andy-agentic-web/
-├── src/
-│   └── Andy.Agentic.Web/         # Main ASP.NET Core MVC application
-│       ├── Controllers/          # MVC controllers
-│       ├── Views/               # Razor views
-│       │   ├── Home/            # Home controller views
-│       │   ├── Shared/          # Shared layouts and partials
-│       │   ├── _ViewImports.cshtml
-│       │   └── _ViewStart.cshtml
-│       ├── wwwroot/             # Static files
-│       ├── Properties/          # launchSettings.json
-│       ├── appsettings.json     # Configuration
-│       └── Program.cs           # Application entry point
-├── tests/
-│   └── Andy.Agentic.Web.Tests/  # Unit and integration tests
-└── .github/
-    └── workflows/
-        └── ci.yml               # CI/CD pipeline
+FrontEnd/
+├── angular.json
+├── tailwind.config.js
+├── tsconfig*.json
+├── jest.config.cjs
+├── setup-jest.ts
+├── .eslintrc.json
+├── .prettierrc
+├── Dockerfile
+├── docker-compose.yml
+├── devops/
+│   └── azure-pipeline.yml
+└── src/
+    ├── main.ts                          bootstraps AppModule
+    ├── styles.css                       Tailwind layer imports
+    ├── assets/
+    │   ├── config.json                  ← per-env runtime config (not committed for real values)
+    │   ├── config.sample.json
+    │   ├── agentic-mark.svg
+    │   └── prism-config.js
+    └── app/
+        ├── app.module.ts                root NgModule (APP_INITIALIZER chain)
+        ├── app-routing.module.ts        route table + guards
+        ├── app.component.{ts,html,css}
+        ├── core/
+        │   ├── auth/
+        │   │   ├── auth.module.ts       MSAL provider wiring
+        │   │   ├── services/            AuthService
+        │   │   ├── guards/              AuthGuard
+        │   │   └── components/          Login / Logout / UserProfile
+        │   ├── config/                  AppConfigService + model
+        │   ├── interceptors/            AuthInterceptor (bearer token)
+        │   ├── guards/                  ApiStatusGuard, WriteRoleGuard
+        │   └── services/                api, agent, chat, llm, tool, document,
+        │                                signalr, tag, notification, theme,
+        │                                copy, markdown, role, api-status
+        ├── features/
+        │   ├── agents/                  list + form + detail
+        │   ├── tools/                   list + form + detail
+        │   ├── llm/                     list + form + detail
+        │   ├── chatbot/                 streaming chat UI (needs decomposition)
+        │   └── orchestration/
+        ├── shared/
+        │   ├── components/              notification-toast, theme-toggle,
+        │   │                            loading-overlay, tool-execution-{display,summary}
+        │   └── pipes/                   role pipes
+        ├── layout/
+        │   ├── app-header/
+        │   └── app-sidebar/
+        └── models/                      TS interfaces
 ```
 
-## Configuration
+## Build budgets
 
-[Configuration documentation will be added as the project develops]
+`angular.json` ships with `initial` warning 6 MB / error 10 MB. This is
+generous — `IMPROVEMENT_PLAN.md` §5.5 tracks tightening these and
+lazy-loading Mermaid + Prism.
 
-## Development
+## Running with Docker
 
-### MVC Architecture
-The application follows the Model-View-Controller pattern with:
-- **Models**: Data structures and business entities
-- **Views**: Razor views for server-side rendering
-- **Controllers**: Handle HTTP requests and return appropriate views or data
+```bash
+docker-compose up -d --build       # Nginx serves the built SPA on port 80
+```
 
-### Adding New Features
-1. Create a new controller in the Controllers folder
-2. Add corresponding views in Views/[ControllerName]/
-3. Update navigation in Views/Shared/_Layout.cshtml
-4. Add any required styling to wwwroot/css/site.css
+For production deployments the Nginx config should set `Cache-Control:
+no-store` on `/assets/config.json` and `immutable` on hashed bundles. The
+current image uses the stock Nginx config — adequate for hash-routed Angular
+but not optimised.
 
 ## Contributing
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
-
-## Security Considerations
-
-This is an alpha release intended for development and testing purposes only. The application:
-- May have unpatched security vulnerabilities
-- Should not be exposed to public networks
-- Should not be used with sensitive data
-- Requires careful permission configuration
-
-Always run in isolated environments with appropriate security measures.
+- Stick to Angular's lint rules — `npm run lint` must pass.
+- Run `prettier` (it's hooked via `lint-staged` once Husky is installed —
+  see `../IMPROVEMENT_PLAN.md` §3.6).
+- Add a Jest spec for every new service. Today the project has effectively
+  no test coverage; new code should not make that worse.
+- Follow the existing folder convention: feature modules under
+  `src/app/features/`, cross-cutting code under `src/app/core/`, reusable
+  UI under `src/app/shared/`.
 
 ## License
 
-This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
-
-## Support
-
-This is an alpha release. Community support is available through:
-- GitHub Issues for bug reports and feature requests
-- Discussions for general questions and ideas
-
-## Roadmap
-
-- [ ] Core agent orchestration engine
-- [ ] LLM provider integrations
-- [ ] MCP server support
-- [ ] Web UI implementation
-- [ ] Authentication and authorization
-- [ ] Agent workflow designer
-- [ ] Performance monitoring dashboard
-- [ ] Plugin marketplace
-
-## Disclaimer
-
-This software is provided "as is" without warranty of any kind. Use at your own risk. The authors are not responsible for any damages or losses arising from its use.
+Apache License 2.0 — see `../Backend/LICENSE`.

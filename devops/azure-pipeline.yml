@@ -1,0 +1,139 @@
+trigger:
+- main
+
+stages:
+# =====================
+# 1️⃣ Build Stage
+# =====================
+- stage: Build
+  displayName: 'Build Angular + Docker Images'
+  jobs:
+    - job: BuildJob
+      pool:
+        vmImage: 'ubuntu-latest'
+      variables:
+        IMAGE_TAG: '$(Build.BuildId)'
+      steps:
+        - task: NodeTool@0
+          inputs:
+            versionSpec: '18.x'
+          displayName: 'Install Node.js'
+         
+        - script: |
+            npm install -g @angular/cli
+          displayName: 'Install Angular CLI'
+         
+        - script: |
+            npm install
+          displayName: 'Install npm dependencies'
+         
+        - script: |
+            npm run build --prod
+          displayName: 'Build Angular app'
+         
+        - script: |
+            sudo apt-get update
+            sudo apt-get install -y docker-compose
+            docker-compose --version
+          displayName: 'Install Docker Compose'
+         
+        - script: |
+            docker-compose build
+          displayName: 'Build Docker Compose images'
+         
+        - script: |
+            echo "=== Docker images after build ==="
+            docker images
+            
+            echo "=== Extracting images from docker-compose.prod.yml ==="
+            IMAGES=$(docker-compose config | grep 'image:' | awk '{print $2}')
+            
+            for IMAGE in $IMAGES; do
+              SAFE_NAME=$(echo $IMAGE | tr '/:' '_')
+              echo "Saving $IMAGE as ${SAFE_NAME}.tar"
+              docker save $IMAGE -o ${SAFE_NAME}.tar
+            done
+          displayName: 'Save Docker images as tar files'
+         
+        # Copy docker-compose.prod.yml to build artifacts
+        - task: CopyFiles@2
+          displayName: 'Copy docker-compose.prod.yml to staging'
+          inputs:
+            sourceFolder: '$(System.DefaultWorkingDirectory)'
+            contents: 'docker-compose.prod.yml'
+            targetFolder: '$(Build.ArtifactStagingDirectory)'
+         
+        - publish: $(System.DefaultWorkingDirectory)
+          artifact: docker-images
+           
+        - publish: $(Build.ArtifactStagingDirectory)/docker-compose.prod.yml
+          artifact: docker-compose-file
+
+# =====================
+# 2️⃣ Deploy Stage
+# =====================
+- stage: Deploy
+  displayName: 'Deploy to Server'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+    - job: DeployJob
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - download: current
+          artifact: docker-images
+           
+        - download: current
+          artifact: docker-compose-file
+         
+        - task: CopyFilesOverSSH@0
+          displayName: 'Copy Docker images to server'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            sourceFolder: '$(Pipeline.Workspace)/docker-images'
+            contents: '*.tar'
+            targetFolder: '/opt/agentic-platform/frontend'
+         
+        - task: CopyFilesOverSSH@0
+          displayName: 'Copy docker-compose.prod.yml to server'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            sourceFolder: '$(Pipeline.Workspace)/docker-compose-file'
+            contents: 'docker-compose.prod.yml'
+            targetFolder: '/opt/agentic-platform/frontend'
+         
+        - task: SSH@0
+          displayName: 'Navigate to deployment directory'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            runOptions: 'commands'
+            commands: 'cd /opt/agentic-platform/frontend && pwd && ls -la'
+        
+        - task: SSH@0
+          displayName: 'Load Docker images (ls + xargs approach)'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            runOptions: 'commands'
+            commands: 'cd /opt/agentic-platform/frontend && ls *.tar 2>/dev/null | xargs -I {} docker load -i {}'
+        
+        - task: SSH@0
+          displayName: 'Stop existing containers'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            runOptions: 'commands'
+            commands: 'cd /opt/agentic-platform/frontend && docker-compose -f docker-compose.prod.yml down 2>&1 || echo "No containers were running"'
+        
+        - task: SSH@0
+          displayName: 'Start Docker Compose services'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            runOptions: 'commands'
+            commands: 'cd /opt/agentic-platform/frontend && docker-compose -f docker-compose.prod.yml up -d 2>&1 || echo "No container to run"'
+        
+        - task: SSH@0
+          displayName: 'Show running containers'
+          inputs:
+            sshEndpoint: 'production-server-password'
+            runOptions: 'commands'
+            commands: 'docker ps'

@@ -1,0 +1,26 @@
+/* LLM Component Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .card {
+    @apply bg-surface-card rounded-lg shadow-card p-6 border border-line-light text-ink;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-ground;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center px-4 py-2 border border-line text-ink-secondary bg-surface-card dark:bg-surface-elevated hover:bg-surface-hover font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-ground;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-line rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-surface-card dark:bg-surface-elevated text-ink placeholder:text-ink-muted;
+  }
+
+  .input-field.error {
+    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+  }
+}
