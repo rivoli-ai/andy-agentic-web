@@ -89,6 +89,7 @@ export interface ChatHistoryDto {
   toolResults: ToolExecutionLogDto[];
   thinking?: string;
   images?: ChatImageDto[];
+  skillsUsed?: string[];
 }
 
 @Injectable({
@@ -205,6 +206,12 @@ export class ChatService {
                       observer.next({ type: 'thinking', data: delta.thinking });
                     } else if (delta.content) {
                       observer.next({ type: 'content', data: delta.content });
+                    } else if (
+                      delta.skillsUsed &&
+                      Array.isArray(delta.skillsUsed) &&
+                      delta.skillsUsed.length > 0
+                    ) {
+                      observer.next({ type: 'skillsUsed', data: JSON.stringify(delta.skillsUsed) });
                     }
                   }
                   if (

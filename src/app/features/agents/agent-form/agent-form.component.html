@@ -571,6 +571,17 @@
       </div>
     </div>
 
+    <!-- Skills (registry-backed, progressive disclosure) -->
+    <div class="card" *ngIf="isEditMode && agentId">
+      <div class="mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Skills</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Attach skills from a configured registry. The agent loads each skill's instructions on demand.
+        </p>
+      </div>
+      <app-agent-skills [agentId]="agentId"></app-agent-skills>
+    </div>
+
     <!-- Documents -->
     <div class="card">
       <div class="flex items-center justify-between mb-4">

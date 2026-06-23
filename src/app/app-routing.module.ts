@@ -9,6 +9,8 @@ import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { LLMDetailComponent } from './features/llm/llm-detail/llm-detail.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
+import { SkillsComponent } from './features/skills/skills.component';
+import { SkillFormComponent } from './features/skills/skill-form/skill-form.component';
 import { LoginComponent } from './core/auth/components/login/login.component';
 import { CallbackComponent } from './core/auth/components/callback/callback.component';
 import { LogoutComponent } from './core/auth/components/logout/logout.component';
@@ -58,6 +60,17 @@ const routes: Routes = [
   {
     path: 'llm/:id/edit',
     component: LLMFormComponent,
+    canActivate: [AuthGuard, ApiStatusGuard, WriteRoleGuard],
+  },
+  { path: 'skills', component: SkillsComponent, canActivate: [AuthGuard, ApiStatusGuard] },
+  {
+    path: 'skills/new',
+    component: SkillFormComponent,
+    canActivate: [AuthGuard, ApiStatusGuard, WriteRoleGuard],
+  },
+  {
+    path: 'skills/:id/edit',
+    component: SkillFormComponent,
     canActivate: [AuthGuard, ApiStatusGuard, WriteRoleGuard],
   },
   { path: 'chatbot', component: ChatbotComponent, canActivate: [AuthGuard, ApiStatusGuard] },

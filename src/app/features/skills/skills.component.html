@@ -1,0 +1,194 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Skill Registries</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Connect to an agent-skill registry, then attach its skills to your agents
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0" *ngIf="hasWritePermission | async">
+      <button
+        (click)="createRegistry()"
+        class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-ground"
+      >
+        <div
+          class="absolute inset-0 bg-gradient-to-r from-primary-400 to-violet-500 rounded-xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-200"
+        ></div>
+        <svg
+          class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+            d="M12 4.5v15m7.5-7.5h-15"
+          ></path>
+        </svg>
+        <span class="relative">New Registry</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="flex items-center justify-center py-16">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div
+    *ngIf="!isLoading && registries.length === 0"
+    class="bg-surface-card border border-line-light shadow-card rounded-xl p-12 text-center"
+  >
+    <div
+      class="w-12 h-12 mx-auto mb-4 bg-surface-hover rounded-lg flex items-center justify-center text-ink-muted"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 10V3L4 14h7v7l9-11h-7z"
+        ></path>
+      </svg>
+    </div>
+    <p class="text-ink-secondary">No skill registries configured yet.</p>
+  </div>
+
+  <!-- Registry cards -->
+  <div *ngIf="!isLoading && registries.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div
+      *ngFor="let registry of registries; trackBy: trackById"
+      class="bg-surface-card border border-line-light shadow-card rounded-xl p-5 flex flex-col"
+    >
+      <!-- Title + status -->
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div
+            class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center flex-shrink-0 text-primary-600 dark:text-primary-300"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+            {{ registry.name }}
+          </h3>
+        </div>
+        <span
+          class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium flex-shrink-0"
+          [ngClass]="
+            registry.isActive
+              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+          "
+        >
+          {{ registry.isActive ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+      <!-- Details -->
+      <p class="text-sm text-ink-secondary truncate" [title]="registry.baseUrl">
+        {{ registry.baseUrl }}
+      </p>
+      <div class="mt-2 mb-4">
+        <span
+          class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-normal text-ink-secondary bg-surface-hover border border-line-light"
+        >
+          Auth: {{ registry.authType }}
+        </span>
+      </div>
+
+      <!-- Actions -->
+      <div
+        class="flex items-center justify-between pt-4 mt-auto border-t border-gray-200 dark:border-gray-700"
+      >
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Updated {{ registry.updatedAt | date : 'short' }}
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            (click)="testRegistry(registry)"
+            [disabled]="testingId === registry.id"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200 disabled:opacity-50"
+            title="Test connection"
+          >
+            <svg
+              *ngIf="testingId !== registry.id"
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              ></path>
+            </svg>
+            <svg
+              *ngIf="testingId === registry.id"
+              class="w-4 h-4 animate-spin"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
+              ></path>
+            </svg>
+          </button>
+          <button
+            *ngIf="hasWritePermission | async"
+            (click)="editRegistry(registry)"
+            class="p-2 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-md transition-colors duration-200"
+            title="Edit registry"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              ></path>
+            </svg>
+          </button>
+          <button
+            *ngIf="hasWritePermission | async"
+            (click)="deleteRegistry(registry)"
+            class="p-2 text-error-600 hover:bg-error-50 dark:hover:bg-error-900 rounded-md transition-colors duration-200"
+            title="Delete registry"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

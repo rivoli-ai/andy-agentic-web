@@ -1,0 +1,80 @@
+<div class="space-y-4">
+  <div *ngIf="registries.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+    No active skill registry configured. Add one in the
+    <a routerLink="/skills" class="text-indigo-600 hover:underline">Skill Registries</a> section
+    first.
+  </div>
+
+  <!-- Attached skills -->
+  <div *ngIf="!isLoading && attachedSkills.length > 0" class="space-y-2">
+    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Attached skills</h3>
+    <div
+      *ngFor="let skill of attachedSkills; trackBy: trackBySkillId"
+      class="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 px-3 py-2"
+    >
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+          {{ skill.displayName }}
+          <span class="text-xs text-gray-400"
+            >{{ skill.namespace }}/{{ skill.skillSlug }}&#64;{{ skill.version }}</span
+          >
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ skill.description }}</p>
+      </div>
+      <button type="button" class="btn-error shrink-0" (click)="detach(skill)">Remove</button>
+    </div>
+  </div>
+
+  <!-- Search + attach -->
+  <div *ngIf="registries.length > 0" class="space-y-3">
+    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+      Add a skill from a registry
+    </h3>
+    <div class="flex gap-2">
+      <select [(ngModel)]="selectedRegistryId" name="registry" class="input-field w-auto">
+        <option *ngFor="let r of registries" [value]="r.id">{{ r.name }}</option>
+      </select>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        name="skillSearch"
+        class="input-field flex-1"
+        placeholder="Search by name (leave empty to browse all)…"
+        (keyup.enter)="search()"
+      />
+      <button type="button" class="btn-secondary" [disabled]="isSearching" (click)="search()">
+        {{ isSearching ? 'Searching…' : 'Search' }}
+      </button>
+    </div>
+    <p *ngIf="!isSearching && searchResults.length === 0" class="text-xs text-ink-muted">
+      Type a term that matches a skill's name or description (e.g. “clean”, “email”), or leave the
+      box empty and click Search to list everything in the registry.
+    </p>
+
+    <div *ngIf="searchResults.length > 0" class="space-y-2">
+      <div
+        *ngFor="let result of searchResults; trackBy: trackByResult"
+        class="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 px-3 py-2"
+      >
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+            {{ result.displayName }}
+            <span class="text-xs text-gray-400">
+              {{ result.namespace }}/{{ result.skillSlug
+              }}<span *ngIf="result.version">&#64;{{ result.version }}</span>
+            </span>
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ result.description }}</p>
+        </div>
+        <button
+          type="button"
+          class="btn-primary shrink-0"
+          [disabled]="isAttached(result)"
+          (click)="attach(result)"
+        >
+          {{ isAttached(result) ? 'Attached' : 'Attach' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

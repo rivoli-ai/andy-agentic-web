@@ -41,6 +41,9 @@ import { LLMComponent } from './features/llm/llm.component';
 import { LLMFormComponent } from './features/llm/llm-form/llm-form.component';
 import { LLMDetailComponent } from './features/llm/llm-detail/llm-detail.component';
 import { ChatbotComponent } from './features/chatbot/chatbot.component';
+import { SkillsComponent } from './features/skills/skills.component';
+import { SkillFormComponent } from './features/skills/skill-form/skill-form.component';
+import { AgentSkillsComponent } from './features/skills/agent-skills/agent-skills.component';
 import { highlight } from 'prismjs';
 import { AppConfigService } from './core/config/app-config.service';
 import { AuthService } from './core/auth/services/auth.service';
@@ -69,6 +72,9 @@ export function initApplication(injector: Injector): () => Promise<void> {
     LLMFormComponent,
     LLMDetailComponent,
     ChatbotComponent,
+    SkillsComponent,
+    SkillFormComponent,
+    AgentSkillsComponent,
     LoadingOverlayComponent,
     ThemeToggleComponent,
     HasRolePipe,

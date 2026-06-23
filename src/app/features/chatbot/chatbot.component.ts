@@ -47,6 +47,7 @@ interface ChatMessage {
   isThinking?: boolean;
   showThinking?: boolean;
   images?: ChatImage[];
+  skillsUsed?: string[];
   isExpanded?: boolean; // For long user messages
 }
 
@@ -322,6 +323,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
                 isThinking: false, // Historical messages are never actively thinking
                 showThinking: false,
                 images: msg.images,
+                skillsUsed: msg.skillsUsed,
                 isExpanded: false, // Default to collapsed for long messages
               };
 
@@ -603,6 +605,12 @@ export class ChatbotComponent implements OnInit, OnDestroy {
               streamingMessage.thinking,
               true
             );
+          } else if (chunk.type === 'skillsUsed') {
+            try {
+              streamingMessage.skillsUsed = JSON.parse(chunk.data) as string[];
+            } catch {
+              // ignore malformed skill payload
+            }
           }
           this.scheduleStreamUiUpdate();
         },

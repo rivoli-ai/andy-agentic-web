@@ -150,6 +150,34 @@
         </li>
         <li>
           <a
+            routerLink="/skills"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="nav-item"
+            title="Skills"
+            aria-label="Skill registries"
+            (click)="onMobileNavLinkClick()"
+          >
+            <span class="nav-item__icon" aria-hidden="true">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+              </svg>
+            </span>
+            @if (!isCollapsed() || mobileOpen()) {
+            <span class="nav-label">Skills</span>
+            }
+          </a>
+        </li>
+        <li>
+          <a
             routerLink="/chatbot"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: false }"

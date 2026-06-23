@@ -1,0 +1,124 @@
+<div class="p-6 max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+    {{ isEditMode ? 'Edit' : 'Add' }} skill registry
+  </h1>
+
+  <form [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+    <div class="card space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >Name *</label
+        >
+        <input
+          type="text"
+          formControlName="name"
+          class="input-field"
+          placeholder="Company skill hub"
+        />
+        <p
+          *ngIf="form.get('name')?.invalid && form.get('name')?.touched"
+          class="text-sm text-red-600 mt-1"
+        >
+          Name is required.
+        </p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >Description</label
+        >
+        <input type="text" formControlName="description" class="input-field" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >Base URL *</label
+        >
+        <input
+          type="url"
+          formControlName="baseUrl"
+          class="input-field"
+          placeholder="http://localhost:8080"
+        />
+        <p
+          *ngIf="form.get('baseUrl')?.invalid && form.get('baseUrl')?.touched"
+          class="text-sm text-red-600 mt-1"
+        >
+          Base URL is required.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" formControlName="isActive" id="reg-active" />
+        <label for="reg-active" class="text-sm text-gray-700 dark:text-gray-300">Active</label>
+      </div>
+    </div>
+
+    <div class="card space-y-4">
+      <h2 class="text-lg font-medium text-gray-900 dark:text-white">Authentication</h2>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+        <select formControlName="authType" class="input-field">
+          <option *ngFor="let t of authTypes" [value]="t.value">{{ t.label }}</option>
+        </select>
+        <p *ngIf="isEditMode" class="text-xs text-gray-400 mt-1">
+          Leave credential fields blank to keep the stored secret unchanged.
+        </p>
+      </div>
+
+      <div *ngIf="authType === 'api_key'" class="space-y-3">
+        <input type="password" formControlName="apiKey" class="input-field" placeholder="API key" />
+        <input
+          type="text"
+          formControlName="header"
+          class="input-field"
+          placeholder="Header name (default: X-API-Key)"
+        />
+      </div>
+
+      <div *ngIf="authType === 'bearer'">
+        <input
+          type="password"
+          formControlName="token"
+          class="input-field"
+          placeholder="Bearer token"
+        />
+      </div>
+
+      <div *ngIf="authType === 'basic'" class="space-y-3">
+        <input type="text" formControlName="username" class="input-field" placeholder="Username" />
+        <input
+          type="password"
+          formControlName="password"
+          class="input-field"
+          placeholder="Password"
+        />
+      </div>
+
+      <div *ngIf="authType === 'oauth2'" class="space-y-3">
+        <input type="text" formControlName="clientId" class="input-field" placeholder="Client ID" />
+        <input
+          type="password"
+          formControlName="clientSecret"
+          class="input-field"
+          placeholder="Client secret"
+        />
+        <input type="url" formControlName="tokenUrl" class="input-field" placeholder="Token URL" />
+        <input
+          type="text"
+          formControlName="scopes"
+          class="input-field"
+          placeholder="Scopes (optional)"
+        />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+      <button type="submit" class="btn-primary" [disabled]="isSaving">
+        {{ isSaving ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </form>
+</div>
