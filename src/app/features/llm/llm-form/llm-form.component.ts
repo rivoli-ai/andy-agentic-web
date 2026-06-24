@@ -91,7 +91,7 @@ export class LLMFormComponent implements OnInit, OnDestroy {
       model: ['', [Validators.required]],
       provider: ['', [Validators.required]],
       isActive: [true],
-      maxTokens: [4000, [Validators.min(1), Validators.max(100000)]],
+      maxTokens: [4000, [Validators.min(1), Validators.max(1000000)]],
       temperature: [0.7, [Validators.min(0), Validators.max(2)]],
       topP: [1, [Validators.min(0), Validators.max(1)]],
       frequencyPenalty: [0, [Validators.min(-2), Validators.max(2)]],
