@@ -1,80 +1,218 @@
-<div class="space-y-4">
-  <div *ngIf="registries.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-    No active skill registry configured. Add one in the
-    <a routerLink="/skills" class="text-indigo-600 hover:underline">Skill Registries</a> section
-    first.
+<div class="space-y-5">
+  <!-- No registry configured -->
+  <div
+    *ngIf="registries.length === 0"
+    class="flex items-start gap-3 rounded-lg border border-line-light bg-surface-hover p-4"
+  >
+    <svg
+      class="w-5 h-5 text-ink-muted shrink-0 mt-0.5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      ></path>
+    </svg>
+    <p class="text-sm text-ink-secondary">
+      No active skill registry configured. Add one in the
+      <a
+        routerLink="/skills"
+        class="text-primary-600 hover:text-primary-700 font-medium hover:underline"
+        >Skill Registries</a
+      >
+      section first.
+    </p>
   </div>
 
   <!-- Attached skills -->
-  <div *ngIf="!isLoading && attachedSkills.length > 0" class="space-y-2">
-    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Attached skills</h3>
+  <div *ngIf="!isLoading && attachedSkills.length > 0" class="space-y-3">
+    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+      Attached skills ({{ attachedSkills.length }})
+    </h3>
     <div
       *ngFor="let skill of attachedSkills; trackBy: trackBySkillId"
-      class="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 px-3 py-2"
+      class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3"
     >
-      <div class="min-w-0">
-        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-          {{ skill.displayName }}
-          <span class="text-xs text-gray-400"
-            >{{ skill.namespace }}/{{ skill.skillSlug }}&#64;{{ skill.version }}</span
-          >
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ skill.description }}</p>
+      <div class="flex items-center gap-3 min-w-0">
+        <div
+          class="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center shrink-0 text-primary-600 dark:text-primary-300"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            ></path>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+              {{ skill.displayName }}
+            </p>
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-normal text-ink-secondary bg-surface-hover border border-line-light shrink-0"
+            >
+              {{ skill.namespace }}/{{ skill.skillSlug }}&#64;{{ skill.version }}
+            </span>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ skill.description }}</p>
+        </div>
       </div>
-      <button type="button" class="btn-error shrink-0" (click)="detach(skill)">Remove</button>
+      <button
+        type="button"
+        (click)="detach(skill)"
+        title="Remove skill"
+        class="p-2 rounded-md text-error-600 hover:bg-error-50 dark:text-error-400 dark:hover:bg-error-900 transition-colors shrink-0"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          ></path>
+        </svg>
+      </button>
     </div>
   </div>
 
-  <!-- Search + attach -->
-  <div *ngIf="registries.length > 0" class="space-y-3">
-    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-      Add a skill from a registry
-    </h3>
-    <div class="flex gap-2">
-      <select [(ngModel)]="selectedRegistryId" name="registry" class="input-field w-auto">
+  <!-- Search + attach (autocomplete) -->
+  <div *ngIf="registries.length > 0" class="space-y-2">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+      >Add a skill from a registry</label
+    >
+
+    <div class="flex flex-col sm:flex-row gap-2">
+      <select
+        [(ngModel)]="selectedRegistryId"
+        name="registry"
+        class="input-field sm:w-48 shrink-0"
+        (ngModelChange)="onRegistryChange()"
+      >
         <option *ngFor="let r of registries" [value]="r.id">{{ r.name }}</option>
       </select>
-      <input
-        type="text"
-        [(ngModel)]="searchQuery"
-        name="skillSearch"
-        class="input-field flex-1"
-        placeholder="Search by name (leave empty to browse all)…"
-        (keyup.enter)="search()"
-      />
-      <button type="button" class="btn-secondary" [disabled]="isSearching" (click)="search()">
-        {{ isSearching ? 'Searching…' : 'Search' }}
-      </button>
-    </div>
-    <p *ngIf="!isSearching && searchResults.length === 0" class="text-xs text-ink-muted">
-      Type a term that matches a skill's name or description (e.g. “clean”, “email”), or leave the
-      box empty and click Search to list everything in the registry.
-    </p>
 
-    <div *ngIf="searchResults.length > 0" class="space-y-2">
-      <div
-        *ngFor="let result of searchResults; trackBy: trackByResult"
-        class="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 px-3 py-2"
-      >
-        <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {{ result.displayName }}
-            <span class="text-xs text-gray-400">
-              {{ result.namespace }}/{{ result.skillSlug
-              }}<span *ngIf="result.version">&#64;{{ result.version }}</span>
-            </span>
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ result.description }}</p>
-        </div>
-        <button
-          type="button"
-          class="btn-primary shrink-0"
-          [disabled]="isAttached(result)"
-          (click)="attach(result)"
+      <!-- Autocomplete input + dropdown -->
+      <div class="relative flex-1">
+        <input
+          type="text"
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchInput($event)"
+          (focus)="onSearchFocus()"
+          (blur)="onSearchBlur()"
+          name="skillSearch"
+          autocomplete="off"
+          class="input-field w-full pr-9"
+          placeholder="Type to search skills (or focus to browse all)…"
+        />
+        <!-- spinner -->
+        <svg
+          *ngIf="isSearching"
+          class="w-4 h-4 animate-spin text-ink-muted absolute right-3 top-1/2 -translate-y-1/2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          {{ isAttached(result) ? 'Attached' : 'Attach' }}
-        </button>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          ></path>
+        </svg>
+
+        <!-- Dropdown -->
+        <div
+          *ngIf="dropdownOpen && (isSearching || hasSearched)"
+          (mousedown)="$event.preventDefault()"
+          class="absolute z-20 mt-1 w-full bg-surface-card border border-line rounded-lg shadow-card max-h-72 overflow-auto"
+        >
+          <div *ngIf="isSearching" class="px-3 py-2 text-sm text-ink-muted">Searching…</div>
+
+          <div
+            *ngIf="!isSearching && searchResults.length === 0"
+            class="px-3 py-2 text-sm text-ink-muted"
+          >
+            No skills found. Try another term, or clear the box to browse all.
+          </div>
+
+          <button
+            *ngFor="let result of searchResults; trackBy: trackByResult"
+            type="button"
+            [disabled]="isAttached(result)"
+            (click)="attach(result)"
+            class="w-full text-left px-3 py-2 flex items-center justify-between gap-3 hover:bg-surface-hover disabled:opacity-60 disabled:cursor-default transition-colors"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                class="w-8 h-8 rounded-lg bg-surface-hover flex items-center justify-center shrink-0 text-ink-muted"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{
+                    result.displayName
+                  }}</span>
+                  <span class="text-xs text-ink-muted truncate">
+                    {{ result.namespace }}/{{ result.skillSlug
+                    }}<span *ngIf="result.version">&#64;{{ result.version }}</span>
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {{ result.description }}
+                </p>
+              </div>
+            </div>
+
+            <span
+              *ngIf="isAttached(result)"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 shrink-0"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                ></path>
+              </svg>
+              Attached
+            </span>
+            <svg
+              *ngIf="!isAttached(result)"
+              class="w-5 h-5 text-primary-600 dark:text-primary-300 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              ></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
+
+    <p class="text-xs text-ink-muted">
+      Start typing to find skills in the selected registry, then click one to attach it.
+    </p>
   </div>
 </div>

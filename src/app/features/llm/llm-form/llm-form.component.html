@@ -199,7 +199,7 @@
             class="input-field"
             [class.border-error-500]="isFieldInvalid('maxTokens')"
             min="1"
-            max="100000"
+            max="1000000"
           />
           <div *ngIf="isFieldInvalid('maxTokens')" class="mt-1 text-sm text-error-600">
             {{ getFieldError('maxTokens') }}
